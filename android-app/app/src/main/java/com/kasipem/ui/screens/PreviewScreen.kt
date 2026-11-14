@@ -494,20 +494,17 @@ private fun PreviewSignature(
         }
         Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
             if (signer == "SEKDES") {
+                // a.n. Kepala Desa oleh Sekdes — dipakai pisah KK, kematian,
+                // USAHA & Duda/Janda juga (user 2026-11-15: blok Sekdes selalu a.n.).
                 TextPreview("a.n. Kepala Desa $desaTitleCase")
                 TextPreview("Sekretaris Desa")
                 Spacer(modifier = Modifier.height(24.dp))
                 TextPreview(header.namaSekdes)
                 // Baris NIP hanya bila diisi; default kosong (tidak ada NIP).
                 if (header.nipSekdes.isNotBlank()) TextPreview("NIP: ${header.nipSekdes}")
-            } else if (signer == "SEKDES_ONLY") {
-                // Sekretaris Desa saja (tanpa "a.n.") — dipakai SKU & Duda/Janda.
-                TextPreview("Sekretaris Desa")
-                Spacer(modifier = Modifier.height(24.dp))
-                TextPreview(header.namaSekdes)
-                if (header.nipSekdes.isNotBlank()) TextPreview("NIP: ${header.nipSekdes}")
             } else {
-                TextPreview("Kepala Desa $desaTitleCase")
+                // Kepala Desa saja (tanpa nama desa — sudah ada di baris tempat/tanggal).
+                TextPreview("Kepala Desa")
                 Spacer(modifier = Modifier.height(24.dp))
                 TextPreview(header.namaPejabat)
                 if (header.nipPejabat.isNotBlank()) TextPreview("NIP: ${header.nipPejabat}")
@@ -899,7 +896,7 @@ private fun PreviewUsahaContent(header: HeaderData, data: UsahaData, date: Strin
         TextPreview("Alamat Usaha         : ${data.alamatUsaha}")
         Spacer(modifier = Modifier.height(8.dp))
         TextPreview("Adalah benar bahwa yang bersangkutan memiliki usaha ${data.namaUsaha} yang bertempat di ${data.alamatUsaha}. Surat keterangan ini diberikan untuk keperluan administrasi usaha.")
-        PreviewSignature(header, date, "SEKDES_ONLY")
+        PreviewSignature(header, date, "SEKDES")
     }
 }
 
@@ -919,7 +916,7 @@ private fun PreviewDudaJandaContent(header: HeaderData, data: DudaJandaData, dat
         }
         Spacer(modifier = Modifier.height(8.dp))
         TextPreview("Adalah benar bahwa yang bersangkutan berstatus ${data.statusDudaJanda.lowercase()} dan belum menikah lagi sampai saat surat keterangan ini dibuat. Surat keterangan ini diberikan untuk keperluan administrasi kependudukan.")
-        PreviewSignature(header, date, "SEKDES_ONLY")
+        PreviewSignature(header, date, "SEKDES")
     }
 }
 

@@ -20,8 +20,9 @@ import java.io.FileOutputStream
  * Bila logo tidak ada/rusak, kop tetap tampil sebagai teks — tidak crash.
  * Font FASE 3 (samakan dengan web): isi 12pt, judul 14pt bold, teks kop
  * 12pt (baris desa 14pt); tabel padat 8–10pt.
- * Tanda tangan: Kepala Desa (default); pisah_kk/kematian = a.n. Kepala
- * Desa oleh Sekretaris Desa; usaha/duda_janda = Sekretaris Desa;
+ * Tanda tangan: Kepala Desa (default); pisah_kk/kematian/usaha/duda_janda =
+ * a.n. Kepala Desa oleh Sekretaris Desa (user 2026-11-15: blok Sekdes selalu
+ * "a.n. Kepala Desa Kasomalang Kulon / Sekretaris Desa").
  * tidak_mampu = Kepala Desa + "Mengetahui, Ketua RW" di kiri;
  * ahli_waris = Kepala Desa + "Mengetahui, Camat Kasomalang" di kiri.
  * Formulir panjang (F-1.01, F-2.01, F-1.03, PBI Asesmen) BOLEH multi-halaman.
@@ -30,7 +31,7 @@ class PdfGenerator(private val context: Context) {
 
     private val baseFont = BaseFont.createFont(BaseFont.HELVETICA, BaseFont.WINANSI, BaseFont.EMBEDDED)
 
-    private enum class Signer { KADES, SEKDES_AN, SEKDES }
+    private enum class Signer { KADES, SEKDES_AN }
 
     // ------------------------------------------------------------------
     // Dispatcher — satu pintu masuk untuk semua tipe.
@@ -579,7 +580,7 @@ class PdfGenerator(private val context: Context) {
             )
         )
         addContent(document, "Adalah benar bahwa yang bersangkutan memiliki usaha ${data.namaUsaha} yang bertempat di ${data.alamatUsaha}. Surat keterangan ini diberikan untuk keperluan administrasi usaha.")
-        addFooter(document, headerData, effectiveTanggalSurat(data.tanggalSurat), Signer.SEKDES)
+        addFooter(document, headerData, effectiveTanggalSurat(data.tanggalSurat), Signer.SEKDES_AN)
         document.close()
     }
 
@@ -606,7 +607,7 @@ class PdfGenerator(private val context: Context) {
             addContent(document, "Keterangan Ketua RT: ${data.keteranganRT}.")
         }
         addContent(document, "Adalah benar bahwa yang bersangkutan berstatus ${data.statusDudaJanda.lowercase()} dan belum menikah lagi sampai saat surat keterangan ini dibuat. Surat keterangan ini diberikan untuk keperluan administrasi kependudukan.")
-        addFooter(document, headerData, effectiveTanggalSurat(data.tanggalSurat), Signer.SEKDES)
+        addFooter(document, headerData, effectiveTanggalSurat(data.tanggalSurat), Signer.SEKDES_AN)
         document.close()
     }
 
@@ -1695,13 +1696,12 @@ class PdfGenerator(private val context: Context) {
         val rightCell = PdfPCell()
         rightCell.border = Rectangle.NO_BORDER
         val (jabatan, nama, nip) = when (signer) {
-            Signer.KADES -> Triple("Kepala Desa ${titleCase(header.namaDesa)}", header.namaPejabat, header.nipPejabat)
+            Signer.KADES -> Triple("Kepala Desa", header.namaPejabat, header.nipPejabat)
             Signer.SEKDES_AN -> Triple(
                 "a.n. Kepala Desa ${titleCase(header.namaDesa)}\nSekretaris Desa",
                 header.namaSekdes,
                 header.nipSekdes
             )
-            Signer.SEKDES -> Triple("Sekretaris Desa", header.namaSekdes, header.nipSekdes)
         }
         val signatureText = buildString {
             appendLine(jabatan)

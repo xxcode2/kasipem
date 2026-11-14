@@ -185,13 +185,15 @@ function resolveSigner(type: LetterType, header: HeaderData): SignerBlock {
       kind: 'sekdes-an',
     };
   }
-  // Sekretaris Desa (tanpa a.n.): usaha + duda/janda.
+  // Sekretaris Desa: usaha + duda/janda — juga a.n. Kepala Desa (user 2026-11-15:
+  // blok Sekdes selalu "a.n. Kepala Desa Kasomalang Kulon / Sekretaris Desa").
   if (type === 'usaha' || type === 'duda_janda') {
     return {
+      prefix: `a.n. Kepala Desa ${desa}`,
       role: 'Sekretaris Desa',
       name: header.namaSekdes || 'APIPUDIN, S.IP',
       nip: (header.nipSekdes || '').trim(),
-      kind: 'sekdes',
+      kind: 'sekdes-an',
     };
   }
   return {
