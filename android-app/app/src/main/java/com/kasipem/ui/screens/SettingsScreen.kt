@@ -18,6 +18,16 @@ import com.kasipem.data.HeaderData
 import com.kasipem.ui.components.FormTextField
 import com.kasipem.ui.components.FormDropdown
 
+/**
+ * Pengaturan data kop & pejabat.
+ * Desa asli (Kasomalang Kulon) dan nama pejabat asli sebagai default:
+ * Kades H. AMIRUDIN, S.Pd.I; Sekdes APIPUDIN, S.IP (user, 2026-11-14).
+ * TIDAK ADA NIP: field NIP ada sebagai opsional kosong; bila kosong,
+ * baris NIP tidak dirender di preview/PDF sama sekali.
+ * Logo kop (Garuda + Subang) sudah disertakan di assets/kop/ dan
+ * dipakai otomatis di preview & PDF; bila file logo tidak ada,
+ * kop tetap tampil sebagai teks.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsSheet(
@@ -30,7 +40,6 @@ fun SettingsSheet(
 
     Box(modifier = modifier.background(Color.White)) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Header
             TopAppBar(
                 title = {
                     Text(
@@ -41,7 +50,7 @@ fun SettingsSheet(
                 },
                 actions = {
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White)
+                        Icon(Icons.Default.Close, contentDescription = "Tutup", tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -49,7 +58,6 @@ fun SettingsSheet(
                 )
             )
 
-            // Content
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -58,7 +66,6 @@ fun SettingsSheet(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Section: Lokasi
                 Text(
                     "Lokasi Desa/Kelurahan",
                     style = MaterialTheme.typography.titleMedium,
@@ -70,47 +77,46 @@ fun SettingsSheet(
                     label = "Nama Kabupaten/Kota",
                     value = headerData.namaKabupaten,
                     onValueChange = { onHeaderChange(headerData.copy(namaKabupaten = it)) },
-                    placeholder = "Contoh: KABUPATEN BANDUNG"
+                    placeholder = "Contoh: KABUPATEN SUBANG"
                 )
 
                 FormTextField(
                     label = "Nama Kecamatan",
                     value = headerData.namaKecamatan,
                     onValueChange = { onHeaderChange(headerData.copy(namaKecamatan = it)) },
-                    placeholder = "Contoh: KECAMATAN RANCAEKEK"
+                    placeholder = "Contoh: KECAMATAN KASOMALANG"
                 )
 
                 FormTextField(
                     label = "Nama Desa/Kelurahan",
                     value = headerData.namaDesa,
                     onValueChange = { onHeaderChange(headerData.copy(namaDesa = it)) },
-                    placeholder = "Contoh: DESA RANCAMANYAR"
+                    placeholder = "Contoh: KASOMALANG KULON"
                 )
 
                 FormTextField(
                     label = "Alamat Kantor",
                     value = headerData.alamatKantor,
                     onValueChange = { onHeaderChange(headerData.copy(alamatKantor = it)) },
-                    placeholder = "Contoh: Jl. Raya Desa No. 123",
+                    placeholder = "Contoh: Jln. Raya Kasomalang No.01 Subang 41281",
                     singleLine = false,
                     maxLines = 3
                 )
 
                 Divider(modifier = Modifier.padding(vertical = 8.dp))
 
-                // Section: Pejabat Penandatangan
                 Text(
-                    "Penandatangan Surat",
+                    "Kepala Desa (Penandatangan Utama)",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
 
                 FormTextField(
-                    label = "Nama Pejabat",
+                    label = "Nama Kepala Desa",
                     value = headerData.namaPejabat,
                     onValueChange = { onHeaderChange(headerData.copy(namaPejabat = it)) },
-                    placeholder = "Contoh: H. Nama Kepala Desa"
+                    placeholder = "H. AMIRUDIN, S.Pd.I"
                 )
 
                 FormDropdown(
@@ -126,13 +132,13 @@ fun SettingsSheet(
                 )
 
                 FormTextField(
-                    label = "NIP",
+                    label = "NIP Kepala Desa",
                     value = headerData.nipPejabat,
                     onValueChange = { onHeaderChange(headerData.copy(nipPejabat = it)) },
-                    placeholder = "Contoh: 1234567890"
+                    placeholder = "Kosongkan — tidak ada NIP",
+                    isOptional = true
                 )
 
-                // A.n. Checkbox
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -151,10 +157,47 @@ fun SettingsSheet(
                     )
                 }
 
+                Divider(modifier = Modifier.padding(vertical = 8.dp))
+
+                Text(
+                    "Sekretaris Desa (Penandatangan a.n. Kepala Desa — Surat Pisah KK)",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                FormTextField(
+                    label = "Nama Sekretaris Desa",
+                    value = headerData.namaSekdes,
+                    onValueChange = { onHeaderChange(headerData.copy(namaSekdes = it)) },
+                    placeholder = "APIPUDIN, S.IP"
+                )
+
+                FormTextField(
+                    label = "NIP Sekretaris Desa",
+                    value = headerData.nipSekdes,
+                    onValueChange = { onHeaderChange(headerData.copy(nipSekdes = it)) },
+                    placeholder = "Kosongkan — tidak ada NIP",
+                    isOptional = true
+                )
+
+                Divider(modifier = Modifier.padding(vertical = 8.dp))
+
+                Text(
+                    "Logo Kop Surat",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    "Logo Garuda Pancasila (kiri) dan logo Kabupaten Subang (kanan) sudah disertakan di dalam aplikasi (assets/kop/kades.jpg dan assets/kop/sekdes.png) dan tampil otomatis di pratinjau dan PDF. Bila file logo tidak ditemukan, kop tetap tampil sebagai teks.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // Action Button
             Button(
                 onClick = onDismiss,
                 modifier = Modifier

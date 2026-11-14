@@ -2,8 +2,9 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'KASIPEM - Pembuat Surat Administrasi Desa/Kelurahan',
-  description: 'Aplikasi stateless untuk membuat berbagai jenis surat administrasi desa/kelurahan secara cepat dan mudah.',
+  title: 'KASIPEM - Pembuat Surat Administrasi Desa Kasomalang Kulon',
+  description:
+    'Aplikasi stateless untuk membuat 12 jenis surat administrasi Desa Kasomalang Kulon, Kecamatan Kasomalang, Kabupaten Subang — cepat, gratis, dan data hanya tersimpan di perangkat Anda.',
   icons: {
     icon: '/favicon.ico',
   },
@@ -16,9 +17,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="id">
-      <body className="bg-gradient-to-br from-blue-50 via-teal-50 to-emerald-50 min-h-screen">
-        {children}
-      </body>
+      <body className="bg-stone-100 min-h-screen text-stone-800">{children}</body>
     </html>
   );
 }

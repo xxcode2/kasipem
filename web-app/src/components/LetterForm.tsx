@@ -1,257 +1,194 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { useMemo, useState } from 'react';
 import { useLetterStore } from '../lib/store';
-import { LetterType } from '../types';
-import { Send, RotateCcw } from 'lucide-react';
-
-interface FormField {
-  name: string;
-  label: string;
-  type: string;
-  placeholder?: string;
-  required?: boolean;
-  rows?: number;
-  optional?: boolean;
-  options?: { value: string; label: string }[];
-}
-
-const formConfigs: Record<LetterType, FormField[]> = {
-  domisili: [
-    { name: 'namaLengkap', label: 'Nama Lengkap', type: 'text', required: true },
-    { name: 'nik', label: 'NIK', type: 'text', required: true },
-    { name: 'jenisKelamin', label: 'Jenis Kelamin', type: 'select', options: [
-      { value: '', label: 'Pilih...' },
-      { value: 'Laki-laki', label: 'Laki-laki' },
-      { value: 'Perempuan', label: 'Perempuan' }
-    ] },
-    { name: 'tempatLahir', label: 'Tempat Lahir', type: 'text' },
-    { name: 'tanggalLahir', label: 'Tanggal Lahir', type: 'date' },
-    { name: 'pekerjaan', label: 'Pekerjaan', type: 'text' },
-    { name: 'alamatAsal', label: 'Alamat Asal (KTP)', type: 'textarea', required: true, rows: 2 },
-    { name: 'rt', label: 'RT', type: 'text', required: true },
-    { name: 'rw', label: 'RW', type: 'text', required: true },
-    { name: 'alamatDomisili', label: 'Alamat Domisili Saat Ini', type: 'textarea', required: true, rows: 2 },
-    { name: 'keperluanSurat', label: 'Keperluan Surat', type: 'text', required: true },
-  ],
-  pisah_kk: [
-    { name: 'nama1', label: 'Nama Pemisah Pertama', type: 'text', required: true },
-    { name: 'nik1', label: 'NIK Pemisah Pertama', type: 'text', required: true },
-    { name: 'nama2', label: 'Nama Pemisah Kedua', type: 'text', required: true },
-    { name: 'nik2', label: 'NIK Pemisah Kedua', type: 'text', required: true },
-    { name: 'nomorKKLama', label: 'Nomor KK Lama', type: 'text', required: true },
-    { name: 'alamat', label: 'Alamat', type: 'textarea', required: true, rows: 2 },
-  ],
-  skt_dayat: [
-    { name: 'namaLengkap', label: 'Nama Pemilik Tanah', type: 'text', required: true },
-    { name: 'nik', label: 'NIK', type: 'text', required: true },
-    { name: 'tempatLahir', label: 'Tempat Lahir', type: 'text' },
-    { name: 'tanggalLahir', label: 'Tanggal Lahir', type: 'date' },
-    { name: 'alamat', label: 'Alamat', type: 'textarea', required: true, rows: 2 },
-    { name: 'luasTanah', label: 'Luas Tanah (m²)', type: 'number', required: true },
-    { name: 'luasBangunan', label: 'Luas Bangunan (m²)', type: 'number' },
-    { name: 'spptNop', label: 'SPPT/NOP', type: 'text' },
-  ],
-  beda_luas: [
-    { name: 'namaLengkap', label: 'Nama Lengkap', type: 'text', required: true },
-    { name: 'nik', label: 'NIK', type: 'text', required: true },
-    { name: 'alamat', label: 'Alamat', type: 'textarea', required: true, rows: 2 },
-    { name: 'nomorSertifikat', label: 'Nomor Sertifikat', type: 'text', required: true },
-    { name: 'luasSertifikat', label: 'Luas Sertifikat (m²)', type: 'text', required: true },
-    { name: 'nomorSPPT', label: 'Nomor SPPT', type: 'text', required: true },
-    { name: 'luasSPPT', label: 'Luas SPPT (m²)', type: 'text', required: true },
-  ],
-  beda_nama: [
-    { name: 'namaLengkap', label: 'Nama Saat Ini', type: 'text', required: true },
-    { name: 'nik', label: 'NIK', type: 'text', required: true },
-    { name: 'namaDokumen1', label: 'Nama di Dokumen Pertama', type: 'text', required: true },
-    { name: 'namaDokumen2', label: 'Nama di Dokumen Kedua', type: 'text', required: true },
-    { name: 'alasan', label: 'Alasan Perbedaan Nama', type: 'textarea', required: true, rows: 2 },
-  ],
-  belum_menikah: [
-    { name: 'namaLengkap', label: 'Nama Lengkap', type: 'text', required: true },
-    { name: 'nik', label: 'NIK', type: 'text', required: true },
-    { name: 'tempatLahir', label: 'Tempat Lahir', type: 'text' },
-    { name: 'tanggalLahir', label: 'Tanggal Lahir', type: 'date' },
-    { name: 'pekerjaan', label: 'Pekerjaan', type: 'text' },
-    { name: 'alamat', label: 'Alamat', type: 'textarea', required: true, rows: 2 },
-    { name: 'keperluan', label: 'Keperluan', type: 'text', required: true },
-  ],
-  tidak_mampu: [
-    { name: 'namaLengkap', label: 'Nama Lengkap', type: 'text', required: true },
-    { name: 'nik', label: 'NIK', type: 'text', required: true },
-    { name: 'tempatLahir', label: 'Tempat Lahir', type: 'text' },
-    { name: 'tanggalLahir', label: 'Tanggal Lahir', type: 'date' },
-    { name: 'pekerjaan', label: 'Pekerjaan', type: 'text' },
-    { name: 'alamat', label: 'Alamat', type: 'textarea', required: true, rows: 2 },
-    { name: 'penghasilanBulanan', label: 'Penghasilan Bulanan', type: 'text' },
-    { name: 'keperluan', label: 'Keperluan', type: 'text', required: true },
-  ],
-  ahli_waris: [
-    { name: 'namaPeninggal', label: 'Nama Peninggal (Mayit)', type: 'text', required: true },
-    { name: 'nikPeninggal', label: 'NIK Peninggal', type: 'text', required: true },
-    { name: 'alamatPeninggal', label: 'Alamat Peninggal', type: 'textarea', required: true, rows: 2 },
-    { name: 'namaAhliWaris1', label: 'Nama Ahli Waris 1', type: 'text', required: true },
-    { name: 'nikAhliWaris1', label: 'NIK Ahli Waris 1', type: 'text' },
-    { name: 'hubunganAhliWaris1', label: 'Hubungan dengan Peninggal', type: 'text' },
-    { name: 'namaAhliWaris2', label: 'Nama Ahli Waris 2', type: 'text' },
-    { name: 'nikAhliWaris2', label: 'NIK Ahli Waris 2', type: 'text' },
-    { name: 'hubunganAhliWaris2', label: 'Hubungan dengan Peninggal', type: 'text' },
-    { name: 'keterangan', label: 'Keterangan Tambahan', type: 'textarea', rows: 2 },
-  ],
-  nikah_tidak_tercatat: [
-    { name: 'namaPria', label: 'Nama Pria', type: 'text', required: true },
-    { name: 'nikPria', label: 'NIK Pria', type: 'text', required: true },
-    { name: 'tempatLahirPria', label: 'Tempat Lahir Pria', type: 'text' },
-    { name: 'tanggalLahirPria', label: 'Tanggal Lahir Pria', type: 'date' },
-    { name: 'namaWanita', label: 'Nama Wanita', type: 'text', required: true },
-    { name: 'nikWanita', label: 'NIK Wanita', type: 'text', required: true },
-    { name: 'tempatLahirWanita', label: 'Tempat Lahir Wanita', type: 'text' },
-    { name: 'tanggalLahirWanita', label: 'Tanggal Lahir Wanita', type: 'date' },
-    { name: 'tanggalPernikahan', label: 'Tanggal Pernikahan', type: 'date', required: true },
-    { name: 'tempatPernikahan', label: 'Tempat Pernikahan', type: 'text', required: true },
-  ],
-  pemakaman: [
-    { name: 'namaAlmarhum', label: 'Nama Almarhum/Almarhumah', type: 'text', required: true },
-    { name: 'nikAlmarhum', label: 'NIK Almarhum', type: 'text' },
-    { name: 'tempatLahir', label: 'Tempat Lahir', type: 'text' },
-    { name: 'tanggalLahir', label: 'Tanggal Lahir', type: 'date' },
-    { name: 'alamat', label: 'Alamat', type: 'textarea', required: true, rows: 2 },
-    { name: 'tanggalMeninggal', label: 'Tanggal Meninggal', type: 'date', required: true },
-    { name: 'lokasiMakam', label: 'Lokasi Makam', type: 'text', required: true },
-    { name: 'namaKeluarga', label: 'Nama Keluarga yang Memohon', type: 'text', required: true },
-  ],
-  tidak_memiliki_rumah: [
-    { name: 'namaLengkap', label: 'Nama Lengkap', type: 'text', required: true },
-    { name: 'nik', label: 'NIK', type: 'text', required: true },
-    { name: 'tempatLahir', label: 'Tempat Lahir', type: 'text' },
-    { name: 'tanggalLahir', label: 'Tanggal Lahir', type: 'date' },
-    { name: 'pekerjaan', label: 'Pekerjaan', type: 'text' },
-    { name: 'alamatTinggal', label: 'Alamat Tempat Tinggal Saat Ini', type: 'textarea', required: true, rows: 2 },
-    { name: 'keterangan', label: 'Keterangan Tambahan', type: 'textarea', rows: 2 },
-  ],
-  undangan: [
-    { name: 'tujuanYth', label: 'Tujuan Yth. (Nama & Jabatan)', type: 'textarea', required: true, rows: 2 },
-    { name: 'hari', label: 'Hari', type: 'text', required: true },
-    { name: 'tanggal', label: 'Tanggal', type: 'text', required: true },
-    { name: 'bulan', label: 'Bulan', type: 'text', required: true },
-    { name: 'tahun', label: 'Tahun', type: 'text', required: true },
-    { name: 'pukul', label: 'Pukul', type: 'text', required: true },
-    { name: 'tempat', label: 'Tempat', type: 'textarea', required: true, rows: 2 },
-    { name: 'agendaAcara', label: 'Agenda Acara', type: 'textarea', required: true, rows: 3 },
-    { name: 'daftarTembusan', label: 'Tembusan (opsional)', type: 'textarea', rows: 2 },
-  ],
-};
+import { LETTER_MAP, isValidNik } from '../lib/letter-definitions';
+import { formatDateSurat } from '../lib/letter-content';
+import { Send, RotateCcw, X, AlertTriangle } from 'lucide-react';
 
 interface LetterFormProps {
-  onSubmit: (data: any) => void;
-  isLoading?: boolean;
+  isOpen: boolean;
+  onClose: () => void;
+  onPreview: () => void;
 }
 
-export function LetterForm({ onSubmit, isLoading = false }: LetterFormProps) {
+/**
+ * Modal form per jenis surat. Field berasal dari LETTER_DEFINITIONS
+ * (kanon yang sama dengan store/preview/PDF). Validasi inline — tanpa alert().
+ * NIK bukan 16 digit hanya peringatan, bukan blokir keras.
+ */
+export function LetterForm({ isOpen, onClose, onPreview }: LetterFormProps) {
   const { letterType, letterData, setLetterData, reset } = useLetterStore();
-  const fields = formConfigs[letterType];
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [formError, setFormError] = useState('');
+
+  const def = LETTER_MAP[letterType];
+  const fields = def.fields;
+
+  const nikWarnings = useMemo(() => {
+    const warns: Record<string, string> = {};
+    for (const f of fields) {
+      if (f.name.toLowerCase().includes('nik')) {
+        const v = (letterData[f.name] || '').trim();
+        if (v && !isValidNik(v)) {
+          warns[f.name] = 'NIK sebaiknya 16 digit angka.';
+        }
+      }
+    }
+    return warns;
+  }, [fields, letterData]);
+
+  if (!isOpen) return null;
 
   const handleChange = (field: string, value: string) => {
     setLetterData({ [field]: value });
+    setErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const requiredFields = fields.filter(f => f.required);
-    const missing = requiredFields.filter(f => !letterData[f.name]);
-    if (missing.length > 0) {
-      alert(`Kolom wajib diisi: ${missing.map(f => f.label).join(', ')}`);
+    const missing = fields.filter((f) => f.required && !(letterData[f.name] || '').trim());
+    if (!letterData.nomorSurat?.trim() && def.nomorPrefix) {
+      setFormError('Nomor surat wajib diisi.');
       return;
     }
-    onSubmit(letterData);
+    if (missing.length > 0) {
+      const errs: Record<string, string> = {};
+      for (const f of missing) errs[f.name] = `${f.label} wajib diisi.`;
+      setErrors(errs);
+      setFormError(`Masih ada ${missing.length} kolom wajib yang belum diisi: ${missing.map((f) => f.label).join(', ')}.`);
+      return;
+    }
+    setFormError('');
+    onPreview();
+  };
+
+  const handleReset = () => {
+    reset();
+    setErrors({});
+    setFormError('');
   };
 
   return (
-    <motion.form
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      onSubmit={handleSubmit}
-      className="bg-white rounded-2xl shadow-lg p-8 space-y-6"
+    <div
+      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+      onClick={onClose}
     >
-      <div className="mb-6 pb-6 border-b border-gray-200">
-        <h3 className="text-xl font-bold text-gray-800">Isi Data Surat</h3>
-        <p className="text-sm text-gray-600 mt-1">
-          Lengkapi semua kolom yang ditandai dengan <span className="text-red-500">*</span>
-        </p>
-      </div>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+      >
+        <div className="bg-teal-700 text-white px-6 py-4 flex items-center justify-between shrink-0">
+          <div>
+            <h2 className="text-lg font-semibold">{def.title}</h2>
+            <p className="text-sm text-teal-100">{def.description}</p>
+          </div>
+          <button onClick={onClose} className="text-white/80 hover:text-white" aria-label="Tutup">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-      {/* Form fields grid */}
-      <div className="space-y-6">
-        {fields.map((field, index) => (
-          <motion.div
-            key={field.name}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.02 }}
-            className="group"
-          >
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              {field.label}
-              {field.required && <span className="text-red-500 ml-1">*</span>}
-              {field.optional && <span className="text-gray-400 text-xs ml-1">(opsional)</span>}
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-5">
+          <p className="text-sm text-stone-600">
+            Lengkapi kolom bertanda <span className="text-red-600">*</span>. Tanggal surat otomatis
+            hari ini: <strong>{formatDateSurat(letterData.tanggalSurat)}</strong>.
+          </p>
+
+          {/* Nomor surat — editable, default per pola jenis surat */}
+          <div>
+            <label className="block text-sm font-semibold text-stone-700 mb-1.5">
+              Nomor Surat <span className="text-red-600">*</span>
             </label>
+            <input
+              type="text"
+              value={letterData.nomorSurat || ''}
+              onChange={(e) => handleChange('nomorSurat', e.target.value)}
+              placeholder={def.nomorPrefix ? `${def.nomorPrefix} / ... / ${def.nomorSuffix} / ${new Date().getFullYear()}` : 'Isi nomor surat secara manual'}
+              className="w-full px-4 py-2.5 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-700 focus:border-teal-700"
+            />
+          </div>
 
-            {field.type === 'textarea' ? (
-              <textarea
-                value={letterData[field.name] || ''}
-                onChange={(e) => handleChange(field.name, e.target.value)}
-                placeholder={field.placeholder}
-                rows={field.rows || 3}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
-              />
-            ) : field.type === 'select' ? (
-              <select
-                value={letterData[field.name] || ''}
-                onChange={(e) => handleChange(field.name, e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-              >
-                {field.options?.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-            ) : (
-              <input
-                type={field.type}
-                value={letterData[field.name] || ''}
-                onChange={(e) => handleChange(field.name, e.target.value)}
-                placeholder={field.placeholder}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-              />
-            )}
-          </motion.div>
-        ))}
-      </div>
+          {fields.map((field) => (
+            <div key={field.name}>
+              <label className="block text-sm font-semibold text-stone-700 mb-1.5">
+                {field.label}
+                {field.required && <span className="text-red-600 ml-1">*</span>}
+              </label>
 
-      {/* Action buttons */}
-      <div className="flex gap-3 pt-6 border-t border-gray-200">
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          type="button"
-          onClick={reset}
-          className="px-6 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition-all flex items-center gap-2"
-        >
-          <RotateCcw className="w-4 h-4" />
-          Reset
-        </motion.button>
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          type="submit"
-          disabled={isLoading}
-          className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg font-semibold text-white hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
-        >
-          <Send className="w-4 h-4" />
-          {isLoading ? 'Memproses...' : 'Lihat Preview & Unduh'}
-        </motion.button>
+              {field.type === 'textarea' ? (
+                <textarea
+                  value={letterData[field.name] || ''}
+                  onChange={(e) => handleChange(field.name, e.target.value)}
+                  placeholder={field.placeholder}
+                  rows={field.rows || 3}
+                  className="w-full px-4 py-2.5 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-700 focus:border-teal-700 resize-none"
+                />
+              ) : field.type === 'select' ? (
+                <select
+                  value={letterData[field.name] || ''}
+                  onChange={(e) => handleChange(field.name, e.target.value)}
+                  className="w-full px-4 py-2.5 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-700 focus:border-teal-700 bg-white"
+                >
+                  {field.options?.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type={field.type}
+                  value={letterData[field.name] || ''}
+                  onChange={(e) => handleChange(field.name, e.target.value)}
+                  placeholder={field.placeholder}
+                  maxLength={field.name.toLowerCase().includes('nik') ? 16 : undefined}
+                  inputMode={field.name.toLowerCase().includes('nik') ? 'numeric' : undefined}
+                  className="w-full px-4 py-2.5 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-700 focus:border-teal-700"
+                />
+              )}
+
+              {errors[field.name] && (
+                <p className="mt-1 text-sm text-red-600">{errors[field.name]}</p>
+              )}
+              {nikWarnings[field.name] && !errors[field.name] && (
+                <p className="mt-1 text-sm text-amber-700 flex items-center gap-1">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  {nikWarnings[field.name]}
+                </p>
+              )}
+            </div>
+          ))}
+
+          {formError && (
+            <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {formError}
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-4 border-t border-stone-200">
+            <button
+              type="button"
+              onClick={handleReset}
+              className="px-5 py-2.5 border border-stone-300 rounded-lg font-medium text-stone-700 hover:bg-stone-100 flex items-center gap-2"
+            >
+              <RotateCcw className="w-4 h-4" />
+              Reset
+            </button>
+            <button
+              type="submit"
+              className="flex-1 px-5 py-2.5 bg-teal-700 rounded-lg font-medium text-white hover:bg-teal-800 flex items-center justify-center gap-2"
+            >
+              <Send className="w-4 h-4" />
+              Lihat Preview
+            </button>
+          </div>
+        </form>
       </div>
-    </motion.form>
+    </div>
   );
 }

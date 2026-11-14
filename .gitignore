@@ -41,3 +41,9 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+
+# Hasil perbaikan 2026-11-14 (jangan commit build artifacts)
+*.tsbuildinfo
+out/
+android-app/app/build/
+android-app/.kotlin/

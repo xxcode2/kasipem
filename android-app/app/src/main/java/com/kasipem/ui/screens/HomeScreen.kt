@@ -1,8 +1,11 @@
 package com.kasipem.ui.screens
 
-import androidx.compose.animation.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -12,131 +15,65 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kasipem.data.*
 import com.kasipem.ui.components.*
 
+/**
+ * Beranda: grid 12 kartu surat (cari + filter kategori).
+ * Alur: klik kartu → layar form SATU surat → "Lihat Preview" → preview.
+ * Tidak ada lagi semua form ditampilkan sekaligus di satu scroll panjang.
+ */
+private enum class Screen { GRID, FORM, PREVIEW }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen() {
+    var screen by remember { mutableStateOf(Screen.GRID) }
     var selectedLetterType by remember { mutableStateOf(LetterType.DOMISILI) }
     var headerData by remember { mutableStateOf(HeaderData()) }
-    var letterData by remember { mutableStateOf<Any>(DomisiliData()) }
+    var letterData by remember { mutableStateOf<Any>(getEmptyLetterData(LetterType.DOMISILI)) }
     var showSettings by remember { mutableStateOf(false) }
-    var showPreview by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedCategory by remember { mutableStateOf("Semua") }
 
-    val letterTypes = listOf(
-        LetterTypeItem(
-            type = LetterType.DOMISILI,
-            title = "Keterangan Domisili",
-            description = "Verifikasi tempat tinggal",
-            icon = Icons.Default.Home,
-            gradientStart = Color(0xFF0284C7),
-            gradientEnd = Color(0xFF0369A1),
-            classification = "140"
-        ),
-        LetterTypeItem(
-            type = LetterType.BELUM_MENIKAH,
-            title = "Belum Menikah",
-            description = "Administrasi perkawinan",
-            icon = Icons.Default.Favorite,
-            gradientStart = Color(0xFFEC4899),
-            gradientEnd = Color(0xFFBE185D),
-            classification = "460.2"
-        ),
-        LetterTypeItem(
-            type = LetterType.TIDAK_MAMPU,
-            title = "Tidak Mampu (SKTM)",
-            description = "Bantuan sosial",
-            icon = Icons.Default.AttachMoney,
-            gradientStart = Color(0xFF10B981),
-            gradientEnd = Color(0xFF047857),
-            classification = "460"
-        ),
-        LetterTypeItem(
-            type = LetterType.BEDA_LUAS,
-            title = "Beda Luas Tanah",
-            description = "Sertifikat vs SPPT",
-            icon = Icons.Default.Landscape,
-            gradientStart = Color(0xFFF59E0B),
-            gradientEnd = Color(0xFFD97706),
-            classification = "141"
-        ),
-        LetterTypeItem(
-            type = LetterType.UNDANGAN,
-            title = "Undangan Resmi",
-            description = "Acara resmi desa",
-            icon = Icons.Default.Mail,
-            gradientStart = Color(0xFFA855F7),
-            gradientEnd = Color(0xFF7E22CE),
-            classification = "Khusus"
-        )
-    )
+    val letterTypes = remember { LetterType.values().map { it.toItem() } }
+    val categories = remember { listOf("Semua") + LetterType.values().map { it.category }.distinct() }
+    val filteredTypes = letterTypes.filter { item ->
+        (selectedCategory == "Semua" || item.category == selectedCategory) &&
+            (searchQuery.isBlank() ||
+                item.title.contains(searchQuery, ignoreCase = true) ||
+                item.description.contains(searchQuery, ignoreCase = true))
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Description,
-                            contentDescription = null,
-                            modifier = Modifier.size(24.dp),
-                            tint = Color.White
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            "KASIPEM",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = MaterialTheme.typography.headlineMedium.fontSize
-                        )
-                    }
-                },
+                title = { Text("KASIPEM", fontWeight = FontWeight.Bold) },
                 actions = {
                     IconButton(onClick = { showSettings = true }) {
                         Icon(
                             imageVector = Icons.Default.Settings,
-                            contentDescription = "Settings",
-                            tint = Color.White
+                            contentDescription = "Pengaturan"
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = Color.White,
+                    actionIconContentColor = Color.White
                 )
             )
-        },
-        floatingActionButton = {
-            if (showPreview) {
-                FloatingActionButton(
-                    onClick = { showPreview = false },
-                    containerColor = MaterialTheme.colorScheme.primary
-                ) {
-                    Icon(Icons.Default.Edit, contentDescription = "Edit")
-                }
-            }
         }
     ) { innerPadding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xFFF0F9FF),
-                            Color(0xFFF0FDFA),
-                            Color(0xFFFCFDF5)
-                        )
-                    )
-                )
+                .background(MaterialTheme.colorScheme.background)
         ) {
             if (showSettings) {
                 SettingsSheet(
@@ -145,25 +82,36 @@ fun HomeScreen() {
                     onDismiss = { showSettings = false },
                     modifier = Modifier.fillMaxSize()
                 )
-            } else if (showPreview) {
-                PreviewScreen(
+            } else when (screen) {
+                Screen.GRID -> GridContent(
+                    headerData = headerData,
+                    categories = categories,
+                    selectedCategory = selectedCategory,
+                    onCategoryChange = { selectedCategory = it },
+                    searchQuery = searchQuery,
+                    onSearchQueryChange = { searchQuery = it },
+                    letterTypes = filteredTypes,
+                    selectedLetterType = selectedLetterType,
+                    onLetterTypeClick = { type ->
+                        selectedLetterType = type
+                        letterData = getEmptyLetterData(type)
+                        screen = Screen.FORM
+                    },
+                    modifier = Modifier.fillMaxSize()
+                )
+                Screen.FORM -> FormContent(
+                    selectedLetterType = selectedLetterType,
+                    letterData = letterData,
+                    onLetterDataChange = { letterData = it },
+                    onBack = { screen = Screen.GRID },
+                    onPreview = { screen = Screen.PREVIEW },
+                    modifier = Modifier.fillMaxSize()
+                )
+                Screen.PREVIEW -> PreviewScreen(
                     headerData = headerData,
                     letterData = letterData,
                     letterType = selectedLetterType,
-                    onBack = { showPreview = false },
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else {
-                MainFormContent(
-                    selectedLetterType = selectedLetterType,
-                    letterTypes = letterTypes,
-                    onLetterTypeChange = { type ->
-                        selectedLetterType = type
-                        letterData = getEmptyLetterData(type)
-                    },
-                    letterData = letterData,
-                    onLetterDataChange = { letterData = it },
-                    onSubmit = { showPreview = true },
+                    onBack = { screen = Screen.FORM },
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -171,38 +119,70 @@ fun HomeScreen() {
     }
 }
 
+private fun titleCase(value: String): String =
+    value.trim().split("\\s+".toRegex()).joinToString(" ") {
+        it.lowercase().replaceFirstChar { c -> c.uppercase() }
+    }
+
+/** Ikon + aksen kalem per tipe (satu warna datar, bukan gradien). */
+private fun iconFor(type: LetterType): ImageVector = when (type) {
+    LetterType.DOMISILI -> Icons.Default.Home
+    LetterType.PISAH_KK -> Icons.Default.Group
+    LetterType.SKT_DAYAT -> Icons.Default.Landscape
+    LetterType.BEDA_LUAS -> Icons.Default.Map
+    LetterType.BEDA_NAMA -> Icons.Default.Badge
+    LetterType.BELUM_MENIKAH -> Icons.Default.Favorite
+    LetterType.TIDAK_MAMPU -> Icons.Default.AttachMoney
+    LetterType.AHLI_WARIS -> Icons.Default.FamilyRestroom
+    LetterType.NIKAH_TIDAK_TERCATAT -> Icons.Default.People
+    LetterType.PEMAKAMAN -> Icons.Default.Park
+    LetterType.TIDAK_MEMILIKI_RUMAH -> Icons.Default.House
+    LetterType.UNDANGAN -> Icons.Default.Mail
+}
+
+/** Aksen kalem per kategori (teal tua / slate / stone). */
+private fun accentFor(category: String): Color = when (category) {
+    "Individu" -> Color(0xFF0F766E)
+    "Properti" -> Color(0xFF475569)
+    "Administrasi" -> Color(0xFF155E75)
+    "Sosial" -> Color(0xFF57534E)
+    "Hukum" -> Color(0xFF44403C)
+    else -> Color(0xFF334155)
+}
+
+private fun LetterType.toItem(): LetterTypeItem = LetterTypeItem(
+    type = this,
+    title = displayTitle,
+    description = description,
+    icon = iconFor(this),
+    accent = accentFor(category),
+    classification = if (nomorPrefix.isEmpty()) "Manual" else "$nomorPrefix/.../$nomorSuffix",
+    category = category
+)
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MainFormContent(
-    selectedLetterType: LetterType,
+private fun GridContent(
+    headerData: HeaderData,
+    categories: List<String>,
+    selectedCategory: String,
+    onCategoryChange: (String) -> Unit,
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
     letterTypes: List<LetterTypeItem>,
-    onLetterTypeChange: (LetterType) -> Unit,
-    letterData: Any,
-    onLetterDataChange: (Any) -> Unit,
-    onSubmit: () -> Unit,
+    selectedLetterType: LetterType,
+    onLetterTypeClick: (LetterType) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val scrollState = rememberScrollState()
-
-    Column(
-        modifier = modifier
-            .verticalScroll(scrollState)
-            .padding(horizontal = 16.dp, vertical = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // Header
+    Column(modifier = modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
-                    brush = Brush.linearGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primary,
-                            MaterialTheme.colorScheme.secondary
-                        )
-                    ),
+                    color = MaterialTheme.colorScheme.primary,
                     shape = RoundedCornerShape(16.dp)
                 )
-                .padding(24.dp),
+                .padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
@@ -220,101 +200,141 @@ private fun MainFormContent(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                "Desa/Kelurahan Stateless",
+                "Desa ${titleCase(headerData.namaDesa)}, Kecamatan ${titleCase(headerData.namaKecamatan)}, Kabupaten ${titleCase(headerData.namaKabupaten.removePrefix("KABUPATEN "))}",
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.White.copy(alpha = 0.9f)
             )
         }
 
-        // Letter Type Selection
-        Text(
-            "Langkah 1: Pilih Jenis Surat",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
+        Spacer(modifier = Modifier.height(16.dp))
+
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = onSearchQueryChange,
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = { Text("Cari jenis surat…") },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+            singleLine = true,
+            shape = RoundedCornerShape(12.dp)
         )
 
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            letterTypes.forEach { item ->
-                LetterTypeCard(
-                    item = item,
-                    isSelected = selectedLetterType == item.type,
-                    onClick = { onLetterTypeChange(item.type) }
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            categories.forEach { category ->
+                FilterChip(
+                    selected = selectedCategory == category,
+                    onClick = { onCategoryChange(category) },
+                    label = { Text(category) }
                 )
             }
         }
 
-        Divider(modifier = Modifier.padding(vertical = 16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-        // Form Fields
         Text(
-            "Langkah 2: Isi Data Surat",
+            "Pilih Jenis Surat (${letterTypes.size} dari 12)",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface
         )
 
-        // Render form based on letter type
-        when (selectedLetterType) {
-            LetterType.DOMISILI -> DomisiliForm(
-                data = letterData as DomisiliData,
-                onDataChange = { onLetterDataChange(it) }
-            )
+        Spacer(modifier = Modifier.height(12.dp))
 
-            LetterType.BELUM_MENIKAH -> BelumMenikahForm(
-                data = letterData as BelumMenikahData,
-                onDataChange = { onLetterDataChange(it) }
-            )
-
-            LetterType.TIDAK_MAMPU -> TidakMampuForm(
-                data = letterData as TidakMampuData,
-                onDataChange = { onLetterDataChange(it) }
-            )
-
-            LetterType.BEDA_LUAS -> BedaLuasForm(
-                data = letterData as BedaLuasData,
-                onDataChange = { onLetterDataChange(it) }
-            )
-
-            LetterType.UNDANGAN -> UndanganForm(
-                data = letterData as UndanganData,
-                onDataChange = { onLetterDataChange(it) }
-            )
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Submit Button
-        Button(
-            onClick = onSubmit,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary
-            )
-        ) {
-            Icon(
-                imageVector = Icons.Default.ArrowForward,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
+        if (letterTypes.isEmpty()) {
             Text(
-                "Pratinjau & Cetak",
-                style = MaterialTheme.typography.labelLarge
+                "Tidak ada surat yang cocok dengan pencarian.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        } else {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(bottom = 16.dp)
+            ) {
+                items(letterTypes) { item ->
+                    LetterTypeCard(
+                        item = item,
+                        isSelected = selectedLetterType == item.type,
+                        onClick = { onLetterTypeClick(item.type) }
+                    )
+                }
+            }
         }
-
-        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
-private fun getEmptyLetterData(type: LetterType): Any = when (type) {
-    LetterType.DOMISILI -> DomisiliData()
-    LetterType.BELUM_MENIKAH -> BelumMenikahData()
-    LetterType.TIDAK_MAMPU -> TidakMampuData()
-    LetterType.BEDA_LUAS -> BedaLuasData()
-    LetterType.UNDANGAN -> UndanganData()
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FormContent(
+    selectedLetterType: LetterType,
+    letterData: Any,
+    onLetterDataChange: (Any) -> Unit,
+    onBack: () -> Unit,
+    onPreview: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val scrollState = rememberScrollState()
+    Column(modifier = modifier.fillMaxSize()) {
+        TopAppBar(
+            title = { Text(selectedLetterType.displayTitle, fontWeight = FontWeight.Bold) },
+            navigationIcon = {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Kembali")
+                }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+                titleContentColor = MaterialTheme.colorScheme.onSurface,
+                navigationIconContentColor = MaterialTheme.colorScheme.onSurface
+            )
+        )
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(scrollState)
+                .padding(horizontal = 16.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                "Isi Data Surat",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            LetterForm(
+                type = selectedLetterType,
+                letterData = letterData,
+                onDataChange = onLetterDataChange
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = onPreview,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ArrowForward,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Lihat Preview", style = MaterialTheme.typography.labelLarge)
+            }
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
 }

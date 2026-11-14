@@ -1,8 +1,8 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { useLetterStore } from '../lib/store';
+import { useMemo, useState } from 'react';
 import { LetterType } from '../types';
+import { LETTER_CATEGORIES, LETTER_DEFINITIONS } from '../lib/letter-definitions';
 import {
   FileText,
   Heart,
@@ -12,226 +12,117 @@ import {
   Home,
   Users,
   Building2,
-  AlertCircle,
   MapPin,
   Shield,
+  Search,
+  Scale,
+  ScrollText,
 } from 'lucide-react';
 
-const letterTypes = [
-  // Category 1: Individu
-  {
-    id: 'domisili' as LetterType,
-    title: 'Surat Keterangan Domisili',
-    description: 'Untuk verifikasi tempat tinggal',
-    icon: Home,
-    color: 'from-blue-500 to-cyan-600',
-    category: 'Individu',
-    classification: '140',
-  },
-  {
-    id: 'pisah_kk' as LetterType,
-    title: 'Surat Keterangan Pisah KK',
-    description: 'Untuk pemisahan Kartu Keluarga',
-    icon: Users,
-    color: 'from-indigo-500 to-blue-600',
-    category: 'Individu',
-    classification: 'PEM',
-  },
-  {
-    id: 'skt_dayat' as LetterType,
-    title: 'Surat Keterangan Tanah',
-    description: 'Untuk sertifikat tanah dan properti',
-    icon: Landmark,
-    color: 'from-amber-500 to-orange-600',
-    category: 'Properti',
-    classification: 'PEM',
-  },
-  {
-    id: 'beda_luas' as LetterType,
-    title: 'Surat Beda Luas Tanah',
-    description: 'Untuk selisih sertifikat dan SPPT',
-    icon: MapPin,
-    color: 'from-yellow-500 to-amber-600',
-    category: 'Properti',
-    classification: '141',
-  },
-  {
-    id: 'beda_nama' as LetterType,
-    title: 'Surat Beda Nama',
-    description: 'Untuk perbedaan nama di dokumen',
-    icon: FileText,
-    color: 'from-slate-500 to-gray-600',
-    category: 'Administrasi',
-    classification: 'PEM',
-  },
-  {
-    id: 'belum_menikah' as LetterType,
-    title: 'Surat Belum Menikah',
-    description: 'Untuk keperluan administrasi perkawinan',
-    icon: Heart,
-    color: 'from-pink-500 to-rose-600',
-    category: 'Administrasi',
-    classification: '460.2',
-  },
-  {
-    id: 'tidak_mampu' as LetterType,
-    title: 'Surat Tidak Mampu (SKTM)',
-    description: 'Untuk keperluan bantuan sosial',
-    icon: DollarSign,
-    color: 'from-green-500 to-emerald-600',
-    category: 'Sosial',
-    classification: '460',
-  },
-  {
-    id: 'ahli_waris' as LetterType,
-    title: 'Surat Keterangan Ahli Waris',
-    description: 'Untuk proses kewarisan dan pengurusan harta',
-    icon: Shield,
-    color: 'from-violet-500 to-purple-600',
-    category: 'Hukum',
-    classification: 'PEM',
-  },
-  {
-    id: 'nikah_tidak_tercatat' as LetterType,
-    title: 'Surat Nikah Tidak Tercatat',
-    description: 'Untuk pengakuan perkawinan tidak tercatat',
-    icon: Heart,
-    color: 'from-red-500 to-pink-600',
-    category: 'Administrasi',
-    classification: 'KS',
-  },
-  {
-    id: 'pemakaman' as LetterType,
-    title: 'Surat Keterangan Pemakaman',
-    description: 'Untuk izin dan proses pemakaman',
-    icon: AlertCircle,
-    color: 'from-gray-600 to-slate-700',
-    category: 'Lainnya',
-    classification: 'PEM',
-  },
-  {
-    id: 'tidak_memiliki_rumah' as LetterType,
-    title: 'Surat Pernyataan Tidak Memiliki Rumah',
-    description: 'Untuk keterangan tidak memiliki properti',
-    icon: Building2,
-    color: 'from-cyan-500 to-blue-600',
-    category: 'Administrasi',
-    classification: 'KS',
-  },
-  {
-    id: 'undangan' as LetterType,
-    title: 'Surat Undangan Resmi',
-    description: 'Untuk acara resmi desa/kelurahan',
-    icon: Mail,
-    color: 'from-purple-500 to-indigo-600',
-    category: 'Administrasi',
-    classification: 'Khusus',
-  },
-];
+const ICONS: Record<LetterType, typeof FileText> = {
+  domisili: Home,
+  pisah_kk: Users,
+  skt_dayat: Landmark,
+  beda_luas: MapPin,
+  beda_nama: FileText,
+  belum_menikah: Heart,
+  tidak_mampu: DollarSign,
+  ahli_waris: Scale,
+  nikah_tidak_tercatat: Heart,
+  pemakaman: ScrollText,
+  tidak_memiliki_rumah: Building2,
+  undangan: Mail,
+};
 
-export function LetterTypeSelector() {
-  const { letterType, setLetterType } = useLetterStore();
-  
-  // Group by category
-  const categories = Array.from(new Set(letterTypes.map(t => t.category)));
+interface LetterTypeSelectorProps {
+  onSelect: (type: LetterType) => void;
+}
+
+/**
+ * Grid 12 kartu surat + pencarian + filter kategori.
+ * Klik kartu -> modal form (ditangani parent lewat onSelect).
+ * Palet kalem: putih/stone, aksen teal tua, tanpa animasi berputar.
+ */
+export function LetterTypeSelector({ onSelect }: LetterTypeSelectorProps) {
+  const [query, setQuery] = useState('');
+  const [category, setCategory] = useState<string>('Semua');
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return LETTER_DEFINITIONS.filter((d) => {
+      if (category !== 'Semua' && d.category !== category) return false;
+      if (!q) return true;
+      return (
+        d.title.toLowerCase().includes(q) ||
+        d.shortTitle.toLowerCase().includes(q) ||
+        d.description.toLowerCase().includes(q)
+      );
+    });
+  }, [query, category]);
 
   return (
-    <div className="space-y-8">
-      <div className="text-center mb-8">
-        <h2 className="text-4xl font-bold text-gray-900 mb-3">
-          Pembuat Surat Administrasi Desa
-        </h2>
-        <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-          Pilih jenis surat yang ingin Anda buat. Tersedia 12 jenis surat untuk berbagai keperluan administrasi.
-        </p>
+    <div>
+      {/* Pencarian + filter */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Cari jenis surat..."
+            className="w-full pl-9 pr-4 py-2.5 bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-700 focus:border-teal-700 text-sm"
+          />
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {['Semua', ...LETTER_CATEGORIES].map((c) => (
+            <button
+              key={c}
+              onClick={() => setCategory(c)}
+              className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                category === c
+                  ? 'bg-teal-700 text-white border-teal-700'
+                  : 'bg-white text-stone-600 border-stone-300 hover:border-teal-700 hover:text-teal-800'
+              }`}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Letter types by category */}
-      {categories.map((category) => {
-        const typesInCategory = letterTypes.filter(t => t.category === category);
-        return (
-          <div key={category} className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-1 h-6 bg-gradient-to-b from-blue-500 to-purple-500 rounded-full" />
-              <h3 className="text-xl font-semibold text-gray-800">{category}</h3>
-              <span className="ml-auto px-3 py-1 bg-gray-100 text-gray-600 text-sm font-medium rounded-full">
-                {typesInCategory.length} surat
-              </span>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {typesInCategory.map((type, index) => {
-                const Icon = type.icon;
-                const isSelected = letterType === type.id;
-
-                return (
-                  <motion.button
-                    key={type.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    onClick={() => setLetterType(type.id)}
-                    className={`relative p-5 rounded-2xl transition-all duration-300 overflow-hidden group ${
-                      isSelected
-                        ? 'ring-2 ring-blue-500 shadow-xl scale-[1.02]'
-                        : 'hover:shadow-lg hover:scale-[1.01]'
-                    }`}
-                  >
-                    {/* Background gradient */}
-                    <div
-                      className={`absolute inset-0 bg-gradient-to-br ${type.color} transition-opacity duration-300 ${
-                        isSelected ? 'opacity-5' : 'opacity-0 group-hover:opacity-3'
-                      }`}
-                    />
-
-                    {/* Card content */}
-                    <div className="relative z-10 text-left h-full flex flex-col">
-                      <motion.div
-                        animate={isSelected ? { scale: 1.15, rotate: 5 } : { scale: 1, rotate: 0 }}
-                        className={`inline-flex w-10 h-10 items-center justify-center rounded-xl mb-3 transition-all ${
-                          isSelected
-                            ? `bg-gradient-to-br ${type.color} text-white shadow-lg`
-                            : `bg-gradient-to-br ${type.color} text-white opacity-80 group-hover:opacity-100`
-                        }`}
-                      >
-                        <Icon className="w-5 h-5" />
-                      </motion.div>
-
-                      <h3 className="font-semibold text-gray-900 text-sm mb-1 line-clamp-2">
-                        {type.title}
-                      </h3>
-                      <p className="text-xs text-gray-600 mb-3 line-clamp-2">
-                        {type.description}
-                      </p>
-                      
-                      <div className="mt-auto flex items-center justify-between pt-2 border-t border-gray-200">
-                        <div className="text-xs font-mono text-gray-500">
-                          {type.classification}
-                        </div>
-                        {isSelected && (
-                          <motion.div
-                            layoutId="selected-badge"
-                            className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full"
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                          >
-                            ✓ Dipilih
-                          </motion.div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Border effect */}
-                    <div className={`absolute inset-0 rounded-2xl border-2 transition-all duration-300 pointer-events-none ${
-                      isSelected ? `border-blue-400` : `border-gray-200 group-hover:border-gray-300`
-                    }`} />
-                  </motion.button>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })}
+      {filtered.length === 0 ? (
+        <p className="text-center text-stone-500 py-10 bg-white rounded-xl border border-stone-200">
+          Tidak ada surat yang cocok dengan pencarian Anda.
+        </p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.map((type) => {
+            const Icon = ICONS[type.id];
+            return (
+              <button
+                key={type.id}
+                onClick={() => onSelect(type.id)}
+                className="text-left bg-white rounded-xl border border-stone-200 p-5 shadow-sm hover:shadow-md hover:border-teal-700 transition-all"
+              >
+                <div className="inline-flex w-10 h-10 items-center justify-center rounded-lg bg-teal-50 text-teal-800 mb-3">
+                  <Icon className="w-5 h-5" />
+                </div>
+                <h3 className="font-semibold text-stone-900 text-sm mb-1">{type.shortTitle}</h3>
+                <p className="text-xs text-stone-600 mb-3 leading-relaxed">{type.description}</p>
+                <div className="flex items-center justify-between pt-2 border-t border-stone-100">
+                  <span className="text-xs font-medium text-teal-800 bg-teal-50 px-2 py-0.5 rounded-full">
+                    {type.category}
+                  </span>
+                  <span className="text-xs font-mono text-stone-400">
+                    {type.nomorPrefix ? `${type.nomorPrefix}/${type.nomorSuffix}` : 'Nomor manual'}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

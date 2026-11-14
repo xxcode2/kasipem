@@ -7,25 +7,28 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.kasipem.data.LetterType
 
+/**
+ * Satu item kartu surat di grid beranda. Tema kalem: kartu putih,
+ * ikon satu warna aksen (bukan gradien mencolok).
+ */
 data class LetterTypeItem(
     val type: LetterType,
     val title: String,
     val description: String,
     val icon: ImageVector,
-    val gradientStart: Color,
-    val gradientEnd: Color,
+    val accent: Color,
     val classification: String,
+    val category: String,
 )
 
 @Composable
@@ -47,7 +50,7 @@ fun LetterTypeCard(
             ),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = if (isSelected) 8.dp else 2.dp
+            defaultElevation = if (isSelected) 6.dp else 1.dp
         ),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
@@ -60,20 +63,14 @@ fun LetterTypeCard(
             horizontalAlignment = Alignment.Start
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
                     modifier = Modifier
                         .size(48.dp)
-                        .background(
-                            brush = Brush.linearGradient(
-                                colors = listOf(item.gradientStart, item.gradientEnd),
-                            ),
-                            shape = RoundedCornerShape(12.dp)
-                        ),
+                        .background(item.accent, shape = RoundedCornerShape(12.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -87,7 +84,7 @@ fun LetterTypeCard(
                 AnimatedVisibility(visible = isSelected) {
                     Icon(
                         imageVector = Icons.Default.CheckCircle,
-                        contentDescription = "Selected",
+                        contentDescription = "Dipilih",
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(24.dp)
                     )
@@ -115,7 +112,7 @@ fun LetterTypeCard(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Klasifikasi: ${item.classification}",
+                text = "${item.category} · Nomor: ${item.classification}",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 modifier = Modifier.fillMaxWidth()

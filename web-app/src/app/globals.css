@@ -3,8 +3,6 @@
 @tailwind utilities;
 
 * {
-  margin: 0;
-  padding: 0;
   box-sizing: border-box;
 }
 
@@ -18,9 +16,11 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: #f5f5f4; /* stone-100 — latar kalem */
+  color: #292524; /* stone-800 */
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar — kalem */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -31,69 +31,17 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(2, 132, 199, 0.3);
+  background: rgba(15, 118, 110, 0.35); /* teal-700 */
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(2, 132, 199, 0.5);
-}
-
-/* Animations */
-@keyframes gradient {
-  0%,
-  100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-}
-
-@keyframes pulse-soft {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.8;
-  }
-}
-
-@keyframes bounce-subtle {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-4px);
-  }
-}
-
-.animate-gradient {
-  animation: gradient 8s ease infinite;
-  background-size: 200% 200%;
-}
-
-.animate-pulse-soft {
-  animation: pulse-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-.animate-bounce-subtle {
-  animation: bounce-subtle 0.6s ease-in-out;
-}
-
-/* Glassmorphism effect */
-.glass {
-  background: rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(15, 118, 110, 0.55);
 }
 
 /* Selection */
 ::selection {
-  background-color: rgba(2, 132, 199, 0.3);
+  background-color: rgba(15, 118, 110, 0.25);
   color: inherit;
 }
 
@@ -104,13 +52,54 @@ select:focus {
   outline: none;
 }
 
-/* Print styles */
+/* Lembar surat (layar): tiru margin A4 */
+.letter-sheet {
+  padding: 15mm 20mm;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+/* ================= CETAK ================= */
+@page {
+  size: A4;
+  margin: 15mm 20mm;
+}
+
 @media print {
+  html,
   body {
-    background: white;
+    background: white !important;
   }
 
-  .no-print {
+  /* Sembunyikan semua kecuali area surat */
+  body * {
+    visibility: hidden;
+  }
+
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+
+  .print-area {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Lembar surat saat dicetak: tanpa bayangan & tanpa padding layar
+     (margin sudah diatur @page) */
+  .print-area .letter-sheet {
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+    width: 100% !important;
+  }
+
+  .no-print,
+  .no-print-container .no-print {
     display: none !important;
   }
 }

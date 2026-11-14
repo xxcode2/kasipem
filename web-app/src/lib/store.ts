@@ -1,147 +1,38 @@
 import { create } from 'zustand';
 import { LetterStore, HeaderData, LetterType } from '../types';
+import { defaultLetterData } from './letter-definitions';
 
-const defaultHeader: HeaderData = {
-  namaKabupaten: 'KABUPATEN',
-  namaKecamatan: 'KECAMATAN',
-  namaDesa: 'DESA/KELURAHAN',
-  alamatKantor: 'Jl. Raya No. 123',
-  namaPejabat: 'H. Nama Kepala Desa',
-  atnPejabat: false,
-  nipPejabat: '1234567890',
+/**
+ * Default kop desa ASLI (dari analisis DOCX repo) — bukan placeholder.
+ * Nama pejabat ASLI dari user 2026-11-14 ~23:28 WIB. TIDAK ADA NIP —
+ * nipPejabat/nipSekdes dibiarkan kosong dan baris NIP tidak dirender
+ * di preview/PDF/cetak selama kosong.
+ */
+export const defaultHeader: HeaderData = {
+  namaKabupaten: 'Subang',
+  namaKecamatan: 'Kasomalang',
+  namaDesa: 'Kasomalang Kulon',
+  alamatKantor: 'Jln. Raya Kasomalang No.01 Subang 41281',
+  namaPejabat: 'H. AMIRUDIN, S.Pd.I',
+  nipPejabat: '',
   jabatanPejabat: 'Kepala Desa',
-};
-
-const defaultLetterData: Record<LetterType, Record<string, any>> = {
-  domisili: {
-    namaLengkap: '',
-    nik: '',
-    alamatLengkap: '',
-    rt: '',
-    rw: '',
-    tempatLahir: '',
-    tanggalLahir: '',
-    pekerjaan: '',
-    jenisKelamin: '',
-  },
-  pisah_kk: {
-    nama1: '',
-    nik1: '',
-    nama2: '',
-    nik2: '',
-    nomorKKLama: '',
-    alamat: '',
-  },
-  skt_dayat: {
-    namaLengkap: '',
-    nik: '',
-    tempatLahir: '',
-    tanggalLahir: '',
-    alamat: '',
-    luasTanah: '',
-    luasBangunan: '',
-    spptNop: '',
-  },
-  beda_luas: {
-    namaLengkap: '',
-    nik: '',
-    alamat: '',
-    nomorSertifikat: '',
-    luasSertifikat: '',
-    nomorSPPT: '',
-    luasSPPT: '',
-  },
-  beda_nama: {
-    namaLengkap: '',
-    nik: '',
-    namaDokumen1: '',
-    namaDokumen2: '',
-    alasan: '',
-  },
-  belum_menikah: {
-    namaLengkap: '',
-    nik: '',
-    tempatLahir: '',
-    tanggalLahir: '',
-    pekerjaan: '',
-    alamat: '',
-    keperluan: '',
-  },
-  tidak_mampu: {
-    namaLengkap: '',
-    nik: '',
-    tempatLahir: '',
-    tanggalLahir: '',
-    pekerjaan: '',
-    alamat: '',
-    penghasilanBulanan: '',
-    keperluan: '',
-  },
-  ahli_waris: {
-    namaPeninggal: '',
-    nikPeninggal: '',
-    alamatPeninggal: '',
-    namaAhliWaris1: '',
-    nikAhliWaris1: '',
-    hubunganAhliWaris1: '',
-    namaAhliWaris2: '',
-    nikAhliWaris2: '',
-    hubunganAhliWaris2: '',
-    keterangan: '',
-  },
-  nikah_tidak_tercatat: {
-    namaPria: '',
-    nikPria: '',
-    tempatLahirPria: '',
-    tanggalLahirPria: '',
-    namaWanita: '',
-    nikWanita: '',
-    tempatLahirWanita: '',
-    tanggalLahirWanita: '',
-    tanggalPernikahan: '',
-    tempatPernikahan: '',
-  },
-  pemakaman: {
-    namaAlmarhum: '',
-    nikAlmarhum: '',
-    tempatLahir: '',
-    tanggalLahir: '',
-    alamat: '',
-    tanggalMeninggal: '',
-    lokasiMakam: '',
-    namaKeluarga: '',
-  },
-  tidak_memiliki_rumah: {
-    namaLengkap: '',
-    nik: '',
-    tempatLahir: '',
-    tanggalLahir: '',
-    pekerjaan: '',
-    alamatTinggal: '',
-    keterangan: '',
-  },
-  undangan: {
-    tujuanYth: '',
-    hari: '',
-    tanggal: '',
-    bulan: '',
-    tahun: '',
-    pukul: '',
-    tempat: '',
-    agendaAcara: '',
-    daftarTembusan: '',
-  },
+  namaSekdes: 'APIPUDIN, S.IP',
+  nipSekdes: '',
+  penandatanganDefault: 'kades',
+  logoGaruda: '/kop/kades.jpg',
+  logoSubang: '/kop/sekdes.jpg',
 };
 
 export const useLetterStore = create<LetterStore>((set, get) => ({
   letterType: 'domisili',
   headerData: defaultHeader,
-  letterData: defaultLetterData.domisili,
+  letterData: defaultLetterData('domisili'),
 
   setLetterType: (type: LetterType) => {
+    // Reset ke default field tipe itu — jangan bocor data tipe lain.
     set({
       letterType: type,
-      letterData: defaultLetterData[type],
+      letterData: defaultLetterData(type),
     });
   },
 
@@ -160,7 +51,7 @@ export const useLetterStore = create<LetterStore>((set, get) => ({
   reset: () => {
     const { letterType } = get();
     set({
-      letterData: { ...defaultLetterData[letterType] },
+      letterData: defaultLetterData(letterType),
     });
   },
 

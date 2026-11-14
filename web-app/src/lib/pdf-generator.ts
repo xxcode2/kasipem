@@ -1,515 +1,278 @@
 import { jsPDF } from 'jspdf';
-import { format, parseISO } from 'date-fns';
-import { id as idLocale } from 'date-fns/locale';
 import { HeaderData, LetterData, LetterType } from '../types';
+import {
+  ContentBlock,
+  LetterContent,
+  formatDateSurat,
+  getLetterContent,
+} from './letter-content';
 
-interface GeneratePdfOptions {
+/**
+ * SATU-SATUNYA generator PDF (pdf-generator-v2.ts dihapus).
+ * Merender struktur yang sama dengan preview (getLetterContent) — satu
+ * sumber kebenaran, jadi PDF tidak bisa kosong untuk satu jenis pun.
+ */
+
+export interface GeneratePdfOptions {
   letterType: LetterType;
   headerData: HeaderData;
   letterData: LetterData;
+  /** Untuk pengujian: pemuat logo kustom. Default: fetch dari URL publik. */
+  logoLoader?: (src: string) => Promise<LogoImage | null>;
 }
 
-const FONTS = {
-  title: { size: 12, bold: true },
-  normal: { size: 11, bold: false },
-  normalBold: { size: 11, bold: true },
-  small: { size: 10, bold: false },
-};
+export interface LogoImage {
+  dataUrl: string;
+  format: 'JPEG' | 'PNG';
+  width: number;
+  height: number;
+}
 
 const A4_WIDTH = 210;
-const A4_HEIGHT = 297;
 const MARGIN_LEFT = 20;
 const MARGIN_RIGHT = 20;
 const MARGIN_TOP = 15;
-const MARGIN_BOTTOM = 20;
 const CONTENT_WIDTH = A4_WIDTH - MARGIN_LEFT - MARGIN_RIGHT;
+const PAGE_BOTTOM = 282; // 297 - 15
 
-// Format tanggal sesuai standar:
-// TTL: DD-MM-YYYY
-// Surat: DD MMMM YYYY
-function formatDateTTL(date?: string): string {
-  if (!date) return '';
+const LABEL_X = MARGIN_LEFT;
+const COLON_X = MARGIN_LEFT + 52;
+const VALUE_X = MARGIN_LEFT + 56;
+const VALUE_WIDTH = CONTENT_WIDTH - 56;
+
+async function defaultLogoLoader(src: string): Promise<LogoImage | null> {
   try {
-    const parsed = parseISO(date);
-    return format(parsed, 'dd-MM-yyyy', { locale: idLocale });
+    const res = await fetch(src);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(new Error('FileReader failed'));
+      reader.readAsDataURL(blob);
+    });
+    const img = await new Promise<HTMLImageElement | null>((resolve) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => resolve(null);
+      el.src = dataUrl;
+    });
+    if (!img || !img.naturalWidth || !img.naturalHeight) return null;
+
+    // Downscale ke maks 400px + re-encode JPEG: jsPDF menanam PNG mentah
+    // sebagai bitmap (1920x2404 -> ~18 MB per PDF). Dengan JPEG kecil,
+    // PDF jadi puluhan KB. Logo upload pengguna ikut diperkecil di sini.
+    try {
+      const maxDim = 400;
+      const scale = Math.min(1, maxDim / Math.max(img.naturalWidth, img.naturalHeight));
+      const w = Math.max(1, Math.round(img.naturalWidth * scale));
+      const h = Math.max(1, Math.round(img.naturalHeight * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        return { dataUrl: canvas.toDataURL('image/jpeg', 0.85), format: 'JPEG', width: w, height: h };
+      }
+    } catch {
+      // Lanjut ke fallback di bawah.
+    }
+    const format: 'JPEG' | 'PNG' = blob.type.includes('png') ? 'PNG' : 'JPEG';
+    return { dataUrl, format, width: img.naturalWidth, height: img.naturalHeight };
   } catch {
-    return '';
+    // Fallback: kop teks saja, jangan crash.
+    return null;
   }
 }
 
-function formatDateSurat(date?: string): string {
-  if (!date) return format(new Date(), 'dd MMMM yyyy', { locale: idLocale });
-  try {
-    return format(parseISO(date), 'dd MMMM yyyy', { locale: idLocale });
-  } catch {
-    return format(new Date(), 'dd MMMM yyyy', { locale: idLocale });
+function ensureSpace(doc: jsPDF, y: number, needed: number): number {
+  if (y + needed > PAGE_BOTTOM) {
+    doc.addPage();
+    return MARGIN_TOP;
   }
+  return y;
 }
 
-function addHeader(doc: jsPDF, headerData: HeaderData) {
+function addTextLines(
+  doc: jsPDF,
+  lines: string[],
+  x: number,
+  y: number,
+  opts?: { align?: 'left' | 'center' | 'justify'; maxWidth?: number },
+): number {
+  const lineHeight = 5.5;
+  doc.text(lines, x, y, {
+    align: opts?.align ?? 'left',
+    maxWidth: opts?.maxWidth,
+  });
+  return y + lines.length * lineHeight;
+}
+
+function addParagraph(doc: jsPDF, text: string, y: number): number {
+  doc.setFont('Times', 'normal');
+  doc.setFontSize(12);
+  const lines = doc.splitTextToSize(text, CONTENT_WIDTH);
+  y = ensureSpace(doc, y, lines.length * 5.5 + 2);
+  return addTextLines(doc, lines, MARGIN_LEFT, y, { align: 'justify', maxWidth: CONTENT_WIDTH }) + 2;
+}
+
+function addFields(doc: jsPDF, rows: { label: string; value: string }[], y: number): number {
+  doc.setFont('Times', 'normal');
+  doc.setFontSize(12);
+  for (const r of rows) {
+    const valueLines = doc.splitTextToSize(r.value || '', VALUE_WIDTH);
+    y = ensureSpace(doc, y, valueLines.length * 5.5);
+    doc.text(r.label, LABEL_X, y);
+    doc.text(':', COLON_X, y);
+    doc.text(valueLines, VALUE_X, y);
+    y += valueLines.length * 5.5;
+  }
+  return y + 2;
+}
+
+function addBlock(doc: jsPDF, block: ContentBlock, y: number): number {
+  if (block.kind === 'fields') return addFields(doc, block.rows, y);
+  if (block.kind === 'list') {
+    if (block.heading) y = addParagraph(doc, block.heading, y);
+    for (const item of block.items) {
+      y = addParagraph(doc, `- ${item}`, y);
+    }
+    return y;
+  }
+  // paragraph — dukung baris baru (\n) seperti "Kepada Yth.\n... \ndi tempat"
+  let yy = y;
+  for (const part of block.text.split('\n')) {
+    yy = addParagraph(doc, part, yy);
+  }
+  return yy;
+}
+
+function addHeader(doc: jsPDF, header: HeaderData, logos: { garuda: LogoImage | null; subang: LogoImage | null }): number {
   let y = MARGIN_TOP;
+  const logoH = 20; // mm
+  const centerX = A4_WIDTH / 2;
 
-  // Header box
-  doc.setDrawColor(0, 0, 0);
-  doc.setLineWidth(0.5);
-  doc.rect(MARGIN_LEFT, y, CONTENT_WIDTH, 35);
-
-  // Keterangan desa
-  doc.setFont('Arial', 'bold');
-  doc.setFontSize(FONTS.title.size);
-  doc.text(`PEMERINTAH ${headerData.namaKabupaten.toUpperCase()}`, A4_WIDTH / 2, y + 5, { align: 'center' });
-  doc.text(`${headerData.namaKecamatan.toUpperCase()}`, A4_WIDTH / 2, y + 10, { align: 'center' });
-  
-  doc.setFont('Arial', 'bold');
-  doc.setFontSize(FONTS.normalBold.size);
-  doc.text(`DESA/KELURAHAN ${headerData.namaDesa.toUpperCase()}`, A4_WIDTH / 2, y + 15, { align: 'center' });
-  
-  doc.setFont('Arial', 'normal');
-  doc.setFontSize(FONTS.small.size);
-  doc.text(`${headerData.alamatKantor}`, A4_WIDTH / 2, y + 20, { align: 'center' });
-
-  // Garis pemisah
-  y += 40;
-  doc.setDrawColor(0, 0, 0);
-  doc.setLineWidth(0.8);
-  doc.line(MARGIN_LEFT, y, MARGIN_LEFT + CONTENT_WIDTH, y);
-  y += 1;
-  doc.setLineWidth(0.3);
-  doc.line(MARGIN_LEFT, y, MARGIN_LEFT + CONTENT_WIDTH, y);
-
-  return y + 5;
-}
-
-function addTitle(doc: jsPDF, title: string, startY: number) {
-  doc.setFont('Arial', 'bold');
-  doc.setFontSize(FONTS.title.size);
-  doc.text(title, A4_WIDTH / 2, startY, { align: 'center' });
-
-  const titleY = startY + 5;
-  doc.setDrawColor(0, 0, 0);
-  doc.setLineWidth(0.3);
-  doc.line(MARGIN_LEFT + 40, titleY, MARGIN_LEFT + CONTENT_WIDTH - 40, titleY);
-
-  return titleY + 5;
-}
-
-function addLetterNumber(doc: jsPDF, number: string, startY: number) {
-  doc.setFont('Arial', 'normal');
-  doc.setFontSize(FONTS.small.size);
-  doc.text(`Nomor : ${number}`, MARGIN_LEFT, startY);
-  return startY + 5;
-}
-
-function formatDate(date?: string): string {
-  if (!date) return format(new Date(), 'dd MMMM yyyy', { locale: idLocale });
-  try {
-    return format(parseISO(date), 'dd MMMM yyyy', { locale: idLocale });
-  } catch {
-    return format(new Date(), 'dd MMMM yyyy', { locale: idLocale });
+  // Logo Garuda (kiri) dan logo Subang (kanan), proporsional.
+  if (logos.garuda) {
+    const w = (logoH * logos.garuda.width) / logos.garuda.height;
+    doc.addImage(logos.garuda.dataUrl, logos.garuda.format, MARGIN_LEFT, y, w, logoH);
   }
+  if (logos.subang) {
+    const w = (logoH * logos.subang.width) / logos.subang.height;
+    doc.addImage(logos.subang.dataUrl, logos.subang.format, A4_WIDTH - MARGIN_RIGHT - w, y, w, logoH);
+  }
+
+  doc.setFont('Times', 'bold');
+  doc.setFontSize(13);
+  doc.text(`PEMERINTAH ${(header.namaKabupaten || 'Subang').toUpperCase()}`, centerX, y + 5, { align: 'center' });
+  doc.text(`KECAMATAN ${(header.namaKecamatan || 'Kasomalang').toUpperCase()}`, centerX, y + 10, { align: 'center' });
+  doc.text(`DESA ${(header.namaDesa || 'Kasomalang Kulon').toUpperCase()}`, centerX, y + 15, { align: 'center' });
+  doc.setFont('Times', 'normal');
+  doc.setFontSize(11);
+  doc.text(`Alamat: ${header.alamatKantor}`, centerX, y + 20, { align: 'center' });
+
+  // Garis ganda: tebal + tipis
+  y += 26;
+  doc.setDrawColor(0, 0, 0);
+  doc.setLineWidth(1.0);
+  doc.line(MARGIN_LEFT, y, MARGIN_LEFT + CONTENT_WIDTH, y);
+  y += 1.2;
+  doc.setLineWidth(0.4);
+  doc.line(MARGIN_LEFT, y, MARGIN_LEFT + CONTENT_WIDTH, y);
+
+  return y + 8;
 }
 
-function wrapText(doc: jsPDF, text: string, maxWidth: number): string[] {
-  return doc.splitTextToSize(text, maxWidth);
+function addSignature(doc: jsPDF, content: LetterContent, y: number): number {
+  const rightCenter = MARGIN_LEFT + CONTENT_WIDTH * 0.75;
+  const leftCenter = MARGIN_LEFT + CONTENT_WIDTH * 0.25;
+  doc.setFont('Times', 'normal');
+  doc.setFontSize(12);
+
+  y = ensureSpace(doc, y, 55);
+  y += 4;
+
+  // Blok kiri (khusus SKTM: Mengetahui, Ketua RW)
+  if (content.leftSigner) {
+    const lx = leftCenter;
+    let ly = y;
+    if (content.leftSigner.prefix) {
+      doc.text(content.leftSigner.prefix, lx, ly, { align: 'center' });
+      ly += 5.5;
+    }
+    doc.text(content.leftSigner.role, lx, ly, { align: 'center' });
+    ly += 22;
+    doc.text('____________________', lx, ly, { align: 'center' });
+  }
+
+  // Blok kanan (penandatangan)
+  let ry = y;
+  doc.text(content.placeDate, rightCenter, ry, { align: 'center' });
+  ry += 5.5;
+  if (content.signer.prefix) {
+    doc.text(content.signer.prefix, rightCenter, ry, { align: 'center' });
+    ry += 5.5;
+  }
+  doc.text(content.signer.role, rightCenter, ry, { align: 'center' });
+  ry += 22;
+  doc.setFont('Times', 'bold');
+  doc.text(content.signer.name, rightCenter, ry, { align: 'center' });
+  // NIP hanya dirender bila ada isinya — pejabat desa ini tidak punya NIP.
+  if (content.signer.nip) {
+    ry += 5.5;
+    doc.setFont('Times', 'normal');
+    doc.text(`NIP: ${content.signer.nip}`, rightCenter, ry, { align: 'center' });
+  }
+
+  return ry + 5;
 }
 
-function addMultilineText(doc: jsPDF, text: string, x: number, startY: number, maxWidth: number): number {
-  doc.setFont('Arial', 'normal');
-  doc.setFontSize(FONTS.normal.size);
-  const lines = wrapText(doc, text, maxWidth);
-  doc.text(lines, x, startY, { align: 'left' });
-  return startY + lines.length * 5 + 3;
-}
+export async function generatePdf(options: GeneratePdfOptions): Promise<Blob> {
+  const { letterType, headerData, letterData } = options;
+  const loader = options.logoLoader ?? defaultLogoLoader;
 
-function generateDomisiliLetter(doc: jsPDF, headerData: HeaderData, data: any): void {
-  let y = addHeader(doc, headerData);
-  y = addTitle(doc, 'SURAT KETERANGAN DOMISILI', y);
-  
-  const nomorSurat = data.nomorSurat || `${Date.now()}`;
-  const klasifikasi = data.klasifikasiSurat || `140/.../${Date.now().toString().slice(-2)}/${new Date().getFullYear()}`;
-  y = addLetterNumber(doc, klasifikasi, y);
-  y += 5;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const content = getLetterContent(letterType, headerData, letterData);
 
-  doc.setFont('Arial', 'normal');
-  doc.setFontSize(FONTS.normal.size);
+  // Muat logo (gagal -> kop teks saja, jangan crash).
+  const [garuda, subang] = await Promise.all([
+    loader(headerData.logoGaruda || '/kop/kades.jpg'),
+    loader(headerData.logoSubang || '/kop/sekdes.jpg'),
+  ]);
+
+  let y = addHeader(doc, headerData, { garuda, subang });
+
+  // Judul + nomor
+  doc.setFont('Times', 'bold');
+  doc.setFontSize(13);
+  doc.text(content.title, A4_WIDTH / 2, y, { align: 'center' });
+  y += 6;
+  doc.setFont('Times', 'normal');
+  doc.setFontSize(12);
+  doc.text(`Nomor : ${content.nomor || '............................................'}`, A4_WIDTH / 2, y, {
+    align: 'center',
+  });
+  y += 10;
 
   // Pembuka
-  y = addMultilineText(
-    doc,
-    `Yang bertanda tangan di bawah ini adalah Kepala Desa/Lurah ${headerData.namaDesa}, menerangkan bahwa:`,
-    MARGIN_LEFT,
-    y,
-    CONTENT_WIDTH
-  );
-  y += 5;
+  if (content.intro) y = addParagraph(doc, content.intro, y);
 
-  // Data pemohon
-  doc.text(`Nama                       : ${data.namaLengkap}`, MARGIN_LEFT, y);
-  y += 5;
-  doc.text(`NIK                          : ${data.nik}`, MARGIN_LEFT, y);
-  y += 5;
-  
-  if (data.jenisKelamin) {
-    doc.text(`Jenis Kelamin         : ${data.jenisKelamin}`, MARGIN_LEFT, y);
-    y += 5;
+  // Isi
+  for (const block of content.blocks) {
+    y = addBlock(doc, block, y);
   }
 
-  if (data.tempatLahir) {
-    const tglLahir = data.tanggalLahir ? formatDate(data.tanggalLahir) : '';
-    doc.text(`Tempat/Tanggal Lahir : ${data.tempatLahir}, ${tglLahir}`, MARGIN_LEFT, y);
-    y += 5;
-  }
-
-  if (data.pekerjaan) {
-    doc.text(`Pekerjaan                : ${data.pekerjaan}`, MARGIN_LEFT, y);
-    y += 5;
-  }
-
-  doc.text(`Alamat (KTP)            : ${data.alamatAsal}`, MARGIN_LEFT, y);
-  y += 5;
-  doc.text(`RT/RW                    : ${data.rt}/${data.rw}`, MARGIN_LEFT, y);
-  y += 5;
-
-  doc.text(`Alamat Domisili Saat Ini : ${data.alamatDomisili}`, MARGIN_LEFT, y);
-  y += 5;
-  y += 3;
-
-  // Pernyataan
-  y = addMultilineText(
-    doc,
-    `Adalah benar bahwa orang tersebut di atas adalah penduduk sah Desa/Kelurahan ${headerData.namaDesa} dan bertempat tinggal di alamat tersebut di atas. Surat keterangan ini diberikan untuk keperluan ${data.keperluanSurat}.`,
-    MARGIN_LEFT,
-    y,
-    CONTENT_WIDTH
-  );
-  y += 8;
-
-  // Tempat dan tanggal
-  doc.setFont('Arial', 'normal');
-  doc.setFontSize(FONTS.normal.size);
-  doc.text(`Diterbitkan di : ${headerData.namaDesa}`, MARGIN_LEFT + CONTENT_WIDTH / 2, y);
-  y += 5;
-  doc.text(`Tanggal           : ${formatDate()}`, MARGIN_LEFT + CONTENT_WIDTH / 2, y);
-  y += 15;
+  // Penutup
+  y = addParagraph(doc, content.closing, y);
 
   // Tanda tangan
-  doc.setFont('Arial', 'normal');
-  doc.setFontSize(FONTS.normal.size);
-  doc.text(`${headerData.atnPejabat ? 'A.n. ' : ''}${headerData.jabatanPejabat}`, MARGIN_LEFT + CONTENT_WIDTH / 2, y, { align: 'center' });
-  y += 20;
-  doc.text(headerData.namaPejabat, MARGIN_LEFT + CONTENT_WIDTH / 2, y, { align: 'center' });
-  y += 3;
-  doc.setFont('Arial', 'normal');
-  doc.setFontSize(FONTS.small.size);
-  doc.text(`NIP: ${headerData.nipPejabat}`, MARGIN_LEFT + CONTENT_WIDTH / 2, y, { align: 'center' });
-}
-
-function generateBelumMenikahLetter(doc: jsPDF, headerData: HeaderData, data: any): void {
-  let y = addHeader(doc, headerData);
-  y = addTitle(doc, 'SURAT KETERANGAN BELUM MENIKAH', y);
-  
-  const klasifikasi = data.klasifikasiSurat || `460.2/.../${Date.now().toString().slice(-2)}/${new Date().getFullYear()}`;
-  y = addLetterNumber(doc, klasifikasi, y);
-  y += 5;
-
-  doc.setFont('Arial', 'normal');
-  doc.setFontSize(FONTS.normal.size);
-
-  y = addMultilineText(
-    doc,
-    `Yang bertanda tangan di bawah ini adalah Kepala Desa/Lurah ${headerData.namaDesa}, menerangkan bahwa:`,
-    MARGIN_LEFT,
-    y,
-    CONTENT_WIDTH
-  );
-  y += 5;
-
-  doc.text(`Nama                       : ${data.namaLengkap}`, MARGIN_LEFT, y);
-  y += 5;
-  doc.text(`NIK                          : ${data.nik}`, MARGIN_LEFT, y);
-  y += 5;
-  
-  if (data.jenisKelamin) {
-    doc.text(`Jenis Kelamin         : ${data.jenisKelamin}`, MARGIN_LEFT, y);
-    y += 5;
-  }
-
-  if (data.tempatLahir) {
-    const tglLahir = data.tanggalLahir ? formatDate(data.tanggalLahir) : '';
-    doc.text(`Tempat/Tanggal Lahir : ${data.tempatLahir}, ${tglLahir}`, MARGIN_LEFT, y);
-    y += 5;
-  }
-
-  if (data.pekerjaan) {
-    doc.text(`Pekerjaan                : ${data.pekerjaan}`, MARGIN_LEFT, y);
-    y += 5;
-  }
-
-  doc.text(`Alamat                    : ${data.alamatLengkap}`, MARGIN_LEFT, y);
-  y += 5;
-  doc.text(`RT/RW                    : ${data.rt}/${data.rw}`, MARGIN_LEFT, y);
-  y += 8;
-
-  y = addMultilineText(
-    doc,
-    `Adalah benar bahwa yang bersangkutan sampai saat ini belum pernah melakukan perkawinan yang tercatat pada kantor pencatat perkawinan yang berwenang. Surat keterangan ini diberikan untuk keperluan ${data.keperluan}.`,
-    MARGIN_LEFT,
-    y,
-    CONTENT_WIDTH
-  );
-  y += 8;
-
-  doc.text(`Diterbitkan di : ${headerData.namaDesa}`, MARGIN_LEFT + CONTENT_WIDTH / 2, y);
-  y += 5;
-  doc.text(`Tanggal           : ${formatDate()}`, MARGIN_LEFT + CONTENT_WIDTH / 2, y);
-  y += 15;
-
-  doc.text(`${headerData.atnPejabat ? 'A.n. ' : ''}${headerData.jabatanPejabat}`, MARGIN_LEFT + CONTENT_WIDTH / 2, y, { align: 'center' });
-  y += 20;
-  doc.text(headerData.namaPejabat, MARGIN_LEFT + CONTENT_WIDTH / 2, y, { align: 'center' });
-  y += 3;
-  doc.setFont('Arial', 'normal');
-  doc.setFontSize(FONTS.small.size);
-  doc.text(`NIP: ${headerData.nipPejabat}`, MARGIN_LEFT + CONTENT_WIDTH / 2, y, { align: 'center' });
-}
-
-function generateTidakMampuLetter(doc: jsPDF, headerData: HeaderData, data: any): void {
-  let y = addHeader(doc, headerData);
-  y = addTitle(doc, 'SURAT KETERANGAN TIDAK MAMPU', y);
-  
-  const klasifikasi = data.klasifikasiSurat || `460/.../${Date.now().toString().slice(-2)}/${new Date().getFullYear()}`;
-  y = addLetterNumber(doc, klasifikasi, y);
-  y += 5;
-
-  doc.setFont('Arial', 'normal');
-  doc.setFontSize(FONTS.normal.size);
-
-  y = addMultilineText(
-    doc,
-    `Yang bertanda tangan di bawah ini adalah Kepala Desa/Lurah ${headerData.namaDesa}, menerangkan bahwa:`,
-    MARGIN_LEFT,
-    y,
-    CONTENT_WIDTH
-  );
-  y += 5;
-
-  doc.text(`Nama                       : ${data.namaLengkap}`, MARGIN_LEFT, y);
-  y += 5;
-  doc.text(`NIK                          : ${data.nik}`, MARGIN_LEFT, y);
-  y += 5;
-  
-  if (data.jenisKelamin) {
-    doc.text(`Jenis Kelamin         : ${data.jenisKelamin}`, MARGIN_LEFT, y);
-    y += 5;
-  }
-
-  if (data.tempatLahir) {
-    const tglLahir = data.tanggalLahir ? formatDate(data.tanggalLahir) : '';
-    doc.text(`Tempat/Tanggal Lahir : ${data.tempatLahir}, ${tglLahir}`, MARGIN_LEFT, y);
-    y += 5;
-  }
-
-  if (data.pekerjaan) {
-    doc.text(`Pekerjaan                : ${data.pekerjaan}`, MARGIN_LEFT, y);
-    y += 5;
-  }
-
-  doc.text(`Alamat                    : ${data.alamatLengkap}`, MARGIN_LEFT, y);
-  y += 5;
-  doc.text(`RT/RW                    : ${data.rt}/${data.rw}`, MARGIN_LEFT, y);
-  y += 8;
-
-  y = addMultilineText(
-    doc,
-    `Adalah benar bahwa yang bersangkutan termasuk dalam kategori tidak mampu menurut kriteria yang berlaku di desa kami. Surat keterangan ini diberikan untuk keperluan ${data.keperluan} di ${data.tujuanSekolah}.`,
-    MARGIN_LEFT,
-    y,
-    CONTENT_WIDTH
-  );
-  y += 8;
-
-  doc.text(`Diterbitkan di : ${headerData.namaDesa}`, MARGIN_LEFT + CONTENT_WIDTH / 2, y);
-  y += 5;
-  doc.text(`Tanggal           : ${formatDate()}`, MARGIN_LEFT + CONTENT_WIDTH / 2, y);
-  y += 15;
-
-  doc.text(`${headerData.atnPejabat ? 'A.n. ' : ''}${headerData.jabatanPejabat}`, MARGIN_LEFT + CONTENT_WIDTH / 2, y, { align: 'center' });
-  y += 20;
-  doc.text(headerData.namaPejabat, MARGIN_LEFT + CONTENT_WIDTH / 2, y, { align: 'center' });
-  y += 3;
-  doc.setFont('Arial', 'normal');
-  doc.setFontSize(FONTS.small.size);
-  doc.text(`NIP: ${headerData.nipPejabat}`, MARGIN_LEFT + CONTENT_WIDTH / 2, y, { align: 'center' });
-}
-
-function generateBedaLuasLetter(doc: jsPDF, headerData: HeaderData, data: any): void {
-  let y = addHeader(doc, headerData);
-  y = addTitle(doc, 'SURAT KETERANGAN BEDA LUAS TANAH', y);
-  
-  const klasifikasi = data.klasifikasiSurat || `141/.../${Date.now().toString().slice(-2)}/${new Date().getFullYear()}`;
-  y = addLetterNumber(doc, klasifikasi, y);
-  y += 5;
-
-  doc.setFont('Arial', 'normal');
-  doc.setFontSize(FONTS.normal.size);
-
-  y = addMultilineText(
-    doc,
-    `Yang bertanda tangan di bawah ini adalah Kepala Desa/Lurah ${headerData.namaDesa}, menerangkan bahwa:`,
-    MARGIN_LEFT,
-    y,
-    CONTENT_WIDTH
-  );
-  y += 5;
-
-  doc.text(`Nama                       : ${data.namaLengkap}`, MARGIN_LEFT, y);
-  y += 5;
-  doc.text(`NIK                          : ${data.nik}`, MARGIN_LEFT, y);
-  y += 5;
-  doc.text(`Alamat                    : ${data.alamatLengkap}`, MARGIN_LEFT, y);
-  y += 5;
-  doc.text(`RT/RW                    : ${data.rt}/${data.rw}`, MARGIN_LEFT, y);
-  y += 8;
-
-  y = addMultilineText(
-    doc,
-    `Adalah benar bahwa terdapat perbedaan luas tanah antara Sertifikat dan SPPT (Surat Pemberitahuan Pajak Tahunan) yang dimiliki oleh yang bersangkutan, dengan rincian sebagai berikut:`,
-    MARGIN_LEFT,
-    y,
-    CONTENT_WIDTH
-  );
-  y += 6;
-
-  doc.text(`Nomor Sertifikat          : ${data.nomorSertifikat}`, MARGIN_LEFT, y);
-  y += 4;
-  doc.text(`Luas Sertifikat           : ${data.luasSertifikat} m²`, MARGIN_LEFT, y);
-  y += 4;
-  doc.text(`Nomor SPPT                : ${data.nomorSPPT}`, MARGIN_LEFT, y);
-  y += 4;
-  doc.text(`Luas SPPT                 : ${data.luasSPPT} m²`, MARGIN_LEFT, y);
-  y += 8;
-
-  y = addMultilineText(
-    doc,
-    `Surat keterangan ini diberikan untuk keperluan administrasi pertanahan dan dapat digunakan sebagai dasar untuk melakukan perubahan data tanah sesuai dengan dokumen yang berlaku.`,
-    MARGIN_LEFT,
-    y,
-    CONTENT_WIDTH
-  );
-  y += 8;
-
-  doc.text(`Diterbitkan di : ${headerData.namaDesa}`, MARGIN_LEFT + CONTENT_WIDTH / 2, y);
-  y += 5;
-  doc.text(`Tanggal           : ${formatDate()}`, MARGIN_LEFT + CONTENT_WIDTH / 2, y);
-  y += 15;
-
-  doc.text(`${headerData.atnPejabat ? 'A.n. ' : ''}${headerData.jabatanPejabat}`, MARGIN_LEFT + CONTENT_WIDTH / 2, y, { align: 'center' });
-  y += 20;
-  doc.text(headerData.namaPejabat, MARGIN_LEFT + CONTENT_WIDTH / 2, y, { align: 'center' });
-  y += 3;
-  doc.setFont('Arial', 'normal');
-  doc.setFontSize(FONTS.small.size);
-  doc.text(`NIP: ${headerData.nipPejabat}`, MARGIN_LEFT + CONTENT_WIDTH / 2, y, { align: 'center' });
-}
-
-function generateUndanganLetter(doc: jsPDF, headerData: HeaderData, data: any): void {
-  let y = addHeader(doc, headerData);
-  y = addTitle(doc, 'SURAT UNDANGAN RESMI', y);
-  
-  const klasifikasi = data.klasifikasiSurat || `${Date.now().toString().slice(-3)}/.../${Date.now().toString().slice(-2)}/${new Date().getFullYear()}`;
-  y = addLetterNumber(doc, klasifikasi, y);
-  y += 5;
-
-  doc.setFont('Arial', 'normal');
-  doc.setFontSize(FONTS.normal.size);
-
-  // Sifat dan Lampiran
-  doc.text(`Sifat          : Penting`, MARGIN_LEFT, y);
-  y += 4;
-  doc.text(`Lampiran       : -`, MARGIN_LEFT, y);
-  y += 4;
-  doc.text(`Perihal        : Undangan`, MARGIN_LEFT, y);
-  y += 8;
-
-  // Tujuan
-  doc.text(`Kepada Yth.`, MARGIN_LEFT, y);
-  y += 4;
-  y = addMultilineText(doc, data.tujuanYth, MARGIN_LEFT, y, CONTENT_WIDTH);
-  y += 5;
-
-  // Isi surat
-  y = addMultilineText(
-    doc,
-    `Dengan hormat, kami mengundang Bapak/Ibu untuk hadir dalam acara berikut:`,
-    MARGIN_LEFT,
-    y,
-    CONTENT_WIDTH
-  );
-  y += 6;
-
-  doc.text(`Hari/Tanggal   : ${data.hari}, ${data.tanggal}`, MARGIN_LEFT, y);
-  y += 4;
-  doc.text(`Pukul           : ${data.pukul} WIB`, MARGIN_LEFT, y);
-  y += 4;
-  doc.text(`Tempat          : ${data.tempat}`, MARGIN_LEFT, y);
-  y += 4;
-  doc.text(`Agenda          : ${data.agendaAcara}`, MARGIN_LEFT, y);
-  y += 8;
-
-  y = addMultilineText(
-    doc,
-    `Atas perhatian dan kehadiran Bapak/Ibu diucapkan terima kasih.`,
-    MARGIN_LEFT,
-    y,
-    CONTENT_WIDTH
-  );
-  y += 8;
-
-  doc.text(`Diterbitkan di : ${headerData.namaDesa}`, MARGIN_LEFT + CONTENT_WIDTH / 2, y);
-  y += 5;
-  doc.text(`Tanggal           : ${formatDate()}`, MARGIN_LEFT + CONTENT_WIDTH / 2, y);
-  y += 15;
-
-  doc.text(`${headerData.atnPejabat ? 'A.n. ' : ''}${headerData.jabatanPejabat}`, MARGIN_LEFT + CONTENT_WIDTH / 2, y, { align: 'center' });
-  y += 20;
-  doc.text(headerData.namaPejabat, MARGIN_LEFT + CONTENT_WIDTH / 2, y, { align: 'center' });
-  y += 3;
-  doc.setFont('Arial', 'normal');
-  doc.setFontSize(FONTS.small.size);
-  doc.text(`NIP: ${headerData.nipPejabat}`, MARGIN_LEFT + CONTENT_WIDTH / 2, y, { align: 'center' });
-
-  if (data.daftarTembusan && data.daftarTembusan.trim()) {
-    y += 10;
-    doc.text(`Tembusan: ${data.daftarTembusan}`, MARGIN_LEFT, y);
-  }
-}
-
-export function generatePdf(options: GeneratePdfOptions): Blob {
-  const doc = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: 'a4',
-  });
-
-  const { letterType, headerData, letterData } = options;
-
-  switch (letterType) {
-    case 'domisili':
-      generateDomisiliLetter(doc, headerData, letterData);
-      break;
-    case 'belum_menikah':
-      generateBelumMenikahLetter(doc, headerData, letterData);
-      break;
-    case 'tidak_mampu':
-      generateTidakMampuLetter(doc, headerData, letterData);
-      break;
-    case 'beda_luas':
-      generateBedaLuasLetter(doc, headerData, letterData);
-      break;
-    case 'undangan':
-      generateUndanganLetter(doc, headerData, letterData);
-      break;
-  }
+  addSignature(doc, content, y + 4);
 
   return doc.output('blob');
 }
+
+/** Re-export untuk kebutuhan pengujian / pemakaian lain. */
+export { formatDateSurat };

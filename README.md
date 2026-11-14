@@ -5,11 +5,13 @@ KASIPEM adalah aplikasi modern untuk membuat berbagai jenis surat administrasi d
 ## 🎯 Fitur Utama
 
 ✅ **Stateless & Sekali Pakai** - Tidak menggunakan database, tanpa login/register, semua diproses di sisi klien  
-✅ **5 Jenis Surat** - Domisili, Belum Menikah, Tidak Mampu (SKTM), Beda Luas Tanah, Undangan  
+✅ **12 Jenis Surat** - Domisili, Pisah KK, Keterangan Tanah (SKT Dayat), Beda Luas Tanah, Beda Nama, Belum Menikah, Tidak Mampu (SKTM), Ahli Waris, Nikah Tidak Tercatat, Pemakaman, Tidak Memiliki Rumah, Undangan  
 ✅ **Form Dinamis** - Kolom input berubah sesuai jenis surat yang dipilih  
 ✅ **Export & Cetak** - Unduh PDF, DOCX, atau cetak langsung  
 ✅ **Data Lokal** - Simpan kop surat dan pejabat di device (tidak ke server)  
-✅ **UI/UX Modern** - Desain gradasi biru-hijau, animasi halus, responsif  
+✅ **Kop Surat Asli** - Logo Garuda + logo Kabupaten Subang dari folder `kop/` tampil di preview, PDF, dan cetak  
+✅ **Pejabat Default** - Kepala Desa H. AMIRUDIN, S.Pd.I; Sekretaris Desa APIPUDIN, S.IP (Desa Kasomalang Kulon, Kec. Kasomalang, Kab. Subang). Tidak ada NIP — baris NIP tidak ditampilkan.  
+✅ **UI/UX Modern** - Desain tenang (latar stone/slate, aksen teal tua), grid kartu surat + modal form dan preview A4, responsif  
 ✅ **No Data Leak** - Semua data hanya ada di perangkat Anda  
 
 ---
@@ -30,13 +32,16 @@ kasipem/
 │   │   │   ├── layout.tsx      # Layout root
 │   │   │   └── globals.css     # CSS global
 │   │   ├── components/
-│   │   │   ├── LetterTypeSelector.tsx
-│   │   │   ├── LetterForm.tsx
-│   │   │   ├── LetterPreview.tsx
-│   │   │   └── HeaderForm.tsx
+│   │   │   ├── LetterTypeSelector.tsx  # Grid 12 kartu + cari/filter
+│   │   │   ├── LetterForm.tsx        # Modal form per surat
+│   │   │   ├── LetterBody.tsx        # Renderer isi surat (preview)
+│   │   │   ├── LetterPreview.tsx     # Modal preview A4 + Unduh PDF / Cetak
+│   │   │   └── HeaderForm.tsx        # Kop + pejabat (Kades & Sekdes)
 │   │   ├── lib/
-│   │   │   ├── store.ts        # Zustand state management
-│   │   │   └── pdf-generator.ts # Generator PDF jsPDF
+│   │   │   ├── store.ts             # Zustand state management
+│   │   │   ├── letter-definitions.ts # Metadata + field kanon 12 surat
+│   │   │   ├── letter-content.ts     # Isi surat (dipakai preview DAN PDF)
+│   │   │   └── pdf-generator.ts      # Satu-satunya generator PDF (jsPDF, 12 surat)
 │   │   ├── types/
 │   │   │   └── index.ts        # TypeScript types
 │   │   └── public/
@@ -147,98 +152,98 @@ cd android-app
 
 ## 📋 Jenis Surat & Form Dinamis
 
-### 1. **Surat Keterangan Domisili** (Klasifikasi: 140)
+Ada **12 jenis surat**. Nomor surat bisa diedit per surat (default per pola di bawah, tahun otomatis). Penandatangan: Kepala Desa, kecuali Pisah KK (a.n. Kepala Desa oleh Sekretaris Desa) dan SKTM (ditambah baris "Mengetahui, Ketua RW").
+
+### 1. **Surat Keterangan Domisili** (Nomor: 474/.../PEM/tahun)
 **Tujuan:** Verifikasi tempat tinggal untuk keperluan administrasi
 
-**Field Wajib:**
-- Nama Lengkap
-- NIK
-- Alamat Asal (KTP)
-- RT/RW
-- Alamat Domisili Saat Ini
-- Keperluan Surat
-
-**Field Opsional:**
-- Jenis Kelamin
-- Tempat/Tanggal Lahir
-- Pekerjaan
+**Field:** Nama Lengkap*, NIK*, Jenis Kelamin, Tempat/Tanggal Lahir, Pekerjaan, Alamat Asal (KTP)*, RT*, RW*, Alamat Domisili Saat Ini*, Keperluan Surat*
 
 ---
 
-### 2. **Surat Keterangan Belum Menikah** (Klasifikasi: 460.2)
-**Tujuan:** Administrasi perkawinan dan pendaftaran
+### 2. **Surat Keterangan Pisah KK** (Nomor: 474/.../PEM/tahun)
+**Tujuan:** Pemisahan Kartu Keluarga. **Ttd: a.n. Kepala Desa — Sekretaris Desa.**
 
-**Field Wajib:**
-- Nama Lengkap
-- NIK
-- Alamat Lengkap
-- RT/RW
-- Tujuan/Nama Instansi
-- Keperluan
-
-**Field Opsional:**
-- Jenis Kelamin
-- Tempat/Tanggal Lahir
-- Pekerjaan
+**Field:** Nama Pemisah Pertama*, NIK*, Nama Pemisah Kedua*, NIK*, Nomor KK Lama*, Alamat*
 
 ---
 
-### 3. **Surat Keterangan Tidak Mampu (SKTM)** (Klasifikasi: 460)
-**Tujuan:** Bantuan sosial, beasiswa, program kesehatan
+### 3. **Surat Keterangan Tanah / SKT Dayat** (Nomor: 593/.../PEM/tahun)
+**Tujuan:** Sertifikat tanah dan properti, termasuk batas-batas tanah
 
-**Field Wajib:**
-- Nama Lengkap
-- NIK
-- Alamat Lengkap
-- RT/RW
-- Tujuan/Nama Sekolah
-- Keperluan
-
-**Field Opsional:**
-- Jenis Kelamin
-- Tempat/Tanggal Lahir
-- Pekerjaan
+**Field:** Nama Pemilik Tanah*, NIK*, Tempat/Tanggal Lahir, Alamat*, Luas Tanah (m²)*, Luas Bangunan (m²), SPPT/NOP, Batas Utara, Batas Timur, Batas Selatan, Batas Barat
 
 ---
 
-### 4. **Surat Keterangan Beda Luas Tanah** (Klasifikasi: 141)
+### 4. **Surat Keterangan Beda Luas Tanah** (Nomor: 141/.../PEM/tahun)
 **Tujuan:** Administrasi pertanahan, perbedaan sertifikat & SPPT
 
-**Field Wajib:**
-- Nama Lengkap
-- NIK
-- Alamat Lengkap
-- RT/RW
-- Nomor Sertifikat
-- Luas Sertifikat (m²)
-- Nomor SPPT
-- Luas SPPT (m²)
+**Field:** Nama Lengkap*, NIK*, Alamat*, RT, RW, Nomor Sertifikat*, Luas Sertifikat (m²)*, Nomor SPPT*, Luas SPPT (m²)*
 
 ---
 
-### 5. **Surat Undangan Resmi** (Klasifikasi: Khusus)
-**Tujuan:** Acara resmi desa/kelurahan
+### 5. **Surat Keterangan Beda Nama** (Nomor: 474/.../PEM/tahun)
+**Tujuan:** Perbedaan nama di dokumen
 
-**Field Wajib:**
-- Tujuan Yth.
-- Hari
-- Tanggal
-- Pukul
-- Tempat
-- Agenda Acara
+**Field:** Nama Saat Ini*, NIK*, Nama di Dokumen Pertama*, Nama di Dokumen Kedua*, Alasan Perbedaan Nama*
 
-**Field Opsional:**
-- Tembusan
+---
+
+### 6. **Surat Keterangan Belum Menikah** (Nomor: 460.2/.../Ks/tahun)
+**Tujuan:** Administrasi perkawinan dan pendaftaran
+
+**Field:** Nama Lengkap*, NIK*, Jenis Kelamin, Tempat/Tanggal Lahir, Pekerjaan, Alamat*, RT, RW, Keperluan*
+
+---
+
+### 7. **Surat Keterangan Tidak Mampu (SKTM)** (Nomor: 460/.../Ks/tahun)
+**Tujuan:** Bantuan sosial, beasiswa, program kesehatan
+
+**Field:** Nama Lengkap*, NIK*, Jenis Kelamin, Tempat/Tanggal Lahir, Pekerjaan, Alamat*, RT, RW, Penghasilan Bulanan, Keperluan*, Tujuan*
+
+---
+
+### 8. **Surat Keterangan Ahli Waris** (Nomor: 474/.../PEM/tahun)
+**Tujuan:** Proses kewarisan dan pengurusan harta
+
+**Field:** Nama Peninggal*, NIK Peninggal*, Alamat Peninggal*, Nama Ahli Waris 1*, NIK, Hubungan, Nama Ahli Waris 2, NIK, Hubungan, Keterangan Tambahan
+
+---
+
+### 9. **Surat Nikah Tidak Tercatat** (Nomor: 460.2/.../Ks/tahun)
+**Tujuan:** Pengakuan perkawinan tidak tercatat
+
+**Field:** Nama Pria*, NIK Pria*, Tempat/Tanggal Lahir Pria, Nama Wanita*, NIK Wanita*, Tempat/Tanggal Lahir Wanita, Tanggal Pernikahan*, Tempat Pernikahan*
+
+---
+
+### 10. **Surat Keterangan Pemakaman** (Nomor: 474/.../PEM/tahun)
+**Tujuan:** Izin dan proses pemakaman
+
+**Field:** Nama Almarhum/Almarhumah*, NIK Almarhum, Tempat/Tanggal Lahir, Alamat*, Tanggal Meninggal*, Lokasi Makam*, Nama Keluarga yang Memohon*
+
+---
+
+### 11. **Surat Pernyataan Tidak Memiliki Rumah** (Nomor: 474/.../PEM/tahun)
+**Tujuan:** Keterangan tidak memiliki properti
+
+**Field:** Nama Lengkap*, NIK*, Tempat/Tanggal Lahir, Pekerjaan, Alamat Tempat Tinggal Saat Ini*, Keterangan Tambahan
+
+---
+
+### 12. **Surat Undangan Resmi** (Nomor: manual/editable)
+**Tujuan:** Acara resmi desa/kelurahan. **Ttd: Kepala Desa.**
+
+**Field:** Tujuan Yth.*, Hari*, Tanggal*, Bulan*, Tahun*, Pukul*, Tempat*, Agenda Acara*, Tembusan (opsional)
 
 ---
 
 ## 🎨 Desain & Tema
 
 ### Palet Warna
-- **Primary:** `#0284C7` (Sky Blue)
-- **Secondary:** `#0D9488` (Teal)
-- **Tertiary:** `#10B981` (Emerald Green)
-- **Background:** Gradasi `#F0F9FF` → `#F0FDFA` → `#FCFDF5`
+- **Primary:** `#0F766E` (Teal tua)
+- **Secondary:** `#475569` (Slate)
+- **Background:** `#FAFAF9` (Stone muda) — kartu putih, bayangan lembut
 
 ### Animasi
 - **Gradient Background:** Animasi gradien bergerak 8s
@@ -315,7 +320,7 @@ context.dataStore.edit { preferences ->
 ```
 START
   ↓
-[Pilih Jenis Surat] ← Dari 5 pilihan dengan ikon & deskripsi
+[Pilih Jenis Surat] ← Dari 12 pilihan (grid kartu + cari/filter kategori) → modal form → modal preview A4
   ↓
 [Isi Form] ← Form fields dinamis sesuai jenis surat
   ↓

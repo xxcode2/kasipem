@@ -1,19 +1,27 @@
 package com.kasipem.ui.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 
+/**
+ * Field teks standar. Error (mis. NIK bukan 16 digit) tampil PERSISTEN
+ * di bawah field — bukan toast/alert yang menghilang tanpa jejak.
+ * Field wajib ditandai "*" di label.
+ */
 @Composable
 fun FormTextField(
     label: String,
@@ -22,8 +30,12 @@ fun FormTextField(
     modifier: Modifier = Modifier,
     placeholder: String = "",
     isOptional: Boolean = false,
+    isRequired: Boolean = false,
+    /** Pesan error persisten; null = tidak ada error. */
+    error: String? = null,
     singleLine: Boolean = true,
     maxLines: Int = 1,
+    keyboardType: KeyboardType = KeyboardType.Text,
     visualTransformation: VisualTransformation = VisualTransformation.None,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
@@ -35,7 +47,7 @@ fun FormTextField(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = label,
+                text = if (isRequired) "$label *" else label,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -66,8 +78,15 @@ fun FormTextField(
             },
             singleLine = singleLine,
             maxLines = maxLines,
+            keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             visualTransformation = visualTransformation,
             shape = RoundedCornerShape(12.dp),
+            isError = error != null,
+            supportingText = if (error != null) {
+                { Text(text = error, color = MaterialTheme.colorScheme.error) }
+            } else {
+                null
+            },
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
                 unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
@@ -87,7 +106,8 @@ fun FormDropdown(
     modifier: Modifier = Modifier,
     isOptional: Boolean = false,
 ) {
-    var expanded = false
+    // remember: tanpa ini, state expanded hilang setiap recomposition.
+    var expanded by remember { mutableStateOf(false) }
 
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
@@ -130,7 +150,7 @@ fun FormDropdown(
                     modifier = Modifier.weight(1f)
                 )
                 Icon(
-                    imageVector = Icons.Default.Check,
+                    imageVector = Icons.Default.ArrowDropDown,
                     contentDescription = null,
                     modifier = Modifier.size(20.dp)
                 )
