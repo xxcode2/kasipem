@@ -126,7 +126,7 @@ bukan data contoh asli. Koordinator menjalankan ulang harness yang sama:
 | 7 | tidak_mampu | ✅ | ✅ 76,4 KB, 1 hal | Mengetahui Ketua RW |
 | 8 | ahli_waris | ✅ | ✅ 76,4 KB, 1 hal | |
 | 9 | nikah_tidak_tercatat | ✅ | ✅ 75,5 KB, 1 hal | |
-| 10 | pemakaman | ✅ | ✅ 75,3 KB, 1 hal | Seri 474/PEM (tetap, dari Fase 1) |
+| 10 | pemakaman | ✅ | ✅ 75,3 KB, 1 hal | Seri 460.3/KS (diperbaiki 2026-11-15 atas konfirmasi user; sebelumnya 474/PEM) |
 | 11 | tidak_memiliki_rumah | ✅ | ✅ 75,2 KB, 1 hal | |
 | 12 | undangan | ✅ | ✅ 75,9 KB, 1 hal | Nomor manual |
 | 13 | kematian (460.3/KS) | ✅ | ✅ 77,6 KB, 1 hal | a.n. Kades — APIPUDIN |
@@ -197,12 +197,10 @@ kemunculan di semua 36 PDF + preview). Folder `file/` **tidak berubah**
 ## Penomoran — bentrok & catatan (jangan karang seri baru)
 
 1. **Kematian vs Pemakaman (seri 460.3):** template `SURAT KEMATIAN.doc` dan
-   `SURAT PEMAKAMAN.docx` sama-sama memakai seri `460.3/.../KS/`. Di aplikasi,
-   `kematian` memakai `460.3/.../KS/` (ikut template) sedangkan `pemakaman`
-   memakai `474/.../PEM/` (tetap dari Fase 1 — Fase 1 memakai 474 untuk
-   pemakaman, padahal DOCX-nya 460.3). Jadi **di dalam aplikasi tidak ada
-   bentrok**, tapi nomor pemakaman di aplikasi ≠ nomor di DOCX contohnya.
-   Perlu konfirmasi desa: seri resmi pemakaman 460.3 atau 474?
+   `SURAT PEMAKAMAN.docx` sama-sama memakai seri `460.3/.../KS/`. **TERJAWAB
+   2026-11-15 (user): Pemakaman = `460.3/.../KS/`** — nomor pemakaman di aplikasi
+   diperbaiki dari `474/PEM` ke `460.3/KS` (web + Android + README) dan ikut
+   commit lanjutan setelah commit Fase 2. Kematian tetap `460.3/.../KS/`.
 2. **PBI `474.4/.../KS/` dipakai dua tipe** (`pbi_pernyataan` dan
    `pbi_tidak_punya_rekening`) — sesuai bundle PBI-JKN di template (keduanya
    No `474.4/.../KS/2025`), bukan karangan.
@@ -222,7 +220,7 @@ kemunculan di semua 36 PDF + preview). Folder `file/` **tidak berubah**
    main`.
 2. **Redeploy Vercel** setelah push (https://kasipem.vercel.app) — biasanya
    auto-deploy dari `main`; cek hasil deploy-nya.
-3. **Konfirmasi penomoran desa:** pemakaman 460.3 atau 474? (poin 1 di atas).
+3. **Konfirmasi penomoran desa:** ✅ SELESAI 2026-11-15 — Pemakaman = `460.3/.../KS/` (user), sudah diperbaiki di web + Android + README.
 4. **Cek cetak sekali di browser** (web): buka preview surat → Cetak → lihat
    pratinjau cetak A4; cek juga modal Riwayat Surat (localStorage).
 5. **Cek Android di Android Studio** (poin di atas).

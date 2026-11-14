@@ -83,7 +83,7 @@ enum class LetterType(
         "Pemakaman",
         "SURAT KETERANGAN PEMAKAMAN",
         "Keterangan pemakaman",
-        "Sosial", "474", "PEM"
+        "Sosial", "460.3", "KS"
     ),
     TIDAK_MEMILIKI_RUMAH(
         "Tidak Memiliki Rumah",

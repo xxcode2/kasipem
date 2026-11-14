@@ -331,8 +331,8 @@ export const LETTER_DEFINITIONS: LetterDefinition[] = [
     shortTitle: 'Pemakaman',
     description: 'Keterangan pemakaman almarhum/almarhumah.',
     category: 'Lainnya',
-    nomorPrefix: '474',
-    nomorSuffix: 'PEM',
+    nomorPrefix: '460.3',
+    nomorSuffix: 'KS',
     applicantField: 'namaKeluarga',
     fields: [
       { name: 'namaAlmarhum', label: 'Nama Almarhum/Almarhumah', type: 'text', required: true },
@@ -392,7 +392,7 @@ export const LETTER_DEFINITIONS: LetterDefinition[] = [
     shortTitle: 'Keterangan Kematian',
     description: 'Keterangan resmi bahwa seseorang telah meninggal dunia (dasar pengurusan akta kematian).',
     category: 'Surat Desa',
-    // CATATAN: seri 460.3/.../KS/ juga dipakai pemakaman di template desa — dipertahankan apa adanya.
+    // Seri 460.3/.../KS/ — sama seperti pemakaman (dikonfirmasi user 2026-11-15).
     nomorPrefix: '460.3',
     nomorSuffix: 'KS',
     applicantField: 'namaPelapor',

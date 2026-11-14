@@ -220,7 +220,7 @@ Ada **30 jenis surat/formulir**. Nomor surat bisa diedit per surat (default per 
 
 ---
 
-### 10. **Surat Keterangan Pemakaman** (Nomor: 474/.../PEM/tahun)
+### 10. **Surat Keterangan Pemakaman** (Nomor: 460.3/.../KS/tahun)
 **Tujuan:** Izin dan proses pemakaman
 
 **Field:** Nama Almarhum/Almarhumah*, NIK Almarhum, Tempat/Tanggal Lahir, Alamat*, Tanggal Meninggal*, Lokasi Makam*, Nama Keluarga yang Memohon*
