@@ -1,0 +1,43 @@
+# Web App
+web-app/node_modules/
+web-app/.next/
+web-app/dist/
+web-app/build/
+web-app/.env.local
+web-app/.env.*.local
+web-app/*.log
+web-app/npm-debug.log*
+web-app/yarn-debug.log*
+web-app/yarn-error.log*
+web-app/.DS_Store
+
+# Android App
+android-app/.gradle
+android-app/.idea
+android-app/build
+android-app/captures
+android-app/.externalNativeBuild
+android-app/.cxx
+android-app/local.properties
+android-app/*.jks
+android-app/*.keystore
+android-app/app/release/
+android-app/app/debug/
+android-app/.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Env
+.env
+.env.local
+.env.*.local

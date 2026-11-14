@@ -1,0 +1,106 @@
+================================================================================
+                  🚀 KASIPEM - JALANKAN SEKARANG (EASY MODE)
+================================================================================
+
+⚠️  BACA INI DULU:
+
+Error build sudah DIPERBAIKI ✅
+
+Cukup ikuti 3 langkah sederhana di bawah:
+
+================================================================================
+LANGKAH 1: BUKA COMMAND PROMPT / TERMINAL / POWERSHELL
+================================================================================
+
+Windows: Press Win+R, ketik "cmd" atau "powershell", tekan Enter
+Mac: Open Terminal (Cmd+Space, ketik "terminal")
+Linux: Open Terminal (Ctrl+Alt+T)
+
+
+================================================================================
+LANGKAH 2: COPY-PASTE COMMAND INI (semua sekaligus)
+================================================================================
+
+cd c:\Users\irgir\Downloads\kasipem\web-app && npm install && npm run dev
+
+
+Atau jika di Mac/Linux:
+
+cd ~/Downloads/kasipem/web-app && npm install && npm run dev
+
+
+================================================================================
+LANGKAH 3: TUNGGU & BUKA BROWSER
+================================================================================
+
+Tunggu hingga muncul pesan:
+
+    ✓ Ready in 2.3s
+
+Kemudian buka browser dan pergi ke:
+
+    http://localhost:3000
+
+
+================================================================================
+✅ SELESAI!
+================================================================================
+
+Sekarang Anda bisa:
+
+1. Pilih jenis surat (Domisili, Belum Menikah, dll)
+2. Isi data di form
+3. Klik "Pratinjau & Unduh Surat"
+4. Download PDF
+5. Cetak atau simpan
+
+================================================================================
+🔧 TROUBLESHOOTING CEPAT
+================================================================================
+
+Jika ada error:
+
+1. Pastikan Node.js sudah terinstall:
+   node --version
+   (harus v18 atau lebih tinggi)
+
+2. Jika port 3000 sudah dipakai, gunakan port lain:
+   npm run dev -- -p 3001
+   Kemudian buka: http://localhost:3001
+
+3. Jika masih error, hapus folder .next dan coba lagi:
+   rm -r .next
+   npm run dev
+
+
+================================================================================
+📝 UNTUK INFORMASI LEBIH LANJUT
+================================================================================
+
+Baca file-file ini:
+
+✓ QUICK_RUN.md - Panduan lengkap
+✓ FIX_SUMMARY.md - Apa yang sudah diperbaiki
+✓ README.md - Overview aplikasi
+✓ DOKUMENTASI_REVISI.md - Detail format surat
+
+
+================================================================================
+⚡ SHORTCUT
+================================================================================
+
+Windows PowerShell:
+   cd c:\Users\irgir\Downloads\kasipem\web-app; npm install; npm run dev
+
+Mac/Linux Terminal:
+   cd ~/Downloads/kasipem/web-app && npm install && npm run dev
+
+
+================================================================================
+🎉 GOOD LUCK!
+================================================================================
+
+Jika berhasil membuka di http://localhost:3000, berarti semuanya OK! 
+
+Enjoy KASIPEM! 🚀
+
