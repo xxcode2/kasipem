@@ -170,12 +170,19 @@ export default function Home() {
                 whileHover={{ y: -4 }}
                 className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-teal-600"
               >
-                <h3 className="font-bold text-gray-800 mb-4">Jenis Surat</h3>
+                <h3 className="font-bold text-gray-800 mb-4">12 Jenis Surat</h3>
                 <ul className="space-y-2 text-sm text-gray-700">
                   <li>📋 Keterangan Domisili</li>
+                  <li>👨‍👩‍👧 Pisah KK</li>
+                  <li>🏠 Keterangan Tanah (DAYAT)</li>
+                  <li>📐 Beda Luas Tanah</li>
+                  <li>📝 Beda Nama</li>
                   <li>💍 Belum Menikah</li>
                   <li>💰 Tidak Mampu (SKTM)</li>
-                  <li>🏠 Beda Luas Tanah</li>
+                  <li>⚖️ Ahli Waris</li>
+                  <li>❤️ Nikah Tidak Tercatat</li>
+                  <li>⛪ Pemakaman</li>
+                  <li>🏘️ Tidak Memiliki Rumah</li>
                   <li>📮 Undangan Resmi</li>
                 </ul>
               </motion.div>

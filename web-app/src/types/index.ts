@@ -1,8 +1,15 @@
 export type LetterType = 
   | 'domisili' 
+  | 'pisah_kk'
+  | 'skt_dayat'
+  | 'beda_luas' 
+  | 'beda_nama'
   | 'belum_menikah' 
   | 'tidak_mampu' 
-  | 'beda_luas' 
+  | 'ahli_waris'
+  | 'nikah_tidak_tercatat'
+  | 'pemakaman'
+  | 'tidak_memiliki_rumah'
   | 'undangan';
 
 export interface HeaderData {
@@ -19,9 +26,9 @@ export interface HeaderData {
 export interface PersonalData {
   namaLengkap: string;
   nik: string;
-  alamatLengkap: string;
-  rt: string;
-  rw: string;
+  alamatLengkap?: string;
+  rt?: string;
+  rw?: string;
   jenisKelamin?: string;
   nomorKK?: string;
   tempatLahir?: string;
@@ -29,55 +36,7 @@ export interface PersonalData {
   pekerjaan?: string;
 }
 
-export interface DomisiliData extends PersonalData {
-  alamatAsal: string;
-  alamatDomisili: string;
-  keperluanSurat: string;
-  nomorSurat?: string;
-  klasifikasiSurat?: string;
-}
-
-export interface BelumMenikahData extends PersonalData {
-  tujuanSekolah: string;
-  keperluan: string;
-  nomorSurat?: string;
-  klasifikasiSurat?: string;
-}
-
-export interface TidakMampuData extends PersonalData {
-  tujuanSekolah: string;
-  keperluan: string;
-  nomorSurat?: string;
-  klasifikasiSurat?: string;
-}
-
-export interface BedaLuasData extends PersonalData {
-  nomorSertifikat: string;
-  luasSertifikat: string;
-  nomorSPPT: string;
-  luasSPPT: string;
-  nomorSurat?: string;
-  klasifikasiSurat?: string;
-}
-
-export interface UndanganData {
-  tujuanYth: string;
-  hari: string;
-  tanggal: string;
-  pukul: string;
-  tempat: string;
-  agendaAcara: string;
-  daftarTembusan: string;
-  nomorSurat?: string;
-  klasifikasiSurat?: string;
-}
-
-export type LetterData = 
-  | DomisiliData 
-  | BelumMenikahData 
-  | TidakMampuData 
-  | BedaLuasData 
-  | UndanganData;
+export type LetterData = Record<string, any>;
 
 export interface LetterStore {
   letterType: LetterType;
@@ -85,7 +44,7 @@ export interface LetterStore {
   letterData: LetterData;
   setLetterType: (type: LetterType) => void;
   setHeaderData: (data: Partial<HeaderData>) => void;
-  setLetterData: (data: Partial<LetterData>) => void;
+  setLetterData: (data: Record<string, any>) => void;
   reset: () => void;
   loadHeaderFromStorage: () => void;
   saveHeaderToStorage: () => void;

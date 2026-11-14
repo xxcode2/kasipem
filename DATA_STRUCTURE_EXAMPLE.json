@@ -1,0 +1,899 @@
+{
+  "comment": "Example data structures ready to use in code for all 12 letter types",
+  "letters_config": {
+    "1_PISAH_KK": {
+      "id": "pisah_kk",
+      "title": "SURAT KETERANGAN PISAH KK",
+      "number_format": "XXX / / PEM / TAHUN",
+      "signatory": "Sekretaris Desa",
+      "fields": [
+        {
+          "id": "nik_1",
+          "label": "NIK Pemisah 1",
+          "type": "text",
+          "validation": "^\\d{16}$",
+          "required": true,
+          "maxLength": 16
+        },
+        {
+          "id": "nama_1",
+          "label": "Nama Pemisah 1",
+          "type": "text",
+          "required": true,
+          "maxLength": 100
+        },
+        {
+          "id": "nik_2",
+          "label": "NIK Pemisah 2",
+          "type": "text",
+          "validation": "^\\d{16}$",
+          "required": true,
+          "maxLength": 16
+        },
+        {
+          "id": "nama_2",
+          "label": "Nama Pemisah 2",
+          "type": "text",
+          "required": true,
+          "maxLength": 100
+        },
+        {
+          "id": "nomor_kk_lama",
+          "label": "Nomor KK Lama",
+          "type": "text",
+          "required": true,
+          "maxLength": 20
+        }
+      ]
+    },
+    "2_SKT_DAYAT": {
+      "id": "skt_dayat",
+      "title": "SURAT KETERANGAN TANAH",
+      "number_format": "XXX / / PEM / TAHUN",
+      "signatory": "Kepala Desa",
+      "fields": [
+        {
+          "id": "nama_pemilik",
+          "label": "Nama Pemilik Tanah",
+          "type": "text",
+          "required": true
+        },
+        {
+          "id": "nik",
+          "label": "NIK",
+          "type": "text",
+          "validation": "^\\d{16}$",
+          "required": true
+        },
+        {
+          "id": "ttl",
+          "label": "Tempat, Tanggal Lahir",
+          "type": "text",
+          "placeholder": "Subang, 27-04-1997",
+          "required": true
+        },
+        {
+          "id": "alamat",
+          "label": "Alamat",
+          "type": "text",
+          "required": true
+        },
+        {
+          "id": "luas_tanah",
+          "label": "Luas Tanah (m²)",
+          "type": "number",
+          "required": true,
+          "min": 1,
+          "max": 99999
+        },
+        {
+          "id": "luas_bangunan",
+          "label": "Luas Bangunan (m²)",
+          "type": "number",
+          "required": false
+        },
+        {
+          "id": "sppt_nop",
+          "label": "SPPT/NOP",
+          "type": "text",
+          "required": true
+        },
+        {
+          "id": "batas_utara",
+          "label": "Batas Utara",
+          "type": "text",
+          "required": true
+        },
+        {
+          "id": "batas_timur",
+          "label": "Batas Timur",
+          "type": "text",
+          "required": true
+        },
+        {
+          "id": "batas_selatan",
+          "label": "Batas Selatan",
+          "type": "text",
+          "required": true
+        },
+        {
+          "id": "batas_barat",
+          "label": "Batas Barat",
+          "type": "text",
+          "required": true
+        },
+        {
+          "id": "harga_bangunan",
+          "label": "Harga Taksiran Bangunan (Rp)",
+          "type": "currency",
+          "required": false
+        },
+        {
+          "id": "harga_tanah",
+          "label": "Harga Taksiran Tanah (Rp)",
+          "type": "currency",
+          "required": false
+        }
+      ]
+    },
+    "3_BEDA_NAMA": {
+      "id": "beda_nama",
+      "title": "SURAT KETERANGAN BEDA LUAS",
+      "number_format": "XXX / / PEM / TAHUN",
+      "signatory": "Sekretaris Desa",
+      "structure": "comparison",
+      "fields": [
+        {
+          "section": "Sertifikat",
+          "fields": [
+            {
+              "id": "no_sertifikat",
+              "label": "No Sertipikat",
+              "type": "text",
+              "required": true
+            },
+            {
+              "id": "nomor_nib",
+              "label": "Nomor NIB",
+              "type": "text",
+              "required": true
+            },
+            {
+              "id": "luas_sertifikat",
+              "label": "Luas (m²)",
+              "type": "number",
+              "required": true
+            },
+            {
+              "id": "nama_sertifikat",
+              "label": "Nama Pemilik",
+              "type": "text",
+              "required": true
+            },
+            {
+              "id": "alamat_sertifikat",
+              "label": "Alamat",
+              "type": "text",
+              "required": true
+            }
+          ]
+        },
+        {
+          "section": "SPPT/PBB",
+          "fields": [
+            {
+              "id": "nop",
+              "label": "NOP",
+              "type": "text",
+              "required": true
+            },
+            {
+              "id": "nama_sppt",
+              "label": "Nama Pemilik",
+              "type": "text",
+              "required": true
+            },
+            {
+              "id": "luas_sppt",
+              "label": "Luas (m²)",
+              "type": "number",
+              "required": true
+            },
+            {
+              "id": "alamat_sppt",
+              "label": "Alamat",
+              "type": "text",
+              "required": true
+            }
+          ]
+        }
+      ]
+    },
+    "4_AHLI_WARIS": {
+      "id": "ahli_waris",
+      "title": "SURAT KETERANGAN AHLI WARIS",
+      "number_format": "Custom",
+      "signatory": "Kepala Desa",
+      "structure": "table",
+      "fields": [
+        {
+          "id": "nama_almarhum",
+          "label": "Nama Almarhum",
+          "type": "text",
+          "required": true
+        },
+        {
+          "id": "ahli_waris_list",
+          "label": "Daftar Ahli Waris",
+          "type": "table",
+          "columns": [
+            {
+              "id": "no",
+              "label": "No",
+              "type": "number"
+            },
+            {
+              "id": "nama",
+              "label": "Nama",
+              "type": "text",
+              "required": true
+            },
+            {
+              "id": "hubungan",
+              "label": "Hubungan Keluarga",
+              "type": "select",
+              "options": ["Istri", "Anak", "Orang Tua", "Saudara", "Lainnya"],
+              "required": true
+            },
+            {
+              "id": "ttd",
+              "label": "Tanda Tangan",
+              "type": "signature"
+            }
+          ],
+          "minRows": 1,
+          "maxRows": 10
+        },
+        {
+          "id": "saksi_list",
+          "label": "Daftar Saksi",
+          "type": "table",
+          "columns": [
+            {
+              "id": "no",
+              "label": "No",
+              "type": "number"
+            },
+            {
+              "id": "nama",
+              "label": "Nama",
+              "type": "text",
+              "required": true
+            },
+            {
+              "id": "jabatan",
+              "label": "Jabatan",
+              "type": "text",
+              "required": true
+            },
+            {
+              "id": "ttd",
+              "label": "Tanda Tangan",
+              "type": "signature"
+            }
+          ],
+          "minRows": 1,
+          "maxRows": 5
+        },
+        {
+          "id": "keperluan",
+          "label": "Keperluan",
+          "type": "text",
+          "required": true
+        }
+      ]
+    },
+    "5_BEDA_LUAS_REAL": {
+      "id": "beda_luas_real",
+      "title": "SURAT KETERANGAN BEDA LUAS",
+      "number_format": "No : XXX / / PEM / TAHUN",
+      "signatory": "Sekretaris Desa",
+      "structure": "comparison",
+      "fields": [
+        {
+          "section": "Data Pemilik",
+          "fields": [
+            {
+              "id": "nama_pemilik",
+              "label": "Nama Pemilik",
+              "type": "text",
+              "required": true
+            },
+            {
+              "id": "nik",
+              "label": "NIK",
+              "type": "text",
+              "validation": "^\\d{16}$",
+              "required": true
+            },
+            {
+              "id": "ttl",
+              "label": "Tempat, Tanggal Lahir",
+              "type": "text",
+              "required": true
+            },
+            {
+              "id": "pekerjaan",
+              "label": "Pekerjaan",
+              "type": "text",
+              "required": false
+            },
+            {
+              "id": "alamat",
+              "label": "Alamat",
+              "type": "text",
+              "required": true
+            }
+          ]
+        },
+        {
+          "section": "Sertifikat",
+          "fields": [
+            {
+              "id": "no_sertifikat",
+              "label": "Nomor Sertifikat",
+              "type": "text",
+              "required": true
+            },
+            {
+              "id": "luas_sertifikat",
+              "label": "Luas (m²)",
+              "type": "number",
+              "required": true
+            }
+          ]
+        },
+        {
+          "section": "SPPT",
+          "fields": [
+            {
+              "id": "nomor_sppt",
+              "label": "Nomor SPPT",
+              "type": "text",
+              "required": true
+            },
+            {
+              "id": "luas_sppt",
+              "label": "Luas (m²)",
+              "type": "number",
+              "required": true
+            }
+          ]
+        }
+      ]
+    },
+    "6_DOMISILI": {
+      "id": "domisili",
+      "title": "SURAT KETERANGAN DOMISILI",
+      "number_format": "Nomor : XXX / XX / Pem / TAHUN",
+      "signatory": "Sekretaris Desa",
+      "fields": [
+        {
+          "id": "nik",
+          "label": "NIK",
+          "type": "text",
+          "validation": "^\\d{16}$",
+          "required": true
+        },
+        {
+          "id": "nama",
+          "label": "Nama",
+          "type": "text",
+          "required": true
+        },
+        {
+          "id": "ttl",
+          "label": "Tempat, Tanggal Lahir",
+          "type": "text",
+          "required": true
+        },
+        {
+          "id": "pekerjaan",
+          "label": "Pekerjaan",
+          "type": "text",
+          "required": true
+        },
+        {
+          "id": "alamat_lama",
+          "label": "Alamat Lama",
+          "type": "text",
+          "required": true
+        },
+        {
+          "id": "keperluan",
+          "label": "Keperluan",
+          "type": "select",
+          "options": ["Identitas", "Administrasi", "Lainnya"],
+          "required": true
+        }
+      ]
+    },
+    "7_MISKIN_SEKOLAH": {
+      "id": "miskin_sekolah",
+      "title": "SURAT KETERANGAN MISKIN",
+      "number_format": "Nomor : XXX/XX/Ks/TAHUN",
+      "signatory": "Sekretaris Desa",
+      "fields": [
+        {
+          "id": "nama",
+          "label": "Nama Lengkap",
+          "type": "text",
+          "required": true
+        },
+        {
+          "id": "ttl",
+          "label": "Tempat, Tanggal Lahir",
+          "type": "text",
+          "required": true
+        },
+        {
+          "id": "pekerjaan",
+          "label": "Pekerjaan/Status",
+          "type": "text",
+          "required": true
+        },
+        {
+          "id": "alamat",
+          "label": "Alamat",
+          "type": "text",
+          "required": true
+        },
+        {
+          "id": "sekolah_tujuan",
+          "label": "Sekolah/Lembaga Tujuan",
+          "type": "text",
+          "required": true
+        },
+        {
+          "id": "keperluan",
+          "label": "Keperluan",
+          "type": "text",
+          "required": true
+        }
+      ]
+    },
+    "8_MISKIN_DAFTAR": {
+      "id": "miskin_daftar",
+      "title": "SURAT KETERANGAN MISKIN",
+      "number_format": "Nomor : XXX/XX/Ks/TAHUN",
+      "signatory": "Sekretaris Desa",
+      "structure": "table",
+      "fields": [
+        {
+          "id": "miskin_list",
+          "label": "Daftar Warga Miskin",
+          "type": "table",
+          "columns": [
+            {
+              "id": "nik",
+              "label": "NIK",
+              "type": "text",
+              "validation": "^\\d{16}$",
+              "required": true
+            },
+            {
+              "id": "nama",
+              "label": "NAMA",
+              "type": "text",
+              "required": true
+            },
+            {
+              "id": "ttl",
+              "label": "TEMPAT,TGL LAHIR",
+              "type": "text",
+              "required": true
+            },
+            {
+              "id": "alamat",
+              "label": "ALAMAT",
+              "type": "text",
+              "required": true
+            }
+          ],
+          "minRows": 1,
+          "maxRows": 100
+        }
+      ]
+    },
+    "9_NIKAH_TDK_TERCATAT": {
+      "id": "nikah_tdk_tercatat",
+      "title": "SURAT KETERANGAN NIKAH TIDAK TERCATAT",
+      "number_format": "Nomor : XXX / / Ks / TAHUN",
+      "signatory": "Kepala Desa",
+      "fields": [
+        {
+          "section": "Data Suami (Laki-laki)",
+          "fields": [
+            {
+              "id": "nama_suami",
+              "label": "Nama",
+              "type": "text",
+              "required": true
+            },
+            {
+              "id": "bin_suami",
+              "label": "Bin (Ayah)",
+              "type": "text",
+              "required": true
+            },
+            {
+              "id": "ttl_suami",
+              "label": "Tempat, Tanggal Lahir",
+              "type": "text",
+              "required": true
+            },
+            {
+              "id": "agama_suami",
+              "label": "Agama",
+              "type": "select",
+              "options": ["Islam", "Kristen", "Katholik", "Hindu", "Budha"],
+              "required": true
+            },
+            {
+              "id": "pekerjaan_suami",
+              "label": "Pekerjaan",
+              "type": "text",
+              "required": true
+            },
+            {
+              "id": "alamat_suami",
+              "label": "Alamat",
+              "type": "text",
+              "required": true
+            }
+          ]
+        },
+        {
+          "section": "Data Istri (Perempuan)",
+          "fields": [
+            {
+              "id": "nama_istri",
+              "label": "Nama",
+              "type": "text",
+              "required": true
+            },
+            {
+              "id": "bin_istri",
+              "label": "Bin (Ayah)",
+              "type": "text",
+              "required": true
+            },
+            {
+              "id": "ttl_istri",
+              "label": "Tempat, Tanggal Lahir",
+              "type": "text",
+              "required": true
+            },
+            {
+              "id": "agama_istri",
+              "label": "Agama",
+              "type": "select",
+              "options": ["Islam", "Kristen", "Katholik", "Hindu", "Budha"],
+              "required": true
+            },
+            {
+              "id": "pekerjaan_istri",
+              "label": "Pekerjaan",
+              "type": "text",
+              "required": true
+            },
+            {
+              "id": "alamat_istri",
+              "label": "Alamat",
+              "type": "text",
+              "required": true
+            }
+          ]
+        }
+      ]
+    },
+    "10_PEMAKAMAN": {
+      "id": "pemakaman",
+      "title": "SURAT KETERANGAN PEMAKAMAN",
+      "number_format": "Nomor : 460.3/ / / KS / TAHUN",
+      "signatory": "Sekretaris Desa",
+      "fields": [
+        {
+          "section": "Data Almarhum",
+          "fields": [
+            {
+              "id": "nama_almarhum",
+              "label": "Nama Almarhum",
+              "type": "text",
+              "required": true
+            },
+            {
+              "id": "alamat_almarhum",
+              "label": "Alamat",
+              "type": "text",
+              "required": true
+            }
+          ]
+        },
+        {
+          "section": "Hari Meninggal",
+          "fields": [
+            {
+              "id": "hari_meninggal",
+              "label": "Hari",
+              "type": "select",
+              "options": ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"],
+              "required": true
+            },
+            {
+              "id": "tanggal_meninggal",
+              "label": "Tanggal",
+              "type": "date",
+              "format": "DD Bulan YYYY",
+              "required": true
+            },
+            {
+              "id": "jam_meninggal",
+              "label": "Jam",
+              "type": "time",
+              "format": "HH.MM",
+              "required": true
+            },
+            {
+              "id": "tempat_meninggal",
+              "label": "Tempat",
+              "type": "text",
+              "required": true
+            }
+          ]
+        },
+        {
+          "section": "Hari Disemayamkan",
+          "fields": [
+            {
+              "id": "hari_disemayamkan",
+              "label": "Hari",
+              "type": "select",
+              "options": ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"],
+              "required": true
+            },
+            {
+              "id": "tanggal_disemayamkan",
+              "label": "Tanggal",
+              "type": "date",
+              "format": "DD Bulan YYYY",
+              "required": true
+            },
+            {
+              "id": "tempat_disemayamkan",
+              "label": "Tempat Pemakaman",
+              "type": "text",
+              "required": true
+            }
+          ]
+        }
+      ]
+    },
+    "11_PERNYATAAN_TDK_RUMAH": {
+      "id": "pernyataan_tdk_rumah",
+      "title": "SURAT PERNYATAAN TIDAK MEMILIKI RUMAH",
+      "number_format": "Nomor : XXX / XX / Pem / TAHUN",
+      "signatory": "Sekretaris Desa",
+      "structure": "multiple_statements",
+      "statements": [
+        {
+          "id": "pernyataan_1",
+          "title": "SURAT PERNYATAAN TIDAK MEMILIKI RUMAH",
+          "fields": [
+            {
+              "id": "nik_1",
+              "label": "NIK",
+              "type": "text",
+              "validation": "^\\d{16}$",
+              "required": true
+            },
+            {
+              "id": "nama_1",
+              "label": "Nama",
+              "type": "text",
+              "required": true
+            },
+            {
+              "id": "ttl_1",
+              "label": "Tempat, Tanggal Lahir",
+              "type": "text",
+              "required": true
+            },
+            {
+              "id": "pekerjaan_1",
+              "label": "Pekerjaan",
+              "type": "text",
+              "required": true
+            },
+            {
+              "id": "alamat_1",
+              "label": "Alamat",
+              "type": "text",
+              "required": true
+            }
+          ]
+        },
+        {
+          "id": "pernyataan_2",
+          "title": "SURAT PERNYATAAN",
+          "purpose": "Terkait Akta Kelahiran",
+          "fields": [
+            {
+              "id": "nik_2",
+              "label": "NIK",
+              "type": "text",
+              "validation": "^\\d{16}$",
+              "required": true
+            },
+            {
+              "id": "nama_2",
+              "label": "Nama",
+              "type": "text",
+              "required": true
+            },
+            {
+              "id": "ttl_2",
+              "label": "Tempat, Tanggal Lahir",
+              "type": "text",
+              "required": true
+            },
+            {
+              "id": "nama_ayah",
+              "label": "Nama Ayah",
+              "type": "text",
+              "required": true
+            },
+            {
+              "id": "nama_ibu",
+              "label": "Nama Ibu",
+              "type": "text",
+              "required": true
+            },
+            {
+              "id": "alamat_2",
+              "label": "Alamat",
+              "type": "text",
+              "required": true
+            }
+          ]
+        }
+      ]
+    },
+    "12_UNDANGAN": {
+      "id": "undangan",
+      "title": "SURAT UNDANGAN",
+      "number_format": "Standar (Nomor, Sifat, Lampiran, Hal)",
+      "signatory": "Kepala Desa",
+      "structure": "formal_letter",
+      "fields": [
+        {
+          "id": "nomor",
+          "label": "Nomor",
+          "type": "text",
+          "required": true
+        },
+        {
+          "id": "sifat",
+          "label": "Sifat",
+          "type": "select",
+          "options": ["Biasa", "Segera", "Rahasia"],
+          "required": true
+        },
+        {
+          "id": "lampiran",
+          "label": "Lampiran",
+          "type": "text",
+          "required": false
+        },
+        {
+          "id": "hal",
+          "label": "Hal (Subject)",
+          "type": "text",
+          "required": true
+        },
+        {
+          "id": "tujuan",
+          "label": "Tujuan (Recipient Title)",
+          "type": "text",
+          "required": true
+        },
+        {
+          "id": "alamat_tujuan",
+          "label": "Alamat Tujuan",
+          "type": "text",
+          "required": true
+        },
+        {
+          "id": "hari_acara",
+          "label": "Hari Acara",
+          "type": "select",
+          "options": ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"],
+          "required": true
+        },
+        {
+          "id": "tanggal_acara",
+          "label": "Tanggal Acara",
+          "type": "date",
+          "format": "DD-MM-YYYY",
+          "required": true
+        },
+        {
+          "id": "waktu_acara",
+          "label": "Waktu",
+          "type": "time",
+          "format": "HH.MM",
+          "required": true
+        },
+        {
+          "id": "tempat_acara",
+          "label": "Tempat",
+          "type": "text",
+          "required": true
+        },
+        {
+          "id": "acara",
+          "label": "Acara",
+          "type": "text",
+          "required": true
+        }
+      ]
+    }
+  },
+  "common_validation_rules": {
+    "nik": {
+      "pattern": "^\\d{16}$",
+      "description": "16 digit numeric",
+      "example": "3213266804990001"
+    },
+    "nama": {
+      "pattern": "^[A-Z][A-Z\\s\\.\\-]{2,98}[A-Z]$",
+      "description": "3-100 chars, uppercase, alphanumeric with space/dash/dot",
+      "example": "SUMARNI APRIANTINI"
+    },
+    "ttl": {
+      "pattern": "^[A-Za-z\\s]+,\\s\\d{2}-\\d{2}-\\d{4}$",
+      "description": "Format: Place, DD-MM-YYYY",
+      "example": "Subang, 27-04-1997"
+    },
+    "alamat": {
+      "minLength": 10,
+      "maxLength": 200,
+      "description": "Full address with Rt/Rw, Village, District, Regency",
+      "example": "Kp Sukajaya Rt 002 Rw 005 Desa Kasomalang Kulon Kecamatan Kasomalang Kabupaten Subang"
+    },
+    "nomor_surat": {
+      "pattern": "^\\d{1,3}\\s*/\\s*\\d{0,2}\\s*/\\s*[A-Za-z]+\\s*/\\s*\\d{4}$",
+      "description": "Format: XXX / XX / CATEGORY / YEAR",
+      "example": "474 / / PEM / 2026"
+    },
+    "luas": {
+      "type": "number",
+      "min": 1,
+      "max": 99999,
+      "unit": "m²",
+      "example": "153"
+    },
+    "harga": {
+      "type": "currency",
+      "currency": "IDR",
+      "format": "XXX.XXX.XXX",
+      "example": "100.000.000"
+    }
+  },
+  "letter_categories": {
+    "individual": [1, 2, 6, 7, 10, 11],
+    "comparison": [3, 5],
+    "table": [4, 8],
+    "special": [9, 12]
+  }
+}

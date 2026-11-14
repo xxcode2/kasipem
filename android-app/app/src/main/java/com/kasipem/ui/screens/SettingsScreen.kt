@@ -3,6 +3,7 @@ package com.kasipem.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -17,6 +18,7 @@ import com.kasipem.data.HeaderData
 import com.kasipem.ui.components.FormTextField
 import com.kasipem.ui.components.FormDropdown
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsSheet(
     headerData: HeaderData,

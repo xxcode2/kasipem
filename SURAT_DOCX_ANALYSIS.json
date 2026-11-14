@@ -1,0 +1,955 @@
+{
+  "metadata": {
+    "total_files": 12,
+    "extraction_date": "2025",
+    "region": "Kabupaten Subang, Kecamatan Kasomalang, Desa Kasomalang Kulon",
+    "purpose": "Document structure analysis for automated letter generation"
+  },
+  "letters": {
+    "1_PISAH_KK": {
+      "filename": "PISAH KK.docx",
+      "title": "SURAT KETERANGAN PISAH KK",
+      "description": "Surat keterangan pemisahan Kartu Keluarga",
+      "letter_number_format": "Nomor : XXX / / PEM / TAHUN",
+      "example_number": "474 / / PEM / 2026",
+      "header": {
+        "government": "PEMERINTAH DAERAH KABUPATEN SUBANG",
+        "district": "KECAMATAN KASOMALANG",
+        "village": "DESA KASOMALANG KULON",
+        "address": "Jln. Raya Kasomalang No.01 Subang 41281"
+      },
+      "fields_to_fill": [
+        {
+          "field": "NIK (Person 1)",
+          "type": "text",
+          "format": "16 digits",
+          "example": "3213266804990001"
+        },
+        {
+          "field": "NAMA (Person 1)",
+          "type": "text",
+          "example": "SUMARNI APRIANTINI"
+        },
+        {
+          "field": "NIK (Person 2)",
+          "type": "text",
+          "format": "16 digits",
+          "example": "3213264803040001"
+        },
+        {
+          "field": "NAMA (Person 2)",
+          "type": "text",
+          "example": "SUNITA ANGGRAENI"
+        },
+        {
+          "field": "Nomor KK Lama",
+          "type": "text",
+          "description": "Reference to old Family Card number"
+        }
+      ],
+      "body_structure": [
+        "Opening statement with official title",
+        "List of persons separating from family card",
+        "NIK and Name pairs for each person",
+        "Statement that person(s) have separated from specified KK number",
+        "Closing statement"
+      ],
+      "signature_section": {
+        "officer_title": "Kepala Desa / Sekretaris Desa",
+        "signature_line": true,
+        "name_printed": "APIPUDIN, S.IP.",
+        "title": "Sekretaris Desa"
+      },
+      "timestamp_location": "Kasomalang Kulon, [date]"
+    },
+    "2_SKT_DAYAT": {
+      "filename": "SKT DAYAT.docx",
+      "title": "SURAT KETERANGAN TANAH",
+      "description": "Surat keterangan status kepemilikan tanah",
+      "letter_number_format": "Nomor : XXX / / PEM / TAHUN",
+      "example_number": "593 / / PEM / 2026",
+      "header": {
+        "officer_intro": "Yang bertanda tangan dibawah ini:",
+        "officer_name": "H. AMIRUDIN,S.Pd.I",
+        "officer_position": "Kepala Desa Kasomalang Kulon"
+      },
+      "fields_to_fill": [
+        {
+          "field": "Nama Pemilik",
+          "type": "text",
+          "example": "NENDEN KOMALA"
+        },
+        {
+          "field": "NIK",
+          "type": "text",
+          "format": "16 digits",
+          "example": "3213266704970005"
+        },
+        {
+          "field": "Tempat, Tanggal Lahir",
+          "type": "text",
+          "format": "Place, DD-MM-YYYY",
+          "example": "Subang, 27-04-1997"
+        },
+        {
+          "field": "Alamat Pemilik",
+          "type": "text",
+          "example": "Kp Sukajaya Rt 002 Rw 005 Desa Kasomalang Kulon"
+        },
+        {
+          "field": "Luas Tanah",
+          "type": "number",
+          "unit": "m²",
+          "example": "126"
+        },
+        {
+          "field": "Luas Bangunan",
+          "type": "number",
+          "unit": "m²",
+          "example": "48"
+        },
+        {
+          "field": "SPPT/NOP",
+          "type": "text",
+          "example": "32.15.031.003.004-0052.0"
+        },
+        {
+          "field": "Batas Utara",
+          "type": "text",
+          "description": "Property boundary"
+        },
+        {
+          "field": "Batas Timur",
+          "type": "text",
+          "description": "Property boundary"
+        },
+        {
+          "field": "Batas Selatan",
+          "type": "text",
+          "description": "Property boundary"
+        },
+        {
+          "field": "Batas Barat",
+          "type": "text",
+          "description": "Property boundary"
+        },
+        {
+          "field": "Harga Taksiran Bangunan",
+          "type": "currency",
+          "currency": "IDR",
+          "example": "100.000.000"
+        },
+        {
+          "field": "Harga Taksiran Tanah",
+          "type": "currency",
+          "currency": "IDR",
+          "example": "50.000.000"
+        }
+      ],
+      "body_structure": [
+        "Officer header with name and position",
+        "Opening statement (Menerangkan dengan sebenarnya bahwa)",
+        "Land owner personal data",
+        "Land details and measurements",
+        "Property boundaries (Utara, Timur, Selatan, Barat)",
+        "Land valuation estimates",
+        "Closing statement",
+        "Witness section (Mengetahui Camat)"
+      ],
+      "signature_section": {
+        "primary_officer": "Kepala Desa",
+        "secondary_witness": "Camat",
+        "date_location": "[Kasomalang Kulon], [date]"
+      },
+      "timestamp_location": "Kasomalang Kulon, 21 – 07 - 2026"
+    },
+    "3_SURAT_BEDA_NAMA": {
+      "filename": "SURAT BEDA NAMA new.docx",
+      "title": "SURAT KETERANGAN BEDA LUAS",
+      "description": "Surat keterangan perbedaan luas tanah antara sertifikat dan SPPT",
+      "letter_number_format": "Nomor : XXX / / PEM / TAHUN",
+      "example_number": "474 / / PEM / 2025",
+      "header": {
+        "government": "PEMERINTAH DAERAH KABUPATEN SUBANG",
+        "district": "KECAMATAN KASOMALANG",
+        "village": "DESA KASOMALANG KULON",
+        "address": "Jln. Raya Kasomalang No.01 Subang 41281"
+      },
+      "fields_to_fill": [
+        {
+          "section": "Sertifikat Data",
+          "fields": [
+            {
+              "field": "No Sertipikat",
+              "type": "text",
+              "example": "0975"
+            },
+            {
+              "field": "Nomor NIB",
+              "type": "text",
+              "example": "10.08.17.10.01024"
+            },
+            {
+              "field": "Luas (Sertifikat)",
+              "type": "number",
+              "unit": "M2",
+              "example": "153"
+            },
+            {
+              "field": "Nama Pemilik (Sertifikat)",
+              "type": "text",
+              "example": "UUM"
+            },
+            {
+              "field": "Alamat (Sertifikat)",
+              "type": "text",
+              "example": "Kp. Karihkil Rt . 003 Rw. 002"
+            }
+          ]
+        },
+        {
+          "section": "SPPT/PBB Data",
+          "fields": [
+            {
+              "field": "NOP",
+              "type": "text",
+              "example": "32.15.031.003.008-0183.0"
+            },
+            {
+              "field": "Nama Pemilik (SPPT)",
+              "type": "text",
+              "example": "AHLIN"
+            },
+            {
+              "field": "Luas (SPPT)",
+              "type": "number",
+              "unit": "M2",
+              "example": "203"
+            },
+            {
+              "field": "Alamat (SPPT)",
+              "type": "text",
+              "example": "Kp. Karihkil Rt . 003 Rw. 002"
+            }
+          ]
+        }
+      ],
+      "body_structure": [
+        "Government header",
+        "Letter title and number",
+        "Official declaration by Village Head",
+        "Certificate data section",
+        "SPPT/PBB data section",
+        "Statement of difference",
+        "Closing statement"
+      ],
+      "signature_section": {
+        "signatory": "Sekretaris Desa (on behalf of Kepala Desa)",
+        "name": "APIPUDIN, S.IP.",
+        "title": "Sekretaris Desa"
+      },
+      "timestamp_location": "Kasomalang Kulon, 12 Agustus 2025"
+    },
+    "4_AHLI_WARIS": {
+      "filename": "SURAT KETERANGAN AHLI WARIS 2021.docx",
+      "title": "SURAT KETERANGAN AHLI WARIS",
+      "description": "Surat keterangan tentang ahli waris dari orang yang meninggal",
+      "letter_number_format": "Not standardized (varies)",
+      "fields_to_fill": [
+        {
+          "field": "Nama Almarhum",
+          "type": "text",
+          "example": "DIDI RIYADI"
+        },
+        {
+          "field": "Ahli Waris - Nama",
+          "type": "text",
+          "repeatable": true,
+          "example": "AAT HADIATIN"
+        },
+        {
+          "field": "Ahli Waris - Hubungan Keluarga",
+          "type": "text",
+          "repeatable": true,
+          "options": ["Istri", "Anak", "Orang Tua", "Saudara"],
+          "example": "Istri"
+        },
+        {
+          "field": "Ahli Waris - Tanda Tangan",
+          "type": "signature",
+          "repeatable": true
+        },
+        {
+          "field": "Saksi - Nama",
+          "type": "text",
+          "repeatable": true,
+          "example": "LINA HERLINA"
+        },
+        {
+          "field": "Saksi - Jabatan",
+          "type": "text",
+          "repeatable": true,
+          "example": "Ketua Rt. 03 Rw. 04"
+        },
+        {
+          "field": "Saksi - Tanda Tangan",
+          "type": "signature",
+          "repeatable": true
+        },
+        {
+          "field": "Keperluan",
+          "type": "text",
+          "example": "Kelengkapan Dokumen"
+        }
+      ],
+      "body_structure": [
+        "Title (SURAT KETERANGAN AHLI WARIS)",
+        "Opening statement with deceased person info",
+        "Table structure: No | Nama | Hubungan Keluarga | Tanda Tangan",
+        "Statement of legitimacy",
+        "Witnesses section",
+        "Purpose statement",
+        "Closing statement"
+      ],
+      "table_structure": {
+        "has_table": true,
+        "columns": ["No", "Nama", "Hubungan Keluarga", "Tanda Tangan"]
+      },
+      "signature_section": {
+        "witness_required": true,
+        "rt_rw_required": true
+      },
+      "timestamp_location": "Not clearly shown in provided content"
+    },
+    "5_BEDA_LUAS_REAL": {
+      "filename": "SURAT KETERANGAN BEDA LUAS REAL.docx",
+      "title": "SURAT KETERANGAN",
+      "description": "Surat keterangan perbedaan luas tanah antara sertifikat dan SPPT",
+      "letter_number_format": "No : XXX / / PEM / TAHUN",
+      "example_number": "141 / / PEM / 2025",
+      "header": {
+        "government": "PEMERINTAH DAERAH KABUPATEN SUBANG",
+        "district": "KECAMATAN KASOMALANG",
+        "village": "DESA KASOMALANG KULON",
+        "address": "Jln. Raya Kasomalang No.01 Subang 41281",
+        "issuer": "Sekretaris Desa"
+      },
+      "fields_to_fill": [
+        {
+          "section": "Sertifikat Data",
+          "fields": [
+            {
+              "field": "Nomor Sertifikat",
+              "type": "text",
+              "example": "995"
+            },
+            {
+              "field": "Nama Pemilik",
+              "type": "text",
+              "example": "IYAH"
+            },
+            {
+              "field": "Luas (Sertifikat)",
+              "type": "number",
+              "unit": "M2",
+              "example": "173"
+            },
+            {
+              "field": "Tempat, Tanggal lahir",
+              "type": "date",
+              "format": "Place, DD-MM-YYYY",
+              "example": "Subang, 18-10-1991"
+            },
+            {
+              "field": "Pekerjaan",
+              "type": "text",
+              "example": "Mengurus Rumah Tangga"
+            },
+            {
+              "field": "Alamat",
+              "type": "text",
+              "example": "Rt. 002 Rw. 02 Desa Kasomalang Kulon"
+            }
+          ]
+        },
+        {
+          "section": "SPPT Data",
+          "fields": [
+            {
+              "field": "Nomor SPPT",
+              "type": "text",
+              "example": "008-0135.0"
+            },
+            {
+              "field": "Luas (SPPT)",
+              "type": "number",
+              "unit": "M2",
+              "example": "179"
+            }
+          ]
+        }
+      ],
+      "body_structure": [
+        "Government header",
+        "Letter title and number",
+        "Official declaration by Secretary",
+        "Certificate section with owner details",
+        "SPPT section",
+        "Statement of difference",
+        "Closing statement"
+      ],
+      "signature_section": {
+        "signatory": "Sekretaris Desa",
+        "name": "APIPUDIN, S.IP",
+        "location_date": "Kasomalang Kulon, 21 Februari 2025"
+      }
+    },
+    "6_DOMISILI": {
+      "filename": "SURAT KETERANGAN DOMISILI.docx",
+      "title": "SURAT KETERANGAN DOMISILI",
+      "description": "Surat keterangan bahwa seseorang tidak lagi tinggal di alamat tertentu",
+      "letter_number_format": "Nomor : XXX / XX / Pem / TAHUN",
+      "example_number": "140 / 25 / Pem / 2026",
+      "header": {
+        "government": "PEMERINTAH KABUPATEN SUBANG",
+        "district": "KECAMATAN KASOMALANG",
+        "village": "DESA KASOMALANG KULON",
+        "address": "Jl.Raya Kasomalang No.01 Kec.Kasomalang – Subang 41281"
+      },
+      "fields_to_fill": [
+        {
+          "field": "NIK",
+          "type": "text",
+          "format": "16 digits",
+          "example": "3213261205940008"
+        },
+        {
+          "field": "Nama Lengkap",
+          "type": "text",
+          "example": "SAEPUROHMAN"
+        },
+        {
+          "field": "Tempat Tanggal Lahir",
+          "type": "date",
+          "format": "Place, DD-MM-YYYY",
+          "example": "Subang, 12-05-1994"
+        },
+        {
+          "field": "Pekerjaan",
+          "type": "text",
+          "example": "Belum/Tidak Bekerja"
+        },
+        {
+          "field": "Alamat Lama",
+          "type": "text",
+          "example": "Perum Green Mutiara 2 Rt 005 Rw 017 Desa Dawuan Timur"
+        },
+        {
+          "field": "Keperluan",
+          "type": "text",
+          "options": ["Identitas", "Administrasi", "Lainnya"],
+          "example": "Identitas"
+        }
+      ],
+      "body_structure": [
+        "Government header",
+        "Letter title and number",
+        "Declaration by Village Head",
+        "Person's data (NIK, Nama, TTL, Pekerjaan, Alamat)",
+        "Statement about not residing at old address",
+        "Purpose of letter",
+        "Closing statement"
+      ],
+      "signature_section": {
+        "signatory": "a.n Kepala Desa / Sekretaris Desa",
+        "name": "APIPUDIN,S.IP",
+        "title": "Sekretaris Desa"
+      },
+      "timestamp_location": "Kasomalang Kulon, 06 Juli 2026"
+    },
+    "7_MISKIN_SEKOLAH": {
+      "filename": "SURAT KETERANGAN MISKIN ( SEKOLAH ).docx",
+      "title": "SURAT KETERANGAN MISKIN",
+      "description": "Surat keterangan kemiskinan untuk pendaftaran sekolah",
+      "letter_number_format": "Nomor : XXX/XX/Ks/TAHUN",
+      "example_number": "460/25/Ks/2025",
+      "header": {
+        "government": "PEMERINTAH DAERAH KABUPATEN SUBANG",
+        "district": "KECAMATAN KASOMALANG",
+        "village": "DESA KASOMALANG KULON",
+        "address": "Jln. Raya Kasomatulang No.01 Subang 41281"
+      },
+      "fields_to_fill": [
+        {
+          "field": "Nama Lengkap",
+          "type": "text",
+          "example": "RIO FADILAH"
+        },
+        {
+          "field": "Tempat Tanggal Lahir",
+          "type": "date",
+          "format": "Place, DD-MM-YYYY",
+          "example": "Subang, 23-10-2010"
+        },
+        {
+          "field": "Pekerjaan/Status",
+          "type": "text",
+          "example": "Pelajar"
+        },
+        {
+          "field": "Alamat",
+          "type": "text",
+          "example": "Rt. 004 Rw. 003 Desa Kasomalang kulon"
+        },
+        {
+          "field": "Sekolah/Lembaga Tujuan",
+          "type": "text",
+          "example": "SMPN Negeri"
+        },
+        {
+          "field": "Keperluan",
+          "type": "text",
+          "example": "Pendaftaran"
+        }
+      ],
+      "body_structure": [
+        "Government header",
+        "Letter title and number",
+        "Declaration by Village Head",
+        "Person's data (Nama, TTL, Pekerjaan, Alamat)",
+        "Purpose (usually school registration)",
+        "Request for school to provide assistance",
+        "Purpose statement",
+        "Closing statement"
+      ],
+      "signature_section": {
+        "signatory": "a.n. Kepala Desa / Sekretaris Desa",
+        "name": "APIPUDIN, S.IP",
+        "title": "Sekretaris Desa"
+      },
+      "timestamp_location": "Kasomalang Kulon, 03 Mei 2025"
+    },
+    "8_MISKIN": {
+      "filename": "SURAT KETERANGAN MISKIN.docx",
+      "title": "SURAT KETERANGAN MISKIN",
+      "description": "Surat keterangan kemiskinan untuk daftar warga RW",
+      "letter_number_format": "Nomor : XXX/XX/Ks/TAHUN",
+      "example_number": "460/25/Ks/2025",
+      "header": {
+        "issuer": "Sekretaris Desa Kasomalang Kulon"
+      },
+      "fields_to_fill": [
+        {
+          "field": "NIK (per person)",
+          "type": "text",
+          "format": "16 digits",
+          "repeatable": true
+        },
+        {
+          "field": "Nama (per person)",
+          "type": "text",
+          "repeatable": true
+        },
+        {
+          "field": "Tempat, Tanggal Lahir",
+          "type": "date",
+          "repeatable": true,
+          "format": "Place, DD-MM-YYYY"
+        },
+        {
+          "field": "Alamat",
+          "type": "text",
+          "repeatable": true
+        }
+      ],
+      "body_structure": [
+        "Title (SURAT KETERANGAN MISKIN)",
+        "Letter number",
+        "Declaration by Secretary",
+        "Statement that listed persons are poor",
+        "Table/list of poor residents by RW",
+        "Table columns: NIK | NAMA | TEMPAT,TGL LAHIR | ALAMAT",
+        "Closing statement"
+      ],
+      "table_structure": {
+        "has_table": true,
+        "columns": ["NIK", "NAMA", "TEMPAT,TGL LAHIR", "ALAMAT"]
+      },
+      "signature_section": {
+        "signatory": "Sekretaris Desa"
+      },
+      "note": "Document contains lists of multiple poor residents organized by RW"
+    },
+    "9_NIKAH_TIDAK_TERCATAT": {
+      "filename": "SURAT KETERANGAN NIKAH TIDAK TERCATAT new.docx",
+      "title": "SURAT KETERANGAN NIKAH TIDAK TERCATAT",
+      "description": "Surat keterangan pernikahan yang belum tercatat",
+      "letter_number_format": "Nomor : XXX / / Ks / TAHUN",
+      "example_number": "474 / / Ks / 2025",
+      "header": {
+        "issuer": "Kepala Desa Kasomalang Kulon",
+        "district": "Kasomalang",
+        "province": "Subang"
+      },
+      "fields_to_fill": [
+        {
+          "section": "Groom (Laki-laki)",
+          "fields": [
+            {
+              "field": "Nama",
+              "type": "text",
+              "example": "DARTAM"
+            },
+            {
+              "field": "Bin (Father)",
+              "type": "text",
+              "example": "SATA"
+            },
+            {
+              "field": "Tempat Tgl Lahir",
+              "type": "date",
+              "format": "Place, DD-MM-YYYY",
+              "example": "Subang, 07-05-1947"
+            },
+            {
+              "field": "Agama",
+              "type": "text",
+              "example": "Islam"
+            },
+            {
+              "field": "Pekerjaan",
+              "type": "text",
+              "example": "Petani/kebun"
+            },
+            {
+              "field": "Alamat",
+              "type": "text",
+              "example": "Kp.Karihkil RT006/001"
+            }
+          ]
+        },
+        {
+          "section": "Bride (Perempuan)",
+          "fields": [
+            {
+              "field": "Nama",
+              "type": "text",
+              "example": "TIRAH"
+            },
+            {
+              "field": "Bin (Father)",
+              "type": "text",
+              "example": "ANISEM"
+            },
+            {
+              "field": "Tempat Tgl Lahir",
+              "type": "date"
+            },
+            {
+              "field": "Agama",
+              "type": "text"
+            },
+            {
+              "field": "Pekerjaan",
+              "type": "text"
+            },
+            {
+              "field": "Alamat",
+              "type": "text"
+            }
+          ]
+        }
+      ],
+      "body_structure": [
+        "Title",
+        "Letter number",
+        "Opening by Village Head",
+        "Groom's data section",
+        "Bride's data section",
+        "Marriage details",
+        "Witnesses section",
+        "Closing statement"
+      ],
+      "signature_section": {
+        "witnesses_required": true
+      },
+      "timestamp_location": "Not fully visible in extraction"
+    },
+    "10_PEMAKAMAN": {
+      "filename": "SURAT PEMAKAMAN.docx",
+      "title": "SURAT KETERANGAN PEMAKAMAN",
+      "description": "Surat keterangan kematian untuk pemakaman",
+      "letter_number_format": "Nomor : 460.3/ / / KS / TAHUN",
+      "example_number": "460.3/ / / KS / 2025",
+      "header": {
+        "government": "PEMERINTAH DAERAH KABUPATEN SUBANG",
+        "district": "KECAMATAN KASOMALANG",
+        "village": "DESA KASOMALANG KULON",
+        "address": "Jln. Raya Kasomalang No.01 Subang 41281"
+      },
+      "fields_to_fill": [
+        {
+          "field": "Nama Almarhum",
+          "type": "text",
+          "example": "APEP RAHAYU"
+        },
+        {
+          "field": "Alamat Almarhum",
+          "type": "text",
+          "example": "Karajan Timur Rt. 001 Rw. 005"
+        },
+        {
+          "section": "Hari Meninggal",
+          "fields": [
+            {
+              "field": "Hari",
+              "type": "text",
+              "example": "Jum'at"
+            },
+            {
+              "field": "Tanggal",
+              "type": "date",
+              "format": "DD Bulan YYYY",
+              "example": "23 Juni 2025"
+            },
+            {
+              "field": "Jam",
+              "type": "time",
+              "format": "HH.MM Wib",
+              "example": "07.55"
+            },
+            {
+              "field": "Tempat",
+              "type": "text",
+              "example": "Di Rumah Sakit Bayukarta"
+            }
+          ]
+        },
+        {
+          "section": "Hari Disemayamkan",
+          "fields": [
+            {
+              "field": "Hari",
+              "type": "text",
+              "example": "Jum'at"
+            },
+            {
+              "field": "Tanggal",
+              "type": "date",
+              "format": "DD Bulan YYYY",
+              "example": "23 Juni 2025"
+            },
+            {
+              "field": "Tempat Pemakaman",
+              "type": "text",
+              "example": "Pemakaman Umum Askid Rt. 03 Rw.06"
+            }
+          ]
+        }
+      ],
+      "body_structure": [
+        "Government header",
+        "Letter title and number",
+        "Opening by Village Head",
+        "Deceased person's name and address",
+        "Death details section (day, date, time, place)",
+        "Burial details section",
+        "Closing statement"
+      ],
+      "signature_section": {
+        "signatory": "a.n. Kepala Desa",
+        "name": "APIPUDIN, S.IP",
+        "title": "Sekretaris Desa"
+      },
+      "timestamp_location": "Kasomalang Kulon, 06 Juli 2025"
+    },
+    "11_TIDAK_MEMILIKI_RUMAH": {
+      "filename": "SURAT PERNYATAAN TIDAK  MEMILIKI RUMAH.docx",
+      "title": "SURAT PERNYATAAN TIDAK MEMILIKI RUMAH",
+      "description": "Surat pernyataan bahwa seseorang tidak memiliki rumah / properti",
+      "letter_number_format": "Nomor : XXX / XX / Pem / TAHUN",
+      "example_number": "141 / / Pem / 2025",
+      "note": "Document contains multiple statements for different purposes",
+      "first_statement": {
+        "title": "SURAT PERNYATAAN TIDAK MEMILIKI RUMAH",
+        "fields_to_fill": [
+          {
+            "field": "NIK",
+            "type": "text",
+            "format": "16 digits",
+            "example": "3213262304800001"
+          },
+          {
+            "field": "Nama",
+            "type": "text",
+            "example": "DENA WAHYUDIN"
+          },
+          {
+            "field": "Tempat Tanggal Lahir",
+            "type": "date",
+            "format": "Place, DD-MM-YYYY",
+            "example": "Bandung, 23-04-1980"
+          },
+          {
+            "field": "Pekerjaan",
+            "type": "text",
+            "example": "Wiraswasta"
+          },
+          {
+            "field": "Alamat",
+            "type": "text",
+            "example": "Rt. 02 Rw. 07 Desa Kasomalang Kulon"
+          }
+        ],
+        "body_structure": [
+          "Title",
+          "Letter number",
+          "Opening declaration",
+          "Person's data",
+          "Statement that person does not have house",
+          "Closing statement"
+        ],
+        "signature_section": {
+          "signatory": "Sekretaris Desa",
+          "name": "APIPUDIN,S.IP"
+        }
+      },
+      "second_statement": {
+        "title": "SURAT PERNYATAAN",
+        "purpose": "Birth certificate related",
+        "fields_to_fill": [
+          {
+            "field": "NIK",
+            "type": "text",
+            "format": "16 digits",
+            "example": "3213260401130013"
+          },
+          {
+            "field": "Nama",
+            "type": "text",
+            "example": "M DAPA"
+          },
+          {
+            "field": "Tempat Tanggal Lahir",
+            "type": "date",
+            "format": "Place, DD-MM-YYYY",
+            "example": "Subang, 04-01-2013"
+          },
+          {
+            "field": "Nama Ayah",
+            "type": "text"
+          },
+          {
+            "field": "Nama Ibu",
+            "type": "text"
+          },
+          {
+            "field": "Alamat",
+            "type": "text"
+          }
+        ],
+        "statement_purpose": "Person is in process of making birth certificate"
+      }
+    },
+    "12_UNDANGAN": {
+      "filename": "SURAT UNDANGAN YG DI TTD KEPALA DESA.docx",
+      "title": "SURAT UNDANGAN",
+      "description": "Surat undangan resmi dari kepala desa",
+      "letter_format": "Standard formal letter format (Nomor, Sifat, Lampiran, Hal, Addressee, Content)",
+      "fields_to_fill": [
+        {
+          "field": "Nomor",
+          "type": "text",
+          "description": "Letter reference number"
+        },
+        {
+          "field": "Sifat",
+          "type": "text",
+          "options": ["Biasa", "Segera", "Rahasia"]
+        },
+        {
+          "field": "Lampiran",
+          "type": "text",
+          "description": "Attached documents"
+        },
+        {
+          "field": "Hal (Subject)",
+          "type": "text",
+          "example": "Undangan"
+        },
+        {
+          "field": "Tujuan (Recipient)",
+          "type": "text",
+          "description": "To whom (Yth. ...)"
+        },
+        {
+          "field": "Hari/Tanggal Acara",
+          "type": "date"
+        },
+        {
+          "field": "Waktu",
+          "type": "time"
+        },
+        {
+          "field": "Tempat",
+          "type": "text"
+        },
+        {
+          "field": "Acara",
+          "type": "text",
+          "example": "Musyawarah pencermatan RKPDesa Tahun 2025"
+        }
+      ],
+      "body_structure": [
+        "Date and location line",
+        "Letter number, classification, attachments",
+        "Subject (Hal)",
+        "Recipient header (Yth.)",
+        "Recipient address",
+        "Opening salutation",
+        "Event details (Hari/tanggal, Waktu, Tempat, Acara)",
+        "Closing statement",
+        "Distribution list (Tembusan)",
+        "Signature section"
+      ],
+      "signature_section": {
+        "signatory": "KEPALA DESA KASOMALANG KULON",
+        "name": "H. AMIRUDIN, S.Pd.I.",
+        "repeated": true
+      },
+      "timestamp_location": "Kasomalang Kulon, 26 Agustus 2024"
+    }
+  },
+  "common_patterns": {
+    "letter_number_formats": [
+      "XXX / / PEM / TAHUN",
+      "XXX / XX / Pem / TAHUN",
+      "XXX / XX / Ks / TAHUN",
+      "460.3 / / / KS / TAHUN"
+    ],
+    "standard_header_fields": [
+      "PEMERINTAH DAERAH KABUPATEN SUBANG",
+      "KECAMATAN KASOMALANG",
+      "DESA KASOMALANG KULON",
+      "Alamat: Jln. Raya Kasomalang No.01 Subang 41281"
+    ],
+    "common_personal_fields": [
+      "NIK (16 digits)",
+      "Nama Lengkap",
+      "Tempat, Tanggal Lahir (format: Place, DD-MM-YYYY)",
+      "Pekerjaan",
+      "Alamat"
+    ],
+    "common_signatories": [
+      "Kepala Desa",
+      "Sekretaris Desa",
+      "Camat"
+    ],
+    "signature_line_format": "Name: APIPUDIN, S.IP / APIPUDIN, S.IP. / H. AMIRUDIN, S.Pd.I",
+    "timestamp_location": "Kasomalang Kulon, [date]",
+    "table_letters": [
+      "SURAT KETERANGAN AHLI WARIS",
+      "SURAT KETERANGAN MISKIN"
+    ]
+  }
+}

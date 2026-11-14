@@ -1,0 +1,6 @@
+R_DEF: Internal format may change without notice
+local
+string app_name
+style Theme.KASIPEM
+xml backup_schemes
+xml data_extraction_rules
