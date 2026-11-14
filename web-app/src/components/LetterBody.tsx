@@ -15,6 +15,11 @@ import { ContentBlock, getLetterContent } from '../lib/letter-content';
  * Fase 2: kop Disdukcapil (teks saja, tanpa logo desa) untuk formulir
  * seri F; blok 'table' untuk daftar anggota/anak/kolektif; baris nomor
  * bisa disembunyikan (hideNomor) untuk formulir yang tidak bernomor.
+ *
+ * Fase 3: kop DINAMIS per penandatangan (kopFor() di letter-content.ts)
+ * — Garuda tengah untuk ttd Kades, Subang kiri untuk ttd a.n. Kades /
+ * Sekdes, dua logo untuk penandatangan warga; ukuran font pt (isi 12pt,
+ * judul 15pt, kop 12/14pt); nomor kosong → garis titik-titik.
  */
 export function LetterBody({
   letterType,
@@ -30,43 +35,67 @@ export function LetterBody({
   return (
     <div
       className="letter-sheet bg-white text-black mx-auto w-full max-w-[210mm]"
-      style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '13px', lineHeight: 1.5 }}
+      style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '12pt', lineHeight: 1.5 }}
     >
-      {/* KOP */}
-      {content.kop === 'disdukcapil' ? (
+      {/* KOP — varian dinamis per penandatangan (kopFor): */}
+      {content.kopVariant === 'disdukcapil' ? (
         <div className="text-center">
-          <div className="font-bold text-[15px] leading-tight">PEMERINTAH KABUPATEN SUBANG</div>
-          <div className="font-bold text-[15px] leading-tight">
+          <div className="font-bold text-[12pt] leading-tight">PEMERINTAH KABUPATEN SUBANG</div>
+          <div className="font-bold text-[12pt] leading-tight">
             DINAS KEPENDUDUKAN DAN PENCATATAN SIPIL
           </div>
-          <div className="text-[12px]">Jl. Mayjen Sutoyo S. No. 50 Subang — Telp. (0260) 411424</div>
+          <div className="text-[11pt]">Jl. Mayjen Sutoyo S. No. 50 Subang — Telp. (0260) 411424</div>
         </div>
-      ) : (
-        <div className="flex items-start gap-3">
+      ) : content.kopVariant === 'garuda-center' ? (
+        /* Ttd langsung Kepala Desa: logo Garuda SAJA di tengah paling atas. */
+        <div className="text-center">
           <img
             src={headerData.logoGaruda || '/kop/kades.jpg'}
             alt="Logo Garuda Pancasila"
-            className="h-[62px] w-auto shrink-0 object-contain"
+            className="mx-auto object-contain"
+            style={{ width: '28mm', height: 'auto' }}
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = 'none';
             }}
           />
-          <div className="flex-1 text-center">
-            <div className="font-bold text-[15px] leading-tight">
-              PEMERINTAH {headerData.namaKabupaten.toUpperCase()}
-            </div>
-            <div className="font-bold text-[15px] leading-tight">
-              KECAMATAN {headerData.namaKecamatan.toUpperCase()}
-            </div>
-            <div className="font-bold text-[15px] leading-tight">
-              DESA {headerData.namaDesa.toUpperCase()}
-            </div>
-            <div className="text-[12px]">Alamat: {headerData.alamatKantor}</div>
+          <KopText headerData={headerData} />
+        </div>
+      ) : content.kopVariant === 'subang-left' ? (
+        /* Ttd a.n. Kades oleh Sekdes / ttd langsung Sekdes: logo Subang di kiri. */
+        <div className="flex items-start gap-3">
+          <img
+            src={headerData.logoSubang || '/kop/sekdes.jpg'}
+            alt="Logo Kabupaten Subang"
+            className="shrink-0 object-contain"
+            style={{ height: '20mm', width: 'auto' }}
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
+          />
+          <div className="flex-1">
+            <KopText headerData={headerData} />
+          </div>
+        </div>
+      ) : (
+        /* Penandatangan warga (SPTJM/PBI/dll.): dua logo seperti sebelumnya. */
+        <div className="flex items-start gap-3">
+          <img
+            src={headerData.logoGaruda || '/kop/kades.jpg'}
+            alt="Logo Garuda Pancasila"
+            className="shrink-0 object-contain"
+            style={{ height: '20mm', width: 'auto' }}
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
+          />
+          <div className="flex-1">
+            <KopText headerData={headerData} />
           </div>
           <img
             src={headerData.logoSubang || '/kop/sekdes.jpg'}
             alt="Logo Kabupaten Subang"
-            className="h-[62px] w-auto shrink-0 object-contain"
+            className="shrink-0 object-contain"
+            style={{ height: '20mm', width: 'auto' }}
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = 'none';
             }}
@@ -80,9 +109,9 @@ export function LetterBody({
 
       {/* Judul + nomor */}
       <div className="mt-4 text-center">
-        <div className="font-bold text-[15px] underline underline-offset-2">{content.title}</div>
+        <div className="font-bold text-[15pt] underline underline-offset-2">{content.title}</div>
         {!content.hideNomor && (
-          <div className="mt-1 text-[13px]">
+          <div className="mt-1 text-[12pt]">
             Nomor : {content.nomor || '............................................'}
           </div>
         )}
@@ -125,6 +154,24 @@ export function LetterBody({
   );
 }
 
+/** Teks kop desa (dipakai semua varian kop desa): baris desa 14pt, baris di atasnya 12pt. */
+function KopText({ headerData }: { headerData: HeaderData }) {
+  return (
+    <div className="text-center">
+      <div className="font-bold text-[12pt] leading-tight">
+        PEMERINTAH {headerData.namaKabupaten.toUpperCase()}
+      </div>
+      <div className="font-bold text-[12pt] leading-tight">
+        KECAMATAN {headerData.namaKecamatan.toUpperCase()}
+      </div>
+      <div className="font-bold text-[14pt] leading-tight">
+        DESA {headerData.namaDesa.toUpperCase()}
+      </div>
+      <div className="text-[11pt]">Alamat: {headerData.alamatKantor}</div>
+    </div>
+  );
+}
+
 function BlockView({ block }: { block: ContentBlock }) {
   if (block.kind === 'fields') {
     return (
@@ -154,7 +201,7 @@ function BlockView({ block }: { block: ContentBlock }) {
   if (block.kind === 'table') {
     return (
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse border border-black text-[12px]">
+        <table className="w-full border-collapse border border-black text-[10pt]">
           <thead>
             <tr>
               {block.headers.map((h, i) => (

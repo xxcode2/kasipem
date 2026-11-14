@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useLetterStore } from '../lib/store';
-import { LETTER_MAP, isValidNik, visibleFields, FormField } from '../lib/letter-definitions';
+import { LETTER_MAP, isValidNik, nomorPlaceholder, visibleFields, FormField } from '../lib/letter-definitions';
 import { formatDateSurat } from '../lib/letter-content';
 import { Send, RotateCcw, X, AlertTriangle, Plus, Trash2 } from 'lucide-react';
 
@@ -67,10 +67,8 @@ export function LetterForm({ isOpen, onClose, onPreview }: LetterFormProps) {
       }
       return !(letterData[f.name] || '').toString().trim();
     });
-    if (!letterData.nomorSurat?.trim() && def.nomorPrefix) {
-      setFormError('Nomor surat wajib diisi.');
-      return;
-    }
+    // Fase 3: nomor surat BOLEH kosong (default kosong; diisi saat
+    // registrasi). Preview/PDF menampilkan garis titik-titik bila kosong.
     if (missing.length > 0) {
       const errs: Record<string, string> = {};
       for (const f of missing) errs[f.name] = `${f.label} wajib diisi.`;
@@ -113,17 +111,21 @@ export function LetterForm({ isOpen, onClose, onPreview }: LetterFormProps) {
             hari ini: <strong>{formatDateSurat(letterData.tanggalSurat)}</strong>.
           </p>
 
-          {/* Nomor surat — editable, default per pola jenis surat */}
+          {/* Nomor surat — editable, default KOSONG (Fase 3); placeholder
+              menampilkan pola sebagai contoh. Boleh kosong. */}
           {!def.hideNomor && (
             <div>
               <label className="block text-sm font-semibold text-stone-700 mb-1.5">
-                Nomor Surat <span className="text-red-600">*</span>
+                Nomor Surat{' '}
+                <span className="font-normal text-stone-500">
+                  (opsional — boleh kosong, diisi saat registrasi)
+                </span>
               </label>
               <input
                 type="text"
                 value={letterData.nomorSurat || ''}
                 onChange={(e) => handleChange('nomorSurat', e.target.value)}
-                placeholder={def.nomorPrefix ? `${def.nomorPrefix} / ... / ${def.nomorSuffix} / ${new Date().getFullYear()}` : 'Isi nomor surat secara manual'}
+                placeholder={nomorPlaceholder(def)}
                 className="w-full px-4 py-2.5 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-700 focus:border-teal-700"
               />
             </div>

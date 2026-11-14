@@ -52,9 +52,11 @@ select:focus {
   outline: none;
 }
 
-/* Lembar surat (layar): tiru margin A4 */
+/* Lembar surat (layar): tiru margin A4. Font isi 12pt (Fase 3) supaya
+   ukuran di layar ≈ ukuran cetak A4. */
 .letter-sheet {
   padding: 15mm 20mm;
+  font-size: 12pt;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
@@ -89,13 +91,14 @@ select:focus {
   }
 
   /* Lembar surat saat dicetak: tanpa bayangan & tanpa padding layar
-     (margin sudah diatur @page) */
+     (margin sudah diatur @page). Font isi tetap 12pt (satuan pt). */
   .print-area .letter-sheet {
     box-shadow: none !important;
     padding: 0 !important;
     margin: 0 !important;
     max-width: none !important;
     width: 100% !important;
+    font-size: 12pt !important;
   }
 
   .no-print,

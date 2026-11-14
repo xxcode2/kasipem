@@ -306,9 +306,12 @@ private fun PreviewContent(
     val date = effectiveTanggalSurat(tanggalOf(letterType, letterData))
     val nomor = effectiveNomorSurat(nomorOf(letterType, letterData), letterType)
 
-    // Kop: formulir Dukcapil seri F memakai kop Disdukcapil Subang TEKS saja
-    // (tanpa logo desa); surat desa/SPTJM/PBI memakai kop logo desa.
-    // Logo dimuat di sini (di luar cabang if) agar urutan remember stabil.
+    // Kop FASE 3 — SATU penentu kopFor() (Models.kt), sama dengan
+    // PdfGenerator: Garuda tengah (ttd Kades), Subang kiri (ttd a.n.
+    // Kades oleh Sekdes / ttd Sekdes), dua logo (SPTJM/PBI),
+    // Disdukcapil teks (seri F). Logo dimuat di sini (di luar cabang
+    // when) agar urutan remember stabil; logo gagal dimuat → kop teks
+    // saja, tidak crash.
     val context = LocalContext.current
     val garudaBitmap = remember(headerData.logoGarudaAsset) {
         try {
@@ -324,40 +327,88 @@ private fun PreviewContent(
             null
         }
     }
-    if (isFormulirDukcapil(letterType)) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 4.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text("PEMERINTAH KABUPATEN SUBANG", fontSize = 11.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-            Text("DINAS KEPENDUDUKAN DAN PENCATATAN SIPIL", fontSize = 11.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-            Text("Jl. Mayjen Sutoyo S. No. 50 Subang, Telp. (0260) 411424", fontSize = 9.sp, textAlign = TextAlign.Center)
-        }
-    } else {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 4.dp)
-                .border(width = 1.dp, color = Color.Black, shape = RoundedCornerShape(4.dp))
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            garudaBitmap?.let {
-                Image(bitmap = it, contentDescription = "Logo Garuda Pancasila", modifier = Modifier.size(44.dp))
-            }
+    when (kopFor(letterType)) {
+        KopStyle.DISDUKCAPIL -> {
             Column(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 4.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("PEMERINTAH DAERAH ${headerData.namaKabupaten.uppercase()}", fontSize = 11.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-                Text(headerData.namaKecamatan.uppercase(), fontSize = 11.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-                Text("DESA ${headerData.namaDesa.uppercase()}", fontSize = 11.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-                Text("Alamat: ${headerData.alamatKantor}", fontSize = 9.sp, textAlign = TextAlign.Center)
+                Text("PEMERINTAH KABUPATEN SUBANG", fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                Text("DINAS KEPENDUDUKAN DAN PENCATATAN SIPIL", fontSize = 14.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                Text("Jl. Mayjen Sutoyo S. No. 50 Subang, Telp. (0260) 411424", fontSize = 10.sp, textAlign = TextAlign.Center)
             }
-            subangBitmap?.let {
-                Image(bitmap = it, contentDescription = "Logo Kabupaten Subang", modifier = Modifier.size(44.dp))
+        }
+        KopStyle.GARUDA_CENTER -> {
+            // Ttd Kepala Desa: logo Garuda SAJA di tengah paling atas, tanpa logo Subang.
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 4.dp)
+                    .border(width = 1.dp, color = Color.Black, shape = RoundedCornerShape(4.dp))
+                    .padding(12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                garudaBitmap?.let {
+                    Image(bitmap = it, contentDescription = "Logo Garuda Pancasila", modifier = Modifier.size(72.dp))
+                }
+                Text("PEMERINTAH DAERAH ${headerData.namaKabupaten.uppercase()}", fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                Text(headerData.namaKecamatan.uppercase(), fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                Text("DESA ${headerData.namaDesa.uppercase()}", fontSize = 14.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                Text("Alamat: ${headerData.alamatKantor}", fontSize = 10.sp, textAlign = TextAlign.Center)
+            }
+        }
+        KopStyle.SUBANG_LEFT -> {
+            // Ttd a.n. Kades oleh Sekdes / ttd Sekdes langsung: logo Subang di kiri, tanpa Garuda.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 4.dp)
+                    .border(width = 1.dp, color = Color.Black, shape = RoundedCornerShape(4.dp))
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                subangBitmap?.let {
+                    Image(bitmap = it, contentDescription = "Logo Kabupaten Subang", modifier = Modifier.size(44.dp))
+                }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text("PEMERINTAH DAERAH ${headerData.namaKabupaten.uppercase()}", fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                    Text(headerData.namaKecamatan.uppercase(), fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                    Text("DESA ${headerData.namaDesa.uppercase()}", fontSize = 14.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                    Text("Alamat: ${headerData.alamatKantor}", fontSize = 10.sp, textAlign = TextAlign.Center)
+                }
+                if (subangBitmap != null) Spacer(modifier = Modifier.size(44.dp))
+            }
+        }
+        KopStyle.DUA_LOGO -> {
+            // SPTJM / PBI: dua logo seperti semula.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 4.dp)
+                    .border(width = 1.dp, color = Color.Black, shape = RoundedCornerShape(4.dp))
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                garudaBitmap?.let {
+                    Image(bitmap = it, contentDescription = "Logo Garuda Pancasila", modifier = Modifier.size(44.dp))
+                }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text("PEMERINTAH DAERAH ${headerData.namaKabupaten.uppercase()}", fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                    Text(headerData.namaKecamatan.uppercase(), fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                    Text("DESA ${headerData.namaDesa.uppercase()}", fontSize = 14.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                    Text("Alamat: ${headerData.alamatKantor}", fontSize = 10.sp, textAlign = TextAlign.Center)
+                }
+                subangBitmap?.let {
+                    Image(bitmap = it, contentDescription = "Logo Kabupaten Subang", modifier = Modifier.size(44.dp))
+                }
             }
         }
     }
@@ -366,18 +417,23 @@ private fun PreviewContent(
 
     Text(
         text = effectivePdfTitle(letterType, letterData),
-        fontSize = 12.sp,
+        fontSize = 14.sp,
         fontWeight = FontWeight.Bold,
         textAlign = TextAlign.Center,
         modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
     )
     Divider(modifier = Modifier.padding(vertical = 4.dp))
-    Text(
-        "Nomor : ${nomor.ifBlank { "...................." }}",
-        fontSize = 9.sp,
-        modifier = Modifier.fillMaxWidth()
-    )
-    Spacer(modifier = Modifier.height(8.dp))
+    // FASE 3: nomor kosong → garis titik-titik; formulir F tanpa nomor
+    // tetap tanpa baris Nomor (sama seperti PDF).
+    val showNomor = hasNomorBaris(letterType) || nomor.isNotBlank()
+    if (showNomor) {
+        Text(
+            "Nomor : ${nomor.ifBlank { "...................." }}",
+            fontSize = 11.sp,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+    }
 
     when (letterType) {
         LetterType.DOMISILI -> PreviewDomisiliContent(headerData, letterData as DomisiliData, date)
@@ -622,24 +678,66 @@ private fun PreviewTidakMampuContent(header: HeaderData, data: TidakMampuData, d
 @Composable
 private fun PreviewAhliWarisContent(header: HeaderData, data: AhliWarisData, date: String) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        TextPreview("Yang bertanda tangan di bawah ini, Kepala Desa ${header.namaDesa}, menerangkan bahwa:")
-        TextPreview("Nama Peninggal       : ${data.namaPeninggal}")
-        TextPreview("NIK Peninggal         : ${data.nikPeninggal}")
-        TextPreview("Alamat Peninggal     : ${data.alamatPeninggal}")
-        Spacer(modifier = Modifier.height(8.dp))
-        TextPreview("Adapun ahli waris dari almarhum/almarhumah tersebut di atas adalah:")
-        TextPreview("Nama Ahli Waris 1       : ${data.namaAhliWaris1}")
-        TextPreview("NIK Ahli Waris 1         : ${data.nikAhliWaris1}")
-        TextPreview("Hubungan Ahli Waris 1 : ${data.hubunganAhliWaris1}")
-        if (data.namaAhliWaris2.isNotBlank() || data.nikAhliWaris2.isNotBlank()) {
-            TextPreview("Nama Ahli Waris 2       : ${data.namaAhliWaris2}")
-            TextPreview("NIK Ahli Waris 2         : ${data.nikAhliWaris2}")
-            TextPreview("Hubungan Ahli Waris 2 : ${data.hubunganAhliWaris2}")
+        val desaTitleCase = header.namaDesa.trim().split("\\s+".toRegex()).joinToString(" ") {
+            it.lowercase().replaceFirstChar { c -> c.uppercase() }
         }
-        if (data.keterangan.isNotBlank()) TextPreview("Keterangan : ${data.keterangan}")
+        TextPreview(paragrafPembukaAhliWaris(data, desaTitleCase))
         Spacer(modifier = Modifier.height(8.dp))
-        TextPreview("Adalah benar bahwa orang-orang tersebut di atas adalah ahli waris yang sah dari ${data.namaPeninggal}. Surat keterangan ini diberikan untuk keperluan administrasi ahli waris.")
-        PreviewSignature(header, date, "KADES")
+        TextPreview("Dengan demikian susunan Ahli Waris adalah sebagai berikut:")
+        val waris = data.daftarAhliWaris.filter { it.nama.isNotBlank() || it.nik.isNotBlank() }
+        waris.forEachIndexed { i, w ->
+            TextPreview("${i + 1}. ${w.nama} — ${w.hubungan}")
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Orang-orang tersebut di atas merupakan ahli waris yang sah dari ${sebutanAlmarhum(data.jenisKelaminPeninggal)} ${data.namaPeninggal}.")
+        val saksi = listOf(
+            data.namaSaksi1 to data.jabatanSaksi1,
+            data.namaSaksi2 to data.jabatanSaksi2
+        ).filter { it.first.isNotBlank() || it.second.isNotBlank() }
+        if (saksi.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            TextPreview("Saksi-saksi yang mengetahui keterangan tersebut adalah")
+            saksi.forEachIndexed { i, (nama, jabatan) ->
+                TextPreview("${i + 1}. $nama — $jabatan")
+            }
+        }
+        if (data.keperluan.isNotBlank()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            TextPreview("Untuk Keperluan : ${data.keperluan}")
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Demikian surat ini kami buat dengan sebenarnya dan kepada yang bersangkutan menjadi tahu adanya.")
+        PreviewSignature(header, date, "KADES", leftNote = "Mengetahui,\nCamat Kasomalang")
+        // Lampiran — detail per ahli waris (sama seperti PDF).
+        val adaDetail = waris.any {
+            it.nik.isNotBlank() || it.jenisKelamin.isNotBlank() ||
+                it.tempatLahir.isNotBlank() || it.tanggalLahir.isNotBlank() || it.alamat.isNotBlank()
+        }
+        val adaDataPeninggal = data.nikPeninggal.isNotBlank() ||
+            data.jenisKelaminPeninggal.isNotBlank() || data.alamatPeninggal.isNotBlank()
+        if (adaDetail || adaDataPeninggal) {
+            Spacer(modifier = Modifier.height(8.dp))
+            TextPreview("Lampiran — Data Ahli Waris")
+            if (adaDataPeninggal) {
+                TextPreview("Data Peninggal")
+                TextPreview("Nama : ${data.namaPeninggal}")
+                if (data.nikPeninggal.isNotBlank()) TextPreview("NIK : ${data.nikPeninggal}")
+                if (data.jenisKelaminPeninggal.isNotBlank()) TextPreview("Jenis Kelamin : ${data.jenisKelaminPeninggal}")
+                if (data.alamatPeninggal.isNotBlank()) TextPreview("Alamat : ${data.alamatPeninggal}")
+            }
+            waris.forEachIndexed { i, w ->
+                if (w.nik.isBlank() && w.jenisKelamin.isBlank() && w.tempatLahir.isBlank() &&
+                    w.tanggalLahir.isBlank() && w.alamat.isBlank()
+                ) return@forEachIndexed
+                Spacer(modifier = Modifier.height(8.dp))
+                TextPreview("Ahli Waris ${i + 1} — ${w.nama}")
+                if (w.nik.isNotBlank()) TextPreview("NIK : ${w.nik}")
+                if (w.jenisKelamin.isNotBlank()) TextPreview("Jenis Kelamin : ${w.jenisKelamin}")
+                if (w.tempatLahir.isNotBlank() || w.tanggalLahir.isNotBlank()) TextPreview("Tempat/Tanggal Lahir : ${w.tempatLahir}, ${w.tanggalLahir}")
+                if (w.hubungan.isNotBlank()) TextPreview("Hubungan Keluarga : ${w.hubungan}")
+                if (w.alamat.isNotBlank()) TextPreview("Alamat : ${w.alamat}")
+            }
+        }
     }
 }
 
@@ -726,7 +824,7 @@ private fun PreviewUndanganContent(header: HeaderData, data: UndanganData, date:
 private fun TextPreview(text: String) {
     Text(
         text = text,
-        fontSize = 9.sp,
+        fontSize = 12.sp,
         modifier = Modifier.fillMaxWidth()
     )
 }

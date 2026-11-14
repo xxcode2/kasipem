@@ -12,12 +12,18 @@ import java.io.FileOutputStream
 
 /**
  * Generator PDF 30 surat/formulir (iText 5). Isi SAMA dengan kanon web (FIX_BRIEF.md + FILE_INTEGRATION_BRIEF.md).
- * Kop: logo Garuda (kiri, assets kop/kades.jpg) + logo Kabupaten Subang
- * (kanan, assets kop/sekdes.png); bila logo tidak ada/rusak, kop tetap
- * tampil sebagai teks — tidak crash. Formulir Dukcapil seri F memakai
- * kop Disdukcapil Subang TEKS saja (tanpa logo desa).
- * Tanda tangan: Kepala Desa (default); pisah_kk = a.n. Kepala Desa oleh
- * Sekretaris Desa; tidak_mampu = Kepala Desa + "Mengetahui, Ketua RW" di kiri.
+ * Kop FASE 3 — SATU penentu [kopFor] (Models.kt) dipakai di sini dan di
+ * PreviewScreen: ttd Kades → logo Garuda SAJA di tengah paling atas;
+ * ttd a.n. Kades oleh Sekdes / ttd Sekdes langsung → logo Kabupaten
+ * Subang di kiri; SPTJM/PBI → dua logo seperti semula; formulir
+ * Dukcapil seri F → kop Disdukcapil Subang TEKS saja (tanpa logo desa).
+ * Bila logo tidak ada/rusak, kop tetap tampil sebagai teks — tidak crash.
+ * Font FASE 3 (samakan dengan web): isi 12pt, judul 14pt bold, teks kop
+ * 12pt (baris desa 14pt); tabel padat 8–10pt.
+ * Tanda tangan: Kepala Desa (default); pisah_kk/kematian = a.n. Kepala
+ * Desa oleh Sekretaris Desa; usaha/duda_janda = Sekretaris Desa;
+ * tidak_mampu = Kepala Desa + "Mengetahui, Ketua RW" di kiri;
+ * ahli_waris = Kepala Desa + "Mengetahui, Camat Kasomalang" di kiri.
  * Formulir panjang (F-1.01, F-2.01, F-1.03, PBI Asesmen) BOLEH multi-halaman.
  */
 class PdfGenerator(private val context: Context) {
@@ -75,7 +81,7 @@ class PdfGenerator(private val context: Context) {
     // ------------------------------------------------------------------
     fun generateDomisiliPdf(headerData: HeaderData, data: DomisiliData, outputFile: File) {
         val document = newDocument(outputFile)
-        addHeader(document, headerData)
+        addHeaderFor(document, headerData, LetterType.DOMISILI)
         addTitle(document, effectivePdfTitle(LetterType.DOMISILI, data), effectiveNomorSurat(data.nomorSurat, LetterType.DOMISILI))
         when (data.jenisDomisili) {
             "Lembaga" -> {
@@ -131,7 +137,7 @@ class PdfGenerator(private val context: Context) {
     // ------------------------------------------------------------------
     fun generatePisahKkPdf(headerData: HeaderData, data: PisahKkData, outputFile: File) {
         val document = newDocument(outputFile)
-        addHeader(document, headerData)
+        addHeaderFor(document, headerData, LetterType.PISAH_KK)
         addTitle(document, LetterType.PISAH_KK, effectiveNomorSurat(data.nomorSurat, LetterType.PISAH_KK))
         addContent(document, "Yang bertanda tangan di bawah ini, Kepala Desa ${titleCase(headerData.namaDesa)}, menerangkan bahwa:")
         addDataTable(
@@ -155,7 +161,7 @@ class PdfGenerator(private val context: Context) {
     // ------------------------------------------------------------------
     fun generateSktDayatPdf(headerData: HeaderData, data: SktDayatData, outputFile: File) {
         val document = newDocument(outputFile)
-        addHeader(document, headerData)
+        addHeaderFor(document, headerData, LetterType.SKT_DAYAT)
         addTitle(document, LetterType.SKT_DAYAT, effectiveNomorSurat(data.nomorSurat, LetterType.SKT_DAYAT))
         addContent(document, "Yang bertanda tangan di bawah ini, Kepala Desa ${titleCase(headerData.namaDesa)}, menerangkan dengan sesungguhnya bahwa:")
         addDataTable(
@@ -190,7 +196,7 @@ class PdfGenerator(private val context: Context) {
     // ------------------------------------------------------------------
     fun generateBedaLuasPdf(headerData: HeaderData, data: BedaLuasData, outputFile: File) {
         val document = newDocument(outputFile)
-        addHeader(document, headerData)
+        addHeaderFor(document, headerData, LetterType.BEDA_LUAS)
         addTitle(document, LetterType.BEDA_LUAS, effectiveNomorSurat(data.nomorSurat, LetterType.BEDA_LUAS))
         addContent(document, "Yang bertanda tangan di bawah ini, Kepala Desa ${titleCase(headerData.namaDesa)}, menerangkan bahwa:")
         addDataTable(
@@ -216,7 +222,7 @@ class PdfGenerator(private val context: Context) {
     // ------------------------------------------------------------------
     fun generateBedaNamaPdf(headerData: HeaderData, data: BedaNamaData, outputFile: File) {
         val document = newDocument(outputFile)
-        addHeader(document, headerData)
+        addHeaderFor(document, headerData, LetterType.BEDA_NAMA)
         addTitle(document, LetterType.BEDA_NAMA, effectiveNomorSurat(data.nomorSurat, LetterType.BEDA_NAMA))
         addContent(document, "Yang bertanda tangan di bawah ini, Kepala Desa ${titleCase(headerData.namaDesa)}, menerangkan bahwa:")
         addDataTable(
@@ -239,7 +245,7 @@ class PdfGenerator(private val context: Context) {
     // ------------------------------------------------------------------
     fun generateBelumMenikahPdf(headerData: HeaderData, data: BelumMenikahData, outputFile: File) {
         val document = newDocument(outputFile)
-        addHeader(document, headerData)
+        addHeaderFor(document, headerData, LetterType.BELUM_MENIKAH)
         addTitle(document, LetterType.BELUM_MENIKAH, effectiveNomorSurat(data.nomorSurat, LetterType.BELUM_MENIKAH))
         addContent(document, "Yang bertanda tangan di bawah ini, Kepala Desa ${titleCase(headerData.namaDesa)}, menerangkan bahwa:")
         addDataTable(
@@ -264,7 +270,7 @@ class PdfGenerator(private val context: Context) {
     // ------------------------------------------------------------------
     fun generateTidakMampuPdf(headerData: HeaderData, data: TidakMampuData, outputFile: File) {
         val document = newDocument(outputFile)
-        addHeader(document, headerData)
+        addHeaderFor(document, headerData, LetterType.TIDAK_MAMPU)
         addTitle(document, effectivePdfTitle(LetterType.TIDAK_MAMPU, data), effectiveNomorSurat(data.nomorSurat, LetterType.TIDAK_MAMPU))
         if (data.varianSKTM == "Daftar Kolektif") {
             addContent(document, "Yang bertanda tangan di bawah ini, Kepala Desa ${titleCase(headerData.namaDesa)}, menerangkan bahwa warga-warga berikut ini termasuk dalam kategori keluarga kurang mampu (tidak mampu) menurut keterangan Ketua RT/RW setempat dan sepengetahuan kami:")
@@ -300,37 +306,92 @@ class PdfGenerator(private val context: Context) {
     }
 
     // ------------------------------------------------------------------
-    // 8. Ahli Waris
+    // 8. Ahli Waris — FASE 3, ditulis ulang dari audit contoh
+    // "SURAT KETERANGAN AHLI WARIS 2021.docx" (salinan yang
+    // ditandatangani Kepala Desa): pembuka (almarhum + meninggal +
+    // + jumlah anak) → "Dengan demikian susunan Ahli Waris..." →
+    // tabel No/Nama/Hubungan/Tanda Tangan → penegas → saksi (Ketua
+    // RT/RW) → Untuk Keperluan → penutup → ttd Mengetahui Camat (kiri)
+    // + Kepala Desa (kanan) → lampiran "Data Ahli Waris" (detail
+    // NIK/TTL/alamat per ahli waris, seperti lembar detail di DOCX).
     // ------------------------------------------------------------------
     fun generateAhliWarisPdf(headerData: HeaderData, data: AhliWarisData, outputFile: File) {
         val document = newDocument(outputFile)
-        addHeader(document, headerData)
+        addHeaderFor(document, headerData, LetterType.AHLI_WARIS)
         addTitle(document, LetterType.AHLI_WARIS, effectiveNomorSurat(data.nomorSurat, LetterType.AHLI_WARIS))
-        addContent(document, "Yang bertanda tangan di bawah ini, Kepala Desa ${titleCase(headerData.namaDesa)}, menerangkan bahwa:")
-        addDataTable(
+        addContent(document, paragrafPembukaAhliWaris(data, titleCase(headerData.namaDesa)))
+        addContent(document, "Dengan demikian susunan Ahli Waris adalah sebagai berikut:")
+        val waris = data.daftarAhliWaris.filter { it.nama.isNotBlank() || it.nik.isNotBlank() }
+        addSimpleTable(
             document,
-            listOf(
-                "Nama Peninggal" to data.namaPeninggal,
-                "NIK Peninggal" to data.nikPeninggal,
-                "Alamat Peninggal" to data.alamatPeninggal
-            )
+            listOf("No", "Nama", "Hubungan Keluarga", "Tanda Tangan"),
+            waris.mapIndexed { i, w -> listOf("${i + 1}", w.nama, w.hubungan, "") }
         )
-        addContent(document, "Adapun ahli waris dari almarhum/almarhumah tersebut di atas adalah:")
-        val warisRows = mutableListOf<Pair<String, String>>()
-        warisRows += "Nama Ahli Waris 1" to data.namaAhliWaris1
-        warisRows += "NIK Ahli Waris 1" to data.nikAhliWaris1
-        warisRows += "Hubungan Ahli Waris 1" to data.hubunganAhliWaris1
-        if (data.namaAhliWaris2.isNotBlank() || data.nikAhliWaris2.isNotBlank()) {
-            warisRows += "Nama Ahli Waris 2" to data.namaAhliWaris2
-            warisRows += "NIK Ahli Waris 2" to data.nikAhliWaris2
-            warisRows += "Hubungan Ahli Waris 2" to data.hubunganAhliWaris2
+        addContent(
+            document,
+            "Orang-orang tersebut di atas merupakan ahli waris yang sah dari " +
+                "${sebutanAlmarhum(data.jenisKelaminPeninggal)} ${data.namaPeninggal}."
+        )
+        val saksi = listOf(
+            data.namaSaksi1 to data.jabatanSaksi1,
+            data.namaSaksi2 to data.jabatanSaksi2
+        ).filter { it.first.isNotBlank() || it.second.isNotBlank() }
+        if (saksi.isNotEmpty()) {
+            addContent(document, "Saksi-saksi yang mengetahui keterangan tersebut adalah")
+            addSimpleTable(
+                document,
+                listOf("No", "Nama", "Jabatan", "Tanda Tangan"),
+                saksi.mapIndexed { i, (nama, jabatan) -> listOf("${i + 1}", nama, jabatan, "") }
+            )
         }
-        addDataTable(document, warisRows)
-        if (data.keterangan.isNotBlank()) {
-            addContent(document, "Keterangan: ${data.keterangan}.")
+        if (data.keperluan.isNotBlank()) {
+            addContent(document, "Untuk Keperluan : ${data.keperluan}")
         }
-        addContent(document, "Adalah benar bahwa orang-orang tersebut di atas adalah ahli waris yang sah dari ${data.namaPeninggal}. Surat keterangan ini diberikan untuk keperluan administrasi ahli waris.")
-        addFooter(document, headerData, effectiveTanggalSurat(data.tanggalSurat), Signer.KADES)
+        addContent(document, "Demikian surat ini kami buat dengan sebenarnya dan kepada yang bersangkutan menjadi tahu adanya.")
+        addFooter(
+            document, headerData, effectiveTanggalSurat(data.tanggalSurat), Signer.KADES,
+            leftNote = "Mengetahui,\nCamat Kasomalang"
+        )
+        // Lampiran — detail per ahli waris (seperti lembar detail di DOCX:
+        // NIK, Nama, Jenis Kelamin, Tempat/Tanggal Lahir, Alamat).
+        val adaDetail = waris.any {
+            it.nik.isNotBlank() || it.jenisKelamin.isNotBlank() ||
+                it.tempatLahir.isNotBlank() || it.tanggalLahir.isNotBlank() || it.alamat.isNotBlank()
+        }
+        val adaDataPeninggal = data.nikPeninggal.isNotBlank() ||
+            data.jenisKelaminPeninggal.isNotBlank() || data.alamatPeninggal.isNotBlank()
+        if (adaDetail || adaDataPeninggal) {
+            addSectionTitle(document, "Lampiran — Data Ahli Waris")
+            if (adaDataPeninggal) {
+                addSectionTitle(document, "Data Peninggal")
+                addDataTable(
+                    document,
+                    listOf(
+                        "Nama" to data.namaPeninggal,
+                        "NIK" to data.nikPeninggal,
+                        "Jenis Kelamin" to data.jenisKelaminPeninggal,
+                        "Alamat" to data.alamatPeninggal
+                    )
+                )
+            }
+            waris.forEachIndexed { i, w ->
+                if (w.nik.isBlank() && w.jenisKelamin.isBlank() && w.tempatLahir.isBlank() &&
+                    w.tanggalLahir.isBlank() && w.alamat.isBlank()
+                ) return@forEachIndexed
+                addSectionTitle(document, "Ahli Waris ${i + 1} — ${w.nama}")
+                addDataTable(
+                    document,
+                    listOf(
+                        "NIK" to w.nik,
+                        "Nama" to w.nama,
+                        "Jenis Kelamin" to w.jenisKelamin,
+                        "Tempat/Tanggal Lahir" to ttl(w.tempatLahir, w.tanggalLahir),
+                        "Hubungan Keluarga" to w.hubungan,
+                        "Alamat" to w.alamat
+                    )
+                )
+            }
+        }
         document.close()
     }
 
@@ -339,7 +400,7 @@ class PdfGenerator(private val context: Context) {
     // ------------------------------------------------------------------
     fun generateNikahTidakTercatatPdf(headerData: HeaderData, data: NikahTidakTercatatData, outputFile: File) {
         val document = newDocument(outputFile)
-        addHeader(document, headerData)
+        addHeaderFor(document, headerData, LetterType.NIKAH_TIDAK_TERCATAT)
         addTitle(document, LetterType.NIKAH_TIDAK_TERCATAT, effectiveNomorSurat(data.nomorSurat, LetterType.NIKAH_TIDAK_TERCATAT))
         addContent(document, "Yang bertanda tangan di bawah ini, Kepala Desa ${titleCase(headerData.namaDesa)}, menerangkan bahwa:")
         addDataTable(
@@ -365,7 +426,7 @@ class PdfGenerator(private val context: Context) {
     // ------------------------------------------------------------------
     fun generatePemakamanPdf(headerData: HeaderData, data: PemakamanData, outputFile: File) {
         val document = newDocument(outputFile)
-        addHeader(document, headerData)
+        addHeaderFor(document, headerData, LetterType.PEMAKAMAN)
         addTitle(document, LetterType.PEMAKAMAN, effectiveNomorSurat(data.nomorSurat, LetterType.PEMAKAMAN))
         addContent(document, "Yang bertanda tangan di bawah ini, Kepala Desa ${titleCase(headerData.namaDesa)}, menerangkan bahwa:")
         addDataTable(
@@ -390,7 +451,7 @@ class PdfGenerator(private val context: Context) {
     // ------------------------------------------------------------------
     fun generateTidakMemilikiRumahPdf(headerData: HeaderData, data: TidakMemilikiRumahData, outputFile: File) {
         val document = newDocument(outputFile)
-        addHeader(document, headerData)
+        addHeaderFor(document, headerData, LetterType.TIDAK_MEMILIKI_RUMAH)
         addTitle(document, LetterType.TIDAK_MEMILIKI_RUMAH, effectiveNomorSurat(data.nomorSurat, LetterType.TIDAK_MEMILIKI_RUMAH))
         addContent(document, "Yang bertanda tangan di bawah ini:")
         addDataTable(
@@ -414,7 +475,7 @@ class PdfGenerator(private val context: Context) {
     // ------------------------------------------------------------------
     fun generateUndanganPdf(headerData: HeaderData, data: UndanganData, outputFile: File) {
         val document = newDocument(outputFile)
-        addHeader(document, headerData)
+        addHeaderFor(document, headerData, LetterType.UNDANGAN)
         addTitle(document, LetterType.UNDANGAN, effectiveNomorSurat(data.nomorSurat, LetterType.UNDANGAN))
         addDataTable(
             document,
@@ -455,7 +516,7 @@ class PdfGenerator(private val context: Context) {
     // ------------------------------------------------------------------
     fun generateKematianPdf(headerData: HeaderData, data: KematianData, outputFile: File) {
         val document = newDocument(outputFile)
-        addHeader(document, headerData)
+        addHeaderFor(document, headerData, LetterType.KEMATIAN)
         addTitle(document, LetterType.KEMATIAN, effectiveNomorSurat(data.nomorSurat, LetterType.KEMATIAN))
         addContent(document, "Yang bertanda tangan di bawah ini, Kepala Desa ${titleCase(headerData.namaDesa)}, menerangkan bahwa:")
         addDataTable(
@@ -502,7 +563,7 @@ class PdfGenerator(private val context: Context) {
     // ------------------------------------------------------------------
     fun generateUsahaPdf(headerData: HeaderData, data: UsahaData, outputFile: File) {
         val document = newDocument(outputFile)
-        addHeader(document, headerData)
+        addHeaderFor(document, headerData, LetterType.USAHA)
         addTitle(document, LetterType.USAHA, effectiveNomorSurat(data.nomorSurat, LetterType.USAHA))
         addContent(document, "Yang bertanda tangan di bawah ini, Kepala Desa ${titleCase(headerData.namaDesa)}, menerangkan bahwa:")
         addDataTable(
@@ -527,7 +588,7 @@ class PdfGenerator(private val context: Context) {
     // ------------------------------------------------------------------
     fun generateDudaJandaPdf(headerData: HeaderData, data: DudaJandaData, outputFile: File) {
         val document = newDocument(outputFile)
-        addHeader(document, headerData)
+        addHeaderFor(document, headerData, LetterType.DUDA_JANDA)
         addTitle(document, LetterType.DUDA_JANDA, effectiveNomorSurat(data.nomorSurat, LetterType.DUDA_JANDA))
         addContent(document, "Yang bertanda tangan di bawah ini, Kepala Desa ${titleCase(headerData.namaDesa)}, menerangkan bahwa:")
         addDataTable(
@@ -555,7 +616,7 @@ class PdfGenerator(private val context: Context) {
     // ------------------------------------------------------------------
     fun generateF101Pdf(headerData: HeaderData, data: F101Data, outputFile: File) {
         val document = newDocument(outputFile, landscape = true)
-        addHeaderDisdukcapil(document)
+        addHeaderFor(document, headerData, LetterType.F101)
         addTitle(document, LetterType.F101, effectiveNomorSurat(data.nomorSurat, LetterType.F101))
         addSectionTitle(document, "Data Kepala Keluarga")
         addDataTable(
@@ -574,7 +635,7 @@ class PdfGenerator(private val context: Context) {
             data.daftarAnggota.mapIndexed { i, a ->
                 listOf("${i + 1}", a.nama, a.nik, a.shdk, ttl(a.tempatLahir, a.tanggalLahir), a.agama, a.pendidikan, a.pekerjaan, a.statusKawin, a.namaAyah, a.namaIbu)
             },
-            fontSize = 7f
+            fontSize = 8f
         )
         addPlaceDate(document, "Subang", effectiveTanggalSurat(data.tanggalSurat))
         addSignatureColumns(
@@ -592,7 +653,7 @@ class PdfGenerator(private val context: Context) {
     // ------------------------------------------------------------------
     fun generateF102Pdf(headerData: HeaderData, data: F102Data, outputFile: File) {
         val document = newDocument(outputFile)
-        addHeaderDisdukcapil(document)
+        addHeaderFor(document, headerData, LetterType.F102)
         addTitle(document, LetterType.F102, effectiveNomorSurat(data.nomorSurat, LetterType.F102))
         addDataTable(
             document,
@@ -623,7 +684,7 @@ class PdfGenerator(private val context: Context) {
     // ------------------------------------------------------------------
     fun generateF103Pdf(headerData: HeaderData, data: F103Data, outputFile: File) {
         val document = newDocument(outputFile)
-        addHeaderDisdukcapil(document)
+        addHeaderFor(document, headerData, LetterType.F103)
         addTitle(document, LetterType.F103, effectiveNomorSurat(data.nomorSurat, LetterType.F103))
         addDataTable(
             document,
@@ -665,7 +726,7 @@ class PdfGenerator(private val context: Context) {
     // ------------------------------------------------------------------
     fun generateF104Pdf(headerData: HeaderData, data: F104Data, outputFile: File) {
         val document = newDocument(outputFile)
-        addHeaderDisdukcapil(document)
+        addHeaderFor(document, headerData, LetterType.F104)
         addTitle(document, LetterType.F104, effectiveNomorSurat(data.nomorSurat, LetterType.F104))
         addContent(document, "Yang bertanda tangan di bawah ini:")
         addDataTable(
@@ -689,7 +750,7 @@ class PdfGenerator(private val context: Context) {
     // ------------------------------------------------------------------
     fun generateF105Pdf(headerData: HeaderData, data: F105Data, outputFile: File) {
         val document = newDocument(outputFile)
-        addHeaderDisdukcapil(document)
+        addHeaderFor(document, headerData, LetterType.F105)
         addTitle(document, LetterType.F105, effectiveNomorSurat(data.nomorSurat, LetterType.F105))
         addContent(document, "Yang bertanda tangan di bawah ini:")
         addDataTable(
@@ -738,7 +799,7 @@ class PdfGenerator(private val context: Context) {
     // ------------------------------------------------------------------
     fun generateF106Pdf(headerData: HeaderData, data: F106Data, outputFile: File) {
         val document = newDocument(outputFile)
-        addHeaderDisdukcapil(document)
+        addHeaderFor(document, headerData, LetterType.F106)
         addTitle(document, LetterType.F106, effectiveNomorSurat(data.nomorSurat, LetterType.F106))
         addDataTable(
             document,
@@ -787,7 +848,7 @@ class PdfGenerator(private val context: Context) {
     // ------------------------------------------------------------------
     fun generateF115Pdf(headerData: HeaderData, data: F115Data, outputFile: File) {
         val document = newDocument(outputFile)
-        addHeaderDisdukcapil(document)
+        addHeaderFor(document, headerData, LetterType.F115)
         addTitle(document, LetterType.F115, effectiveNomorSurat(data.nomorSurat, LetterType.F115))
         addDataTable(
             document,
@@ -826,7 +887,7 @@ class PdfGenerator(private val context: Context) {
     // ------------------------------------------------------------------
     fun generateF201Pdf(headerData: HeaderData, data: F201Data, outputFile: File) {
         val document = newDocument(outputFile)
-        addHeaderDisdukcapil(document)
+        addHeaderFor(document, headerData, LetterType.F201)
         addTitle(document, LetterType.F201, effectiveNomorSurat(data.nomorSurat, LetterType.F201))
         addContent(document, "Jenis Pelaporan: ${data.jenisPelaporan}")
         addSectionTitle(document, "Data Pelapor")
@@ -944,7 +1005,7 @@ class PdfGenerator(private val context: Context) {
     // ------------------------------------------------------------------
     fun generateF203Pdf(headerData: HeaderData, data: F203Data, outputFile: File) {
         val document = newDocument(outputFile)
-        addHeaderDisdukcapil(document)
+        addHeaderFor(document, headerData, LetterType.F203)
         addTitle(document, LetterType.F203, effectiveNomorSurat(data.nomorSurat, LetterType.F203))
         addContent(document, "Yang bertanda tangan di bawah ini:")
         addDataTable(
@@ -1019,7 +1080,7 @@ class PdfGenerator(private val context: Context) {
     // ------------------------------------------------------------------
     fun generateF204Pdf(headerData: HeaderData, data: F204Data, outputFile: File) {
         val document = newDocument(outputFile)
-        addHeaderDisdukcapil(document)
+        addHeaderFor(document, headerData, LetterType.F204)
         addTitle(document, LetterType.F204, effectiveNomorSurat(data.nomorSurat, LetterType.F204))
         addContent(document, "Yang bertanda tangan di bawah ini:")
         addDataTable(
@@ -1073,7 +1134,7 @@ class PdfGenerator(private val context: Context) {
     // ------------------------------------------------------------------
     fun generateSptjmKematianPdf(headerData: HeaderData, data: SptjmKematianData, outputFile: File) {
         val document = newDocument(outputFile)
-        addHeader(document, headerData)
+        addHeaderFor(document, headerData, LetterType.SPTJM_KEMATIAN)
         addTitle(document, LetterType.SPTJM_KEMATIAN, effectiveNomorSurat(data.nomorSurat, LetterType.SPTJM_KEMATIAN))
         addContent(document, "Yang bertanda tangan di bawah ini:")
         addDataTable(
@@ -1136,7 +1197,7 @@ class PdfGenerator(private val context: Context) {
     // ------------------------------------------------------------------
     fun generateSptjmPerkawinanPerceraianPdf(headerData: HeaderData, data: SptjmPerkawinanPerceraianData, outputFile: File) {
         val document = newDocument(outputFile)
-        addHeader(document, headerData)
+        addHeaderFor(document, headerData, LetterType.SPTJM_PERKAWINAN_PERCERAIAN)
         addTitle(document, LetterType.SPTJM_PERKAWINAN_PERCERAIAN, effectiveNomorSurat(data.nomorSurat, LetterType.SPTJM_PERKAWINAN_PERCERAIAN))
         val peristiwa = data.jenisSPTJM.lowercase()
         addContent(document, "Yang bertanda tangan di bawah ini:")
@@ -1187,7 +1248,7 @@ class PdfGenerator(private val context: Context) {
     // ------------------------------------------------------------------
     fun generatePbiAsesmenPdf(headerData: HeaderData, data: PbiAsesmenData, outputFile: File) {
         val document = newDocument(outputFile)
-        addHeader(document, headerData)
+        addHeaderFor(document, headerData, LetterType.PBI_ASESMEN)
         addTitle(document, LetterType.PBI_ASESMEN, effectiveNomorSurat(data.nomorSurat, LetterType.PBI_ASESMEN))
         addSectionTitle(document, "Identitas Calon Penerima")
         addDataTable(
@@ -1249,7 +1310,7 @@ class PdfGenerator(private val context: Context) {
     // ------------------------------------------------------------------
     fun generatePbiPernyataanPdf(headerData: HeaderData, data: PbiPernyataanData, outputFile: File) {
         val document = newDocument(outputFile)
-        addHeader(document, headerData)
+        addHeaderFor(document, headerData, LetterType.PBI_PERNYATAAN)
         addTitle(document, LetterType.PBI_PERNYATAAN, effectiveNomorSurat(data.nomorSurat, LetterType.PBI_PERNYATAAN))
         addContent(document, "Yang bertanda tangan di bawah ini:")
         addDataTable(
@@ -1282,7 +1343,7 @@ class PdfGenerator(private val context: Context) {
     // ------------------------------------------------------------------
     fun generatePbiTidakPunyaRekeningPdf(headerData: HeaderData, data: PbiTidakPunyaRekeningData, outputFile: File) {
         val document = newDocument(outputFile)
-        addHeader(document, headerData)
+        addHeaderFor(document, headerData, LetterType.PBI_TIDAK_PUNYA_REKENING)
         addTitle(document, LetterType.PBI_TIDAK_PUNYA_REKENING, effectiveNomorSurat(data.nomorSurat, LetterType.PBI_TIDAK_PUNYA_REKENING))
         addContent(document, "Yang bertanda tangan di bawah ini:")
         addDataTable(
@@ -1337,17 +1398,97 @@ class PdfGenerator(private val context: Context) {
         }
 
     /** Muat logo dari assets; null bila file tidak ada / rusak (kop tetap jalan sebagai teks). */
-    private fun loadLogoImage(assetPath: String): Image? {
+    private fun loadLogoImage(assetPath: String, maxWidth: Float = 48f, maxHeight: Float = 52f): Image? {
         return try {
             val bytes = context.assets.open(assetPath).use { it.readBytes() }
             val image = Image.getInstance(bytes)
-            image.scaleToFit(48f, 52f)
+            image.scaleToFit(maxWidth, maxHeight)
             image
         } catch (e: Exception) {
             null
         }
     }
 
+    /**
+     * SATU pintu kop untuk semua generator: gaya kop ditentukan [kopFor]
+     * (satu fungsi yang sama dipakai PreviewScreen) — jangan panggil
+     * addHeader/addHeaderDisdukcapil langsung dari generator.
+     */
+    private fun addHeaderFor(document: Document, header: HeaderData, type: LetterType) {
+        when (kopFor(type)) {
+            KopStyle.GARUDA_CENTER -> addHeaderGarudaCenter(document, header)
+            KopStyle.SUBANG_LEFT -> addHeaderSubangLeft(document, header)
+            KopStyle.DUA_LOGO -> addHeader(document, header)
+            KopStyle.DISDUKCAPIL -> addHeaderDisdukcapil(document)
+        }
+    }
+
+    /** Sel teks kop desa (dipakai semua varian kop desa): 12pt, baris desa 14pt, alamat 10pt. */
+    private fun kopTextCell(header: HeaderData): PdfPCell {
+        val textCell = PdfPCell()
+        textCell.border = Rectangle.NO_BORDER
+        textCell.horizontalAlignment = Element.ALIGN_CENTER
+        textCell.verticalAlignment = Element.ALIGN_MIDDLE
+        val titlePhrase = Phrase()
+        titlePhrase.add(Chunk("PEMERINTAH DAERAH ${header.namaKabupaten.uppercase()}\n", Font(baseFont, 12f, Font.BOLD)))
+        titlePhrase.add(Chunk("${header.namaKecamatan.uppercase()}\n", Font(baseFont, 12f, Font.BOLD)))
+        titlePhrase.add(Chunk("DESA ${header.namaDesa.uppercase()}\n", Font(baseFont, 14f, Font.BOLD)))
+        titlePhrase.add(Chunk("Alamat: ${header.alamatKantor}", Font(baseFont, 10f)))
+        textCell.phrase = titlePhrase
+        return textCell
+    }
+
+    /**
+     * Kop ttd Kepala Desa (FASE 3): logo Garuda SAJA, di tengah paling
+     * atas di atas teks kop (~28 mm lebar, proporsional), tanpa logo
+     * Subang. Bila logo gagal dimuat, hanya teks kop yang tampil.
+     */
+    private fun addHeaderGarudaCenter(document: Document, header: HeaderData) {
+        loadLogoImage(header.logoGarudaAsset, 80f, 90f)?.let { image ->
+            image.alignment = Element.ALIGN_CENTER
+            image.spacingAfter = 4f
+            document.add(image)
+        }
+        val title = Paragraph()
+        title.alignment = Element.ALIGN_CENTER
+        title.spacingAfter = 2f
+        title.add(Chunk("PEMERINTAH DAERAH ${header.namaKabupaten.uppercase()}\n", Font(baseFont, 12f, Font.BOLD)))
+        title.add(Chunk("${header.namaKecamatan.uppercase()}\n", Font(baseFont, 12f, Font.BOLD)))
+        title.add(Chunk("DESA ${header.namaDesa.uppercase()}\n", Font(baseFont, 14f, Font.BOLD)))
+        title.add(Chunk("Alamat: ${header.alamatKantor}", Font(baseFont, 10f)))
+        document.add(title)
+        addDoubleLine(document)
+    }
+
+    /**
+     * Kop ttd a.n. Kades oleh Sekdes / ttd Sekdes langsung (FASE 3):
+     * logo Kabupaten Subang di KIRI (ukuran seperti kop lama), teks kop
+     * rata tengah, tanpa logo Garuda. Sel kanan dikosongkan agar teks
+     * tetap di tengah seperti kop dua logo.
+     */
+    private fun addHeaderSubangLeft(document: Document, header: HeaderData) {
+        val table = PdfPTable(3)
+        table.widthPercentage = 100f
+        table.setWidths(floatArrayOf(1f, 5f, 1f))
+
+        val subangCell = PdfPCell()
+        subangCell.border = Rectangle.NO_BORDER
+        subangCell.horizontalAlignment = Element.ALIGN_CENTER
+        subangCell.verticalAlignment = Element.ALIGN_MIDDLE
+        loadLogoImage(header.logoSubangAsset)?.let { subangCell.addElement(it) }
+        table.addCell(subangCell)
+
+        table.addCell(kopTextCell(header))
+
+        val emptyCell = PdfPCell()
+        emptyCell.border = Rectangle.NO_BORDER
+        table.addCell(emptyCell)
+
+        document.add(table)
+        addDoubleLine(document)
+    }
+
+    /** Kop dua logo (Garuda kiri + Subang kanan) — dipakai SPTJM/PBI seperti semula. */
     private fun addHeader(document: Document, header: HeaderData) {
         val table = PdfPTable(3)
         table.widthPercentage = 100f
@@ -1360,16 +1501,7 @@ class PdfGenerator(private val context: Context) {
         loadLogoImage(header.logoGarudaAsset)?.let { garudaCell.addElement(it) }
         table.addCell(garudaCell)
 
-        val textCell = PdfPCell()
-        textCell.border = Rectangle.NO_BORDER
-        textCell.horizontalAlignment = Element.ALIGN_CENTER
-        val titlePhrase = Phrase()
-        titlePhrase.add(Chunk("PEMERINTAH DAERAH ${header.namaKabupaten.uppercase()}\n", Font(baseFont, 11f, Font.BOLD)))
-        titlePhrase.add(Chunk("${header.namaKecamatan.uppercase()}\n", Font(baseFont, 11f, Font.BOLD)))
-        titlePhrase.add(Chunk("DESA ${header.namaDesa.uppercase()}\n", Font(baseFont, 12f, Font.BOLD)))
-        titlePhrase.add(Chunk("Alamat: ${header.alamatKantor}", Font(baseFont, 9f)))
-        textCell.phrase = titlePhrase
-        table.addCell(textCell)
+        table.addCell(kopTextCell(header))
 
         val subangCell = PdfPCell()
         subangCell.border = Rectangle.NO_BORDER
@@ -1389,9 +1521,9 @@ class PdfGenerator(private val context: Context) {
         val title = Paragraph()
         title.alignment = Element.ALIGN_CENTER
         title.spacingAfter = 2f
-        title.add(Chunk("PEMERINTAH KABUPATEN SUBANG\n", Font(baseFont, 11f, Font.BOLD)))
-        title.add(Chunk("DINAS KEPENDUDUKAN DAN PENCATATAN SIPIL\n", Font(baseFont, 12f, Font.BOLD)))
-        title.add(Chunk("Jl. Mayjen Sutoyo S. No. 50 Subang, Telp. (0260) 411424", Font(baseFont, 9f)))
+        title.add(Chunk("PEMERINTAH KABUPATEN SUBANG\n", Font(baseFont, 12f, Font.BOLD)))
+        title.add(Chunk("DINAS KEPENDUDUKAN DAN PENCATATAN SIPIL\n", Font(baseFont, 14f, Font.BOLD)))
+        title.add(Chunk("Jl. Mayjen Sutoyo S. No. 50 Subang, Telp. (0260) 411424", Font(baseFont, 10f)))
         document.add(title)
         addDoubleLine(document)
     }
@@ -1409,11 +1541,13 @@ class PdfGenerator(private val context: Context) {
     }
 
     private fun addTitle(document: Document, type: LetterType, nomorSurat: String) {
-        addTitle(document, type.pdfTitle, nomorSurat)
+        // FASE 3: baris Nomor tampil untuk tipe bernomor (atau bila nomor
+        // diisi manual); formulir F tanpa nomor tetap tanpa baris Nomor.
+        addTitle(document, type.pdfTitle, nomorSurat, hasNomorBaris(type) || nomorSurat.isNotBlank())
     }
 
-    private fun addTitle(document: Document, title: String, nomorSurat: String) {
-        val titlePara = Paragraph(title, Font(baseFont, 12f, Font.BOLD))
+    private fun addTitle(document: Document, title: String, nomorSurat: String, showNomor: Boolean = true) {
+        val titlePara = Paragraph(title, Font(baseFont, 14f, Font.BOLD))
         titlePara.alignment = Element.ALIGN_CENTER
         titlePara.spacingAfter = 2f
         document.add(titlePara)
@@ -1424,8 +1558,11 @@ class PdfGenerator(private val context: Context) {
         underline.add(LineSeparator(0.5f, 45f, BaseColor.BLACK, Element.ALIGN_CENTER, 0f))
         document.add(underline)
 
-        if (nomorSurat.isNotBlank()) {
-            val nomorPara = Paragraph("Nomor : $nomorSurat", Font(baseFont, 10f))
+        if (showNomor) {
+            // FASE 3: nomor kosong → garis titik-titik (untuk diisi tangan
+            // saat registrasi), BUKAN pola default, BUKAN "undefined".
+            val nomorText = if (nomorSurat.isBlank()) "Nomor : ${".".repeat(48)}" else "Nomor : $nomorSurat"
+            val nomorPara = Paragraph(nomorText, Font(baseFont, 11f))
             nomorPara.spacingAfter = 10f
             document.add(nomorPara)
         }
@@ -1433,7 +1570,7 @@ class PdfGenerator(private val context: Context) {
 
     /** Judul seksi di dalam formulir (mis. "Data Pelapor"). */
     private fun addSectionTitle(document: Document, text: String) {
-        val para = Paragraph(text, Font(baseFont, 11f, Font.BOLD))
+        val para = Paragraph(text, Font(baseFont, 12f, Font.BOLD))
         para.spacingBefore = 6f
         para.spacingAfter = 4f
         document.add(para)
@@ -1466,7 +1603,7 @@ class PdfGenerator(private val context: Context) {
 
     /** Baris tempat + tanggal, mis. "Kasomalang Kulon, 15 November 2026". */
     private fun addPlaceDate(document: Document, place: String, tanggalSurat: String) {
-        val para = Paragraph("$place, $tanggalSurat", Font(baseFont, 10f))
+        val para = Paragraph("$place, $tanggalSurat", Font(baseFont, 12f))
         para.spacingBefore = 8f
         para.spacingAfter = 4f
         document.add(para)
@@ -1488,7 +1625,7 @@ class PdfGenerator(private val context: Context) {
                 appendLine()
                 appendLine(if (name.isBlank()) "(.......................................)" else name)
             }
-            cell.phrase = Phrase(text, Font(baseFont, 10f))
+            cell.phrase = Phrase(text, Font(baseFont, 12f))
             cell.horizontalAlignment = Element.ALIGN_CENTER
             table.addCell(cell)
         }
@@ -1496,7 +1633,7 @@ class PdfGenerator(private val context: Context) {
     }
 
     private fun addContent(document: Document, content: String) {
-        val para = Paragraph(content, Font(baseFont, 11f))
+        val para = Paragraph(content, Font(baseFont, 12f))
         para.alignment = Element.ALIGN_JUSTIFIED
         para.spacingAfter = 8f
         document.add(para)
@@ -1510,11 +1647,11 @@ class PdfGenerator(private val context: Context) {
         table.widthPercentage = 100f
         table.setWidths(floatArrayOf(2f, 5f))
         for ((label, value) in visible) {
-            val labelCell = PdfPCell(Phrase(label, Font(baseFont, 11f)))
+            val labelCell = PdfPCell(Phrase(label, Font(baseFont, 12f)))
             labelCell.border = Rectangle.NO_BORDER
             labelCell.paddingBottom = 2f
             table.addCell(labelCell)
-            val valueCell = PdfPCell(Phrase(": $value", Font(baseFont, 11f)))
+            val valueCell = PdfPCell(Phrase(": $value", Font(baseFont, 12f)))
             valueCell.border = Rectangle.NO_BORDER
             valueCell.paddingBottom = 2f
             table.addCell(valueCell)
@@ -1550,7 +1687,7 @@ class PdfGenerator(private val context: Context) {
                 append("(.......................................)")
             }
         }
-        leftCell.phrase = Phrase(leftText, Font(baseFont, 10f))
+        leftCell.phrase = Phrase(leftText, Font(baseFont, 12f))
         leftCell.horizontalAlignment = Element.ALIGN_LEFT
         footerTable.addCell(leftCell)
 
@@ -1574,7 +1711,7 @@ class PdfGenerator(private val context: Context) {
             // Baris NIP hanya dirender bila NIP diisi; default kosong (tidak ada NIP).
             if (nip.isNotBlank()) append("NIP: $nip")
         }
-        rightCell.phrase = Phrase(signatureText, Font(baseFont, 10f))
+        rightCell.phrase = Phrase(signatureText, Font(baseFont, 12f))
         rightCell.horizontalAlignment = Element.ALIGN_CENTER
         footerTable.addCell(rightCell)
 

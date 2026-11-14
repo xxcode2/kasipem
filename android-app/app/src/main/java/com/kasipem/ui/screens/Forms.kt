@@ -163,7 +163,8 @@ private fun NomorTanggalFields(
         label = "Nomor Surat",
         value = nomorSurat,
         onValueChange = onNomorSuratChange,
-        placeholder = defaultNomorSurat(type).ifEmpty { "Isi nomor surat secara manual" }
+        // FASE 3: nomor default KOSONG; pola hanya contoh placeholder.
+        placeholder = nomorPattern(type).ifEmpty { "Isi nomor surat secara manual" }
     )
     FormTextField(
         label = "Tanggal Surat",
@@ -952,6 +953,41 @@ fun TidakMampuForm(
     }
 }
 
+/** Editor daftar ahli waris dinamis (FASE 3, audit contoh DOCX 2021): min. 1, maks. 20 baris. */
+@Composable
+private fun AhliWarisEditor(
+    list: List<AhliWarisItem>,
+    onChange: (List<AhliWarisItem>) -> Unit
+) {
+    fun upd(index: Int, f: (AhliWarisItem, String) -> AhliWarisItem): (String) -> Unit =
+        { v -> onChange(list.mapIndexed { i, x -> if (i == index) f(x, v) else x }) }
+    Text(
+        "Baris pertama: pasangan (istri/suami), baris berikutnya: anak-anak — sesuai contoh surat.",
+        style = MaterialTheme.typography.bodyMedium
+    )
+    list.forEachIndexed { index, w ->
+        SectionTitle("Ahli Waris ${index + 1}")
+        F("Nama", w.nama, upd(index) { x, v -> x.copy(nama = v) }, required = true)
+        NikF(value = w.nik, onChange = upd(index) { x, v -> x.copy(nik = v) })
+        D("Jenis Kelamin", w.jenisKelamin, listOf("", "Laki-laki", "Perempuan"), upd(index) { x, v -> x.copy(jenisKelamin = v) }, optional = true)
+        F("Tempat Lahir", w.tempatLahir, upd(index) { x, v -> x.copy(tempatLahir = v) }, placeholder = "Contoh: Subang", optional = true)
+        F("Tanggal Lahir", w.tanggalLahir, upd(index) { x, v -> x.copy(tanggalLahir = v) }, placeholder = "Contoh: 12 Januari 1990", optional = true)
+        D("Hubungan Keluarga", w.hubungan, listOf("", "Istri", "Suami", "Anak", "Ayah", "Ibu", "Saudara", "Lainnya"), upd(index) { x, v -> x.copy(hubungan = v) }, optional = true)
+        F("Alamat", w.alamat, upd(index) { x, v -> x.copy(alamat = v) }, singleLine = false, maxLines = 2, optional = true)
+        if (list.size > 1) {
+            OutlinedButton(onClick = { onChange(list.filterIndexed { i, _ -> i != index }) }, modifier = Modifier.fillMaxWidth()) {
+                Text("Hapus Ahli Waris ${index + 1}")
+            }
+        }
+        Divider(modifier = Modifier.padding(vertical = 8.dp))
+    }
+    if (list.size < 20) {
+        OutlinedButton(onClick = { onChange(list + AhliWarisItem()) }, modifier = Modifier.fillMaxWidth()) {
+            Text("Tambah Ahli Waris")
+        }
+    }
+}
+
 @Composable
 fun AhliWarisForm(
     data: AhliWarisData,
@@ -975,6 +1011,13 @@ fun AhliWarisForm(
             error = nikError(data.nikPeninggal),
             keyboardType = KeyboardType.Number
         )
+        D(
+            "Jenis Kelamin Peninggal",
+            data.jenisKelaminPeninggal,
+            listOf("", "Laki-laki", "Perempuan"),
+            { onDataChange(data.copy(jenisKelaminPeninggal = it)) },
+            optional = true
+        )
         FormTextField(
             label = "Alamat Peninggal",
             value = data.alamatPeninggal,
@@ -983,54 +1026,32 @@ fun AhliWarisForm(
             maxLines = 3
         )
         Divider(modifier = Modifier.padding(vertical = 8.dp))
-        SectionTitle("Ahli Waris 1")
-        NamaField(label = "Nama Ahli Waris 1", value = data.namaAhliWaris1, onValueChange = { onDataChange(data.copy(namaAhliWaris1 = it)) })
-        FormTextField(
-            label = "NIK Ahli Waris 1",
-            value = data.nikAhliWaris1,
-            onValueChange = { onDataChange(data.copy(nikAhliWaris1 = it)) },
-            placeholder = "16 digit angka",
-            error = nikError(data.nikAhliWaris1),
-            keyboardType = KeyboardType.Number
-        )
-        FormTextField(
-            label = "Hubungan dengan Peninggal",
-            value = data.hubunganAhliWaris1,
-            onValueChange = { onDataChange(data.copy(hubunganAhliWaris1 = it)) },
-            placeholder = "Contoh: Anak kandung"
-        )
+        SectionTitle("Meninggal Dunia")
+        F("Hari Meninggal", data.hariMeninggal, { onDataChange(data.copy(hariMeninggal = it)) }, placeholder = "Contoh: Minggu", optional = true)
+        F("Tanggal Meninggal", data.tanggalMeninggal, { onDataChange(data.copy(tanggalMeninggal = it)) }, placeholder = "Contoh: 12 Januari 2026", optional = true)
+        F("Tempat Meninggal", data.tempatMeninggal, { onDataChange(data.copy(tempatMeninggal = it)) }, placeholder = "Contoh: di rumah", optional = true)
+        F("Nomor Surat Kematian", data.nomorSuratKematian, { onDataChange(data.copy(nomorSuratKematian = it)) }, placeholder = "Contoh: 460.3/.../KS/2026", optional = true)
         Divider(modifier = Modifier.padding(vertical = 8.dp))
-        SectionTitle("Ahli Waris 2 (opsional)")
+        SectionTitle("Pasangan yang Masih Hidup")
+        F("Nama Pasangan", data.namaPasangan, { onDataChange(data.copy(namaPasangan = it)) }, placeholder = "Nama istri/suami yang masih hidup", optional = true)
+        D("Hubungan Pasangan", data.hubunganPasangan, listOf("Istri", "Suami"), { onDataChange(data.copy(hubunganPasangan = it)) })
+        Divider(modifier = Modifier.padding(vertical = 8.dp))
+        SectionTitle("Daftar Ahli Waris (min. 1, maks. 20)")
+        AhliWarisEditor(data.daftarAhliWaris) { onDataChange(data.copy(daftarAhliWaris = it)) }
+        Divider(modifier = Modifier.padding(vertical = 8.dp))
+        SectionTitle("Saksi-saksi (Ketua RT + Ketua RW)")
+        F("Nama Saksi 1", data.namaSaksi1, { onDataChange(data.copy(namaSaksi1 = it)) }, optional = true)
+        F("Jabatan Saksi 1", data.jabatanSaksi1, { onDataChange(data.copy(jabatanSaksi1 = it)) }, placeholder = "Contoh: Ketua RT 03 RW 04", optional = true)
+        F("Nama Saksi 2", data.namaSaksi2, { onDataChange(data.copy(namaSaksi2 = it)) }, optional = true)
+        F("Jabatan Saksi 2", data.jabatanSaksi2, { onDataChange(data.copy(jabatanSaksi2 = it)) }, placeholder = "Contoh: Ketua RW 04", optional = true)
         FormTextField(
-            label = "Nama Ahli Waris 2",
-            value = data.namaAhliWaris2,
-            onValueChange = { onDataChange(data.copy(namaAhliWaris2 = it)) },
-            isOptional = true
-        )
-        FormTextField(
-            label = "NIK Ahli Waris 2",
-            value = data.nikAhliWaris2,
-            onValueChange = { onDataChange(data.copy(nikAhliWaris2 = it)) },
-            placeholder = "16 digit angka",
-            isOptional = true,
-            error = nikError(data.nikAhliWaris2),
-            keyboardType = KeyboardType.Number
-        )
-        FormTextField(
-            label = "Hubungan dengan Peninggal",
-            value = data.hubunganAhliWaris2,
-            onValueChange = { onDataChange(data.copy(hubunganAhliWaris2 = it)) },
-            placeholder = "Contoh: Istri",
-            isOptional = true
-        )
-        FormTextField(
-            label = "Keterangan",
-            value = data.keterangan,
-            onValueChange = { onDataChange(data.copy(keterangan = it)) },
-            placeholder = "Contoh: Untuk pembuatan sertipikat",
+            label = "Untuk Keperluan",
+            value = data.keperluan,
+            onValueChange = { onDataChange(data.copy(keperluan = it)) },
+            placeholder = "Contoh: Kelengkapan Dokumen",
             isOptional = true,
             singleLine = false,
-            maxLines = 3
+            maxLines = 2
         )
     }
 }

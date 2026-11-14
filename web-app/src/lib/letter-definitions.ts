@@ -39,7 +39,8 @@ export interface LetterDefinition {
   nomorPrefix: string;
   /** Sufiks klasifikasi, mis. "PEM" atau "Ks". Kosong = nomor manual. */
   nomorSuffix: string;
-  /** Kop yang dipakai: 'desa' (logo Garuda + Subang) atau 'disdukcapil'
+  /** Kop yang dipakai: 'desa' (varian logo mengikuti penandatangan —
+   *  lihat kopFor() di letter-content.ts) atau 'disdukcapil'
    *  (kop teks Dinas Dukcapil Subang, tanpa logo desa) — formulir seri F. */
   kop?: 'desa' | 'disdukcapil';
   /** Sembunyikan baris "Nomor :" (formulir yang memang tidak bernomor). */
@@ -53,10 +54,20 @@ function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+/**
+ * Fase 3: nomor surat default KOSONG untuk semua tipe. Pola nomor
+ * (prefix/suffix) hanya dipakai sebagai placeholder di form
+ * (mis. "460.3 / ... / KS / 2026") — tidak pernah terisi otomatis.
+ * Preview/PDF menampilkan garis titik-titik bila nomor kosong.
+ */
 export function defaultNomorSurat(def: LetterDefinition): string {
-  if (!def.nomorPrefix) return '';
-  const year = new Date().getFullYear();
-  return `${def.nomorPrefix} / 001 / ${def.nomorSuffix} / ${year}`;
+  return '';
+}
+
+/** Pola nomor sebagai contoh placeholder di form (bukan nilai default). */
+export function nomorPlaceholder(def: LetterDefinition): string {
+  if (!def.nomorPrefix) return 'Isi nomor surat secara manual';
+  return `${def.nomorPrefix} / ... / ${def.nomorSuffix} / ${new Date().getFullYear()}`;
 }
 
 const JENIS_KELAMIN: FormField = {
@@ -285,21 +296,52 @@ export const LETTER_DEFINITIONS: LetterDefinition[] = [
     id: 'ahli_waris',
     title: 'SURAT KETERANGAN AHLI WARIS',
     shortTitle: 'Ahli Waris',
-    description: 'Menerangkan ahli waris dari almarhum/almarhumah.',
+    description: 'Menerangkan ahli waris dari almarhum/almarhumah (daftar dinamis, saksi RT/RW).',
     category: 'Hukum',
+    // Pola placeholder saja (Fase 3: default kosong). Catatan audit: contoh
+    // DOCX memakai "No Agenda: 141 / ... / PEM / ..." di sisi Kades dan
+    // "474.3 / ... / Pem / ..." di sisi Camat — seri 474/PEM dipertahankan
+    // menunggu konfirmasi user (lihat audit-ahli-waris-WEB.md).
     nomorPrefix: '474',
     nomorSuffix: 'PEM',
-    applicantField: 'namaAhliWaris1',
+    applicantField: 'namaPeninggal',
     fields: [
       { name: 'namaPeninggal', label: 'Nama Peninggal (Almarhum/Almarhumah)', type: 'text', required: true },
-      { name: 'nikPeninggal', label: 'NIK Peninggal', type: 'text', required: true, placeholder: '16 digit angka' },
-      { name: 'alamatPeninggal', label: 'Alamat Peninggal', type: 'textarea', required: true, rows: 2 },
-      { name: 'namaAhliWaris1', label: 'Nama Ahli Waris 1', type: 'text', required: true },
-      { name: 'nikAhliWaris1', label: 'NIK Ahli Waris 1', type: 'text', placeholder: '16 digit angka' },
-      { name: 'hubunganAhliWaris1', label: 'Hubungan Ahli Waris 1 dengan Peninggal', type: 'text' },
-      { name: 'namaAhliWaris2', label: 'Nama Ahli Waris 2', type: 'text' },
-      { name: 'nikAhliWaris2', label: 'NIK Ahli Waris 2', type: 'text', placeholder: '16 digit angka' },
-      { name: 'hubunganAhliWaris2', label: 'Hubungan Ahli Waris 2 dengan Peninggal', type: 'text' },
+      {
+        name: 'sebutanPeninggal',
+        label: 'Sebutan Peninggal',
+        type: 'select',
+        defaultValue: 'Almarhum',
+        options: [
+          { value: 'Almarhum', label: 'Almarhum' },
+          { value: 'Almarhumah', label: 'Almarhumah' },
+        ],
+      },
+      { name: 'hariMeninggal', label: 'Hari Meninggal', type: 'text', required: true, placeholder: 'Contoh: Minggu' },
+      { name: 'tanggalMeninggal', label: 'Tanggal Meninggal', type: 'date', required: true },
+      { name: 'tempatMeninggal', label: 'Tempat Meninggal', type: 'text', required: true, placeholder: 'Contoh: Rumah' },
+      { name: 'nomorSuratKematian', label: 'Nomor Surat Kematian (bila ada)', type: 'text', placeholder: 'Contoh: 460.3/33/KS/2024' },
+      { name: 'namaPasangan', label: 'Nama Istri/Suami yang Masih Hidup', type: 'text', placeholder: 'Kosongkan bila tidak ada pasangan' },
+      { name: 'jumlahAnak', label: 'Jumlah Anak dari Perkawinan', type: 'number', placeholder: 'Contoh: 3' },
+      {
+        name: 'daftarAhliWaris',
+        label: 'Daftar Ahli Waris (nama, NIK, tempat/tgl lahir, hubungan)',
+        type: 'table',
+        required: true,
+        minRows: 1,
+        maxRows: 20,
+        columns: [
+          { name: 'nama', label: 'Nama' },
+          { name: 'nik', label: 'NIK' },
+          { name: 'ttl', label: 'Tempat, Tgl Lahir' },
+          { name: 'hubungan', label: 'Hubungan Keluarga' },
+        ],
+      },
+      { name: 'namaSaksi1', label: 'Saksi 1 — Nama', type: 'text', placeholder: 'Contoh: Budi Santoso' },
+      { name: 'jabatanSaksi1', label: 'Saksi 1 — Jabatan', type: 'text', placeholder: 'Contoh: Ketua RT 03 RW 04' },
+      { name: 'namaSaksi2', label: 'Saksi 2 — Nama', type: 'text', placeholder: 'Contoh: Siti Aminah' },
+      { name: 'jabatanSaksi2', label: 'Saksi 2 — Jabatan', type: 'text', placeholder: 'Contoh: Ketua RW 04' },
+      { name: 'keperluan', label: 'Untuk Keperluan', type: 'text', required: true, placeholder: 'Contoh: Kelengkapan Dokumen' },
       { name: 'keterangan', label: 'Keterangan Tambahan', type: 'textarea', rows: 2 },
     ],
   },

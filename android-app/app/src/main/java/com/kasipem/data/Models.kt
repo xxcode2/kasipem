@@ -215,15 +215,73 @@ fun todayId(): String =
 fun currentYear(): Int = Calendar.getInstance().get(Calendar.YEAR)
 
 /**
- * Nomor surat default per tipe, mis. "474/.../PEM/2026".
- * Undangan memakai nomor manual → default kosong.
+ * FASE 3 (2026-11-15): Nomor surat default = KOSONG untuk semua tipe.
+ * Pola nomor (mis. "474/.../PEM/2026") HANYA dipakai sebagai placeholder
+ * contoh di form (lihat [nomorPattern]) — tidak pernah jadi nilai.
+ * Fungsi ini dipertahankan (mengembalikan "") agar pemanggil lama
+ * (placeholder form) tetap kompilasi; nilai default tidak lagi diisi.
  */
-fun defaultNomorSurat(type: LetterType): String =
+fun defaultNomorSurat(type: LetterType): String = ""
+
+/**
+ * Pola nomor sebagai CONTOH placeholder di form, mis. "474/.../PEM/2026".
+ * BUKAN nilai default — form dibuka dengan nomor kosong.
+ */
+fun nomorPattern(type: LetterType): String =
     if (type.nomorPrefix.isEmpty()) "" else "${type.nomorPrefix}/.../${type.nomorSuffix}/${currentYear()}"
 
-/** Nomor yang dipakai di preview/PDF: isi form, atau default tipe bila kosong. */
-fun effectiveNomorSurat(nomorSurat: String, type: LetterType): String =
-    nomorSurat.ifBlank { defaultNomorSurat(type) }
+/**
+ * Nomor yang dipakai di preview/PDF/Riwayat: isi form apa adanya.
+ * FASE 3: tidak ada lagi fallback ke pola default — nomor kosong
+ * tetap kosong, dan preview/PDF menampilkannya sebagai garis
+ * titik-titik (lihat PdfGenerator.addTitle / PreviewScreen).
+ */
+fun effectiveNomorSurat(nomorSurat: String, type: LetterType): String = nomorSurat
+
+/**
+ * True bila tipe ini memakai baris Nomor: punya pola nomor, atau nomor
+ * manual (undangan). Formulir Dukcapil seri F (hideNomor) tidak punya
+ * baris Nomor — kecuali pengguna mengisinya manual.
+ */
+fun hasNomorBaris(type: LetterType): Boolean =
+    type.nomorPrefix.isNotEmpty() || type == LetterType.UNDANGAN
+
+/**
+ * Gaya kop surat — FASE 3 (user 2026-11-15): kop mengikuti
+ * penandatangan, ditentukan SATU fungsi [kopFor] yang dipakai
+ * PdfGenerator DAN PreviewScreen (jangan ada cabang kop lain).
+ */
+enum class KopStyle {
+    /** Ttd Kepala Desa: logo Garuda SAJA, di tengah paling atas, tanpa logo Subang. */
+    GARUDA_CENTER,
+    /** Ttd a.n. Kades oleh Sekdes / ttd Sekdes langsung: logo Subang di kiri, tanpa Garuda. */
+    SUBANG_LEFT,
+    /** SPTJM / PBI (penandatangan utama warga; Kades hanya "Mengetahui"): dua logo seperti semula. */
+    DUA_LOGO,
+    /** Formulir Dukcapil seri F: kop Disdukcapil TEKS saja (tanpa logo desa). */
+    DISDUKCAPIL
+}
+
+/**
+ * SATU fungsi penentu kop — dipakai PdfGenerator.addHeaderFor dan
+ * PreviewScreen.PreviewContent. Pemetaan mengikuti penandatangan
+ * (Signer di PdfGenerator): KADES → Garuda tengah; SEKDES_AN dan
+ * SEKDES → Subang kiri; SPTJM/PBI → dua logo (tetap); seri F →
+ * Disdukcapil teks (tetap).
+ */
+fun kopFor(type: LetterType): KopStyle = when (type) {
+    LetterType.F101, LetterType.F102, LetterType.F103, LetterType.F104,
+    LetterType.F105, LetterType.F106, LetterType.F115, LetterType.F201,
+    LetterType.F203, LetterType.F204 -> KopStyle.DISDUKCAPIL
+    LetterType.SPTJM_KEMATIAN, LetterType.SPTJM_PERKAWINAN_PERCERAIAN,
+    LetterType.PBI_ASESMEN, LetterType.PBI_PERNYATAAN,
+    LetterType.PBI_TIDAK_PUNYA_REKENING -> KopStyle.DUA_LOGO
+    // a.n. Kades oleh Sekdes (pisah_kk, kematian) + Sekdes langsung (usaha, duda_janda).
+    LetterType.PISAH_KK, LetterType.KEMATIAN,
+    LetterType.USAHA, LetterType.DUDA_JANDA -> KopStyle.SUBANG_LEFT
+    // Sisanya ditandatangani Kepala Desa langsung.
+    else -> KopStyle.GARUDA_CENTER
+}
 
 /** Tanggal yang dipakai di preview/PDF: isi form, atau hari ini bila kosong. */
 fun effectiveTanggalSurat(tanggalSurat: String): String =
@@ -382,21 +440,116 @@ data class TidakMampuData(
     val tanggalSurat: String = ""
 )
 
+/**
+ * Satu ahli waris — FASE 3 (audit contoh "SURAT KETERANGAN AHLI WARIS
+ * 2021.docx"): daftar dinamis (min. 1, maks. 20), kolom mengikuti contoh:
+ * tabel utama memakai Nama + Hubungan Keluarga (+ Tanda Tangan untuk
+ * ditandatangani tangan); lampiran "Data Ahli Waris" memakai
+ * NIK / Jenis Kelamin / Tempat-Tanggal Lahir / Alamat.
+ * Data contoh di DOCX (nama/NIK warga asli) HANYA referensi format —
+ * tidak pernah jadi default/placeholder/data uji.
+ */
+@Serializable
+data class AhliWarisItem(
+    val nama: String = "",
+    val nik: String = "",
+    val jenisKelamin: String = "",
+    val tempatLahir: String = "",
+    val tanggalLahir: String = "",
+    /** "Istri" / "Suami" / "Anak" (sesuai contoh; istri/suami di baris pertama). */
+    val hubungan: String = "",
+    val alamat: String = ""
+)
+
+/**
+ * FASE 3 — ditulis ulang dari hasil audit contoh DOCX 2021
+ * (lihat FASE3_REPORT.md koordinator, tabel audit ahli waris):
+ * - almarhum: + jenis kelamin (almarhum/almarhumah), hari/tanggal/
+ *   tempat meninggal, rujukan Nomor Surat Kematian (bila ada);
+ * - pasangan yang masih hidup disebut di pembuka (nama + Istri/Suami);
+ * - daftar ahli waris DINAMIS [daftarAhliWaris] ganti 2 field tetap;
+ * - saksi-saksi (Ketua RT + Ketua RW, sesuai contoh) + keperluan.
+ * Field lama yang dihapus (tidak ada di contoh): namaAhliWaris1/2,
+ * nikAhliWaris1/2, hubunganAhliWaris1/2, keterangan (diganti keperluan).
+ * Data surat TIDAK disimpan persisten (hanya Riwayat yang disimpan),
+ * jadi penghapusan field aman.
+ */
 @Serializable
 data class AhliWarisData(
     val namaPeninggal: String = "",
     val nikPeninggal: String = "",
+    val jenisKelaminPeninggal: String = "",
     val alamatPeninggal: String = "",
-    val namaAhliWaris1: String = "",
-    val nikAhliWaris1: String = "",
-    val hubunganAhliWaris1: String = "",
-    val namaAhliWaris2: String = "",
-    val nikAhliWaris2: String = "",
-    val hubunganAhliWaris2: String = "",
-    val keterangan: String = "",
+    val hariMeninggal: String = "",
+    val tanggalMeninggal: String = "",
+    val tempatMeninggal: String = "",
+    /** Rujukan "sesuai Surat Kematian Nomor: ..." (bila ada di contoh). */
+    val nomorSuratKematian: String = "",
+    /** Pasangan yang masih hidup (disebut di paragraf pembuka). */
+    val namaPasangan: String = "",
+    val hubunganPasangan: String = "Istri",
+    /** Daftar ahli waris dinamis: baris pertama pasangan, berikutnya anak-anak. */
+    val daftarAhliWaris: List<AhliWarisItem> = listOf(AhliWarisItem()),
+    /** Saksi-saksi (contoh: Ketua RT + Ketua RW). */
+    val namaSaksi1: String = "",
+    val jabatanSaksi1: String = "",
+    val namaSaksi2: String = "",
+    val jabatanSaksi2: String = "",
+    /** "Untuk Keperluan : ..." (contoh: Kelengkapan Dokumen, Pembuatan sertipikat). */
+    val keperluan: String = "",
     val nomorSurat: String = "",
     val tanggalSurat: String = ""
 )
+
+/** "almarhum" / "almarhumah" menurut jenis kelamin peninggal (kosong = netral). */
+fun sebutanAlmarhum(jenisKelamin: String): String = when (jenisKelamin) {
+    "Perempuan" -> "almarhumah"
+    "Laki-laki" -> "almarhum"
+    else -> "almarhum/almarhumah"
+}
+
+/**
+ * Jumlah anak almarhum menurut daftar: baris ber-hubungan "Anak"
+ * (contoh: "Anak", "Anak kandung"); bila tak ada yang ditandai,
+ * daftar terisi minus pasangan (baris pertama). Dipakai kalimat
+ * "telah dilahirkan N orang anak" di pembuka.
+ */
+fun jumlahAnakAhliWaris(data: AhliWarisData): Int {
+    val terisi = data.daftarAhliWaris.filter { it.nama.isNotBlank() || it.nik.isNotBlank() }
+    val anak = terisi.count { it.hubungan.contains("anak", ignoreCase = true) }
+    if (anak > 0) return anak
+    val pasangan = terisi.count {
+        it.hubungan.equals("Istri", ignoreCase = true) || it.hubungan.equals("Suami", ignoreCase = true)
+    }
+    return (terisi.size - pasangan).coerceAtLeast(0)
+}
+
+/**
+ * Paragraf pembuka SKAW mengikuti contoh DOCX 2021 (SATU sumber untuk
+ * PdfGenerator dan PreviewScreen): almarhum + meninggal (hari/tanggal/
+ * tempat, + rujukan Surat Kematian bila ada) + pasangan yang masih
+ * hidup + jumlah anak. Klausa yang datanya kosong dilewati.
+ */
+fun paragrafPembukaAhliWaris(data: AhliWarisData, namaDesaTitleCase: String): String {
+    val sebutan = sebutanAlmarhum(data.jenisKelaminPeninggal)
+    val meninggal = listOf(data.hariMeninggal, data.tanggalMeninggal)
+        .filter { it.isNotBlank() }.joinToString(", ")
+    val sb = StringBuilder()
+    sb.append("Yang bertanda tangan di bawah ini, Kepala Desa $namaDesaTitleCase, dengan ini menerangkan bahwa $sebutan ${data.namaPeninggal}")
+    if (meninggal.isNotBlank() || data.tempatMeninggal.isNotBlank()) {
+        sb.append(" yang telah meninggal dunia")
+        if (meninggal.isNotBlank()) sb.append(" pada hari $meninggal")
+        if (data.tempatMeninggal.isNotBlank()) sb.append(" di ${data.tempatMeninggal}")
+        if (data.nomorSuratKematian.isNotBlank()) sb.append(" sesuai Surat Kematian Nomor: ${data.nomorSuratKematian}")
+    }
+    if (data.namaPasangan.isNotBlank()) {
+        sb.append(", semasa hidupnya $sebutan telah menikah sah dengan Satu (1) orang ${data.hubunganPasangan} bernama ${data.namaPasangan} yang masih hidup sampai sekarang")
+        val anak = jumlahAnakAhliWaris(data)
+        if (anak > 0) sb.append(". Dari hasil Perkawinan tersebut telah dilahirkan $anak orang anak")
+    }
+    sb.append(".")
+    return sb.toString()
+}
 
 @Serializable
 data class NikahTidakTercatatData(
@@ -962,36 +1115,36 @@ fun namaPemohonOf(type: LetterType, data: Any): String = when (type) {
     LetterType.PBI_TIDAK_PUNYA_REKENING -> (data as PbiTidakPunyaRekeningData).namaLengkap
 }
 
-/** Data kosong untuk satu tipe, dengan nomor surat default tipe itu sudah terisi. */
+/** Data kosong untuk satu tipe. FASE 3: nomor surat default KOSONG (tidak lagi diisi pola). */
 fun getEmptyLetterData(type: LetterType): Any = when (type) {
-    LetterType.DOMISILI -> DomisiliData(nomorSurat = defaultNomorSurat(type))
-    LetterType.PISAH_KK -> PisahKkData(nomorSurat = defaultNomorSurat(type))
-    LetterType.SKT_DAYAT -> SktDayatData(nomorSurat = defaultNomorSurat(type))
-    LetterType.BEDA_LUAS -> BedaLuasData(nomorSurat = defaultNomorSurat(type))
-    LetterType.BEDA_NAMA -> BedaNamaData(nomorSurat = defaultNomorSurat(type))
-    LetterType.BELUM_MENIKAH -> BelumMenikahData(nomorSurat = defaultNomorSurat(type))
-    LetterType.TIDAK_MAMPU -> TidakMampuData(nomorSurat = defaultNomorSurat(type))
-    LetterType.AHLI_WARIS -> AhliWarisData(nomorSurat = defaultNomorSurat(type))
-    LetterType.NIKAH_TIDAK_TERCATAT -> NikahTidakTercatatData(nomorSurat = defaultNomorSurat(type))
-    LetterType.PEMAKAMAN -> PemakamanData(nomorSurat = defaultNomorSurat(type))
-    LetterType.TIDAK_MEMILIKI_RUMAH -> TidakMemilikiRumahData(nomorSurat = defaultNomorSurat(type))
-    LetterType.UNDANGAN -> UndanganData(nomorSurat = defaultNomorSurat(type))
-    LetterType.KEMATIAN -> KematianData(nomorSurat = defaultNomorSurat(type))
-    LetterType.USAHA -> UsahaData(nomorSurat = defaultNomorSurat(type))
-    LetterType.DUDA_JANDA -> DudaJandaData(nomorSurat = defaultNomorSurat(type))
-    LetterType.F101 -> F101Data(nomorSurat = defaultNomorSurat(type))
-    LetterType.F102 -> F102Data(nomorSurat = defaultNomorSurat(type))
-    LetterType.F103 -> F103Data(nomorSurat = defaultNomorSurat(type))
-    LetterType.F104 -> F104Data(nomorSurat = defaultNomorSurat(type))
-    LetterType.F105 -> F105Data(nomorSurat = defaultNomorSurat(type))
-    LetterType.F106 -> F106Data(nomorSurat = defaultNomorSurat(type))
-    LetterType.F115 -> F115Data(nomorSurat = defaultNomorSurat(type))
-    LetterType.F201 -> F201Data(nomorSurat = defaultNomorSurat(type))
-    LetterType.F203 -> F203Data(nomorSurat = defaultNomorSurat(type))
-    LetterType.F204 -> F204Data(nomorSurat = defaultNomorSurat(type))
-    LetterType.SPTJM_KEMATIAN -> SptjmKematianData(nomorSurat = defaultNomorSurat(type))
-    LetterType.SPTJM_PERKAWINAN_PERCERAIAN -> SptjmPerkawinanPerceraianData(nomorSurat = defaultNomorSurat(type))
-    LetterType.PBI_ASESMEN -> PbiAsesmenData(nomorSurat = defaultNomorSurat(type))
-    LetterType.PBI_PERNYATAAN -> PbiPernyataanData(nomorSurat = defaultNomorSurat(type))
-    LetterType.PBI_TIDAK_PUNYA_REKENING -> PbiTidakPunyaRekeningData(nomorSurat = defaultNomorSurat(type))
+    LetterType.DOMISILI -> DomisiliData()
+    LetterType.PISAH_KK -> PisahKkData()
+    LetterType.SKT_DAYAT -> SktDayatData()
+    LetterType.BEDA_LUAS -> BedaLuasData()
+    LetterType.BEDA_NAMA -> BedaNamaData()
+    LetterType.BELUM_MENIKAH -> BelumMenikahData()
+    LetterType.TIDAK_MAMPU -> TidakMampuData()
+    LetterType.AHLI_WARIS -> AhliWarisData()
+    LetterType.NIKAH_TIDAK_TERCATAT -> NikahTidakTercatatData()
+    LetterType.PEMAKAMAN -> PemakamanData()
+    LetterType.TIDAK_MEMILIKI_RUMAH -> TidakMemilikiRumahData()
+    LetterType.UNDANGAN -> UndanganData()
+    LetterType.KEMATIAN -> KematianData()
+    LetterType.USAHA -> UsahaData()
+    LetterType.DUDA_JANDA -> DudaJandaData()
+    LetterType.F101 -> F101Data()
+    LetterType.F102 -> F102Data()
+    LetterType.F103 -> F103Data()
+    LetterType.F104 -> F104Data()
+    LetterType.F105 -> F105Data()
+    LetterType.F106 -> F106Data()
+    LetterType.F115 -> F115Data()
+    LetterType.F201 -> F201Data()
+    LetterType.F203 -> F203Data()
+    LetterType.F204 -> F204Data()
+    LetterType.SPTJM_KEMATIAN -> SptjmKematianData()
+    LetterType.SPTJM_PERKAWINAN_PERCERAIAN -> SptjmPerkawinanPerceraianData()
+    LetterType.PBI_ASESMEN -> PbiAsesmenData()
+    LetterType.PBI_PERNYATAAN -> PbiPernyataanData()
+    LetterType.PBI_TIDAK_PUNYA_REKENING -> PbiTidakPunyaRekeningData()
 }

@@ -16,6 +16,12 @@ import {
  * tiap halaman), kop Disdukcapil teks saja untuk formulir seri F,
  * hideNomor untuk formulir yang tidak bernomor, multi-halaman untuk
  * formulir panjang (F-1.01, F-2.01, F-1.03, PBI Asesmen).
+ *
+ * Fase 3: kop DINAMIS per penandatangan (kopFor di letter-content.ts —
+ * fungsi yang sama dengan preview); font A4: isi 12pt, judul 15pt bold,
+ * teks kop 12pt (baris desa 14pt); logo hanya dimuat bila varian kop
+ * membutuhkannya; bila logo gagal dimuat → kop teks saja (jangan crash,
+ * jangan PDF kosong).
  */
 
 export interface GeneratePdfOptions {
@@ -225,6 +231,21 @@ function addBlock(doc: jsPDF, block: ContentBlock, y: number): number {
   return yy;
 }
 
+/** Teks kop desa (dipakai semua varian kop desa): baris desa 14pt, baris di atasnya 12pt. */
+function addKopText(doc: jsPDF, header: HeaderData, y: number): number {
+  const centerX = A4_WIDTH / 2;
+  doc.setFont('Times', 'bold');
+  doc.setFontSize(12);
+  doc.text(`PEMERINTAH ${(header.namaKabupaten || 'Subang').toUpperCase()}`, centerX, y + 5, { align: 'center' });
+  doc.text(`KECAMATAN ${(header.namaKecamatan || 'Kasomalang').toUpperCase()}`, centerX, y + 10, { align: 'center' });
+  doc.setFontSize(14);
+  doc.text(`DESA ${(header.namaDesa || 'Kasomalang Kulon').toUpperCase()}`, centerX, y + 15, { align: 'center' });
+  doc.setFont('Times', 'normal');
+  doc.setFontSize(11);
+  doc.text(`Alamat: ${header.alamatKantor}`, centerX, y + 20, { align: 'center' });
+  return y + 26;
+}
+
 function addHeader(
   doc: jsPDF,
   header: HeaderData,
@@ -234,17 +255,38 @@ function addHeader(
   let y = MARGIN_TOP;
   const centerX = A4_WIDTH / 2;
 
-  if (content.kop === 'disdukcapil') {
+  if (content.kopVariant === 'disdukcapil') {
     // Kop Disdukcapil Subang — TEKS saja, tanpa logo desa.
     doc.setFont('Times', 'bold');
-    doc.setFontSize(13);
+    doc.setFontSize(12);
     doc.text('PEMERINTAH KABUPATEN SUBANG', centerX, y + 5, { align: 'center' });
     doc.text('DINAS KEPENDUDUKAN DAN PENCATATAN SIPIL', centerX, y + 10, { align: 'center' });
     doc.setFont('Times', 'normal');
     doc.setFontSize(11);
     doc.text('Jl. Mayjen Sutoyo S. No. 50 Subang — Telp. (0260) 411424', centerX, y + 15, { align: 'center' });
     y += 21;
+  } else if (content.kopVariant === 'garuda-center') {
+    // Ttd langsung Kepala Desa: logo Garuda SAJA di tengah paling atas
+    // (lebar ~28 mm, proporsional), teks kop rata tengah di bawahnya.
+    // Bila logo gagal dimuat → teks kop saja, jangan crash.
+    if (logos.garuda) {
+      const w = 28;
+      const h = (w * logos.garuda.height) / logos.garuda.width;
+      doc.addImage(logos.garuda.dataUrl, logos.garuda.format, centerX - w / 2, y, w, h);
+      y += h + 2;
+    }
+    y = addKopText(doc, header, y);
+  } else if (content.kopVariant === 'subang-left') {
+    // Ttd a.n. Kades oleh Sekdes / ttd langsung Sekdes: logo Subang di
+    // kiri, tanpa Garuda. Bila logo gagal dimuat → teks kop saja.
+    const logoH = 20; // mm
+    if (logos.subang) {
+      const w = (logoH * logos.subang.width) / logos.subang.height;
+      doc.addImage(logos.subang.dataUrl, logos.subang.format, MARGIN_LEFT, y, w, logoH);
+    }
+    y = addKopText(doc, header, y);
   } else {
+    // Penandatangan warga (SPTJM/PBI/dll.): dua logo seperti sebelumnya.
     const logoH = 20; // mm
     // Logo Garuda (kiri) dan logo Subang (kanan), proporsional.
     if (logos.garuda) {
@@ -255,17 +297,7 @@ function addHeader(
       const w = (logoH * logos.subang.width) / logos.subang.height;
       doc.addImage(logos.subang.dataUrl, logos.subang.format, A4_WIDTH - MARGIN_RIGHT - w, y, w, logoH);
     }
-
-    doc.setFont('Times', 'bold');
-    doc.setFontSize(13);
-    doc.text(`PEMERINTAH ${(header.namaKabupaten || 'Subang').toUpperCase()}`, centerX, y + 5, { align: 'center' });
-    doc.text(`KECAMATAN ${(header.namaKecamatan || 'Kasomalang').toUpperCase()}`, centerX, y + 10, { align: 'center' });
-    doc.text(`DESA ${(header.namaDesa || 'Kasomalang Kulon').toUpperCase()}`, centerX, y + 15, { align: 'center' });
-    doc.setFont('Times', 'normal');
-    doc.setFontSize(11);
-    doc.text(`Alamat: ${header.alamatKantor}`, centerX, y + 20, { align: 'center' });
-
-    y += 26;
+    y = addKopText(doc, header, y);
   }
 
   // Garis ganda: tebal + tipis
@@ -343,21 +375,23 @@ export async function generatePdf(options: GeneratePdfOptions): Promise<Blob> {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const content = getLetterContent(letterType, headerData, letterData);
 
-  // Muat logo hanya untuk kop desa; formulir Disdukcapil kop-nya teks saja.
+  // Muat logo hanya bila varian kop membutuhkannya; formulir Disdukcapil
+  // kop-nya teks saja. Logo gagal dimuat → kop teks saja (jangan crash).
   let garuda: LogoImage | null = null;
   let subang: LogoImage | null = null;
-  if (content.kop === 'desa') {
-    [garuda, subang] = await Promise.all([
-      loader(headerData.logoGaruda || '/kop/kades.jpg'),
-      loader(headerData.logoSubang || '/kop/sekdes.jpg'),
-    ]);
+  const variant = content.kopVariant;
+  if (variant === 'garuda-center' || variant === 'dua-logo') {
+    garuda = await loader(headerData.logoGaruda || '/kop/kades.jpg');
+  }
+  if (variant === 'subang-left' || variant === 'dua-logo') {
+    subang = await loader(headerData.logoSubang || '/kop/sekdes.jpg');
   }
 
   let y = addHeader(doc, headerData, content, { garuda, subang });
 
   // Judul (+ nomor, kecuali formulir yang memang tidak bernomor)
   doc.setFont('Times', 'bold');
-  doc.setFontSize(13);
+  doc.setFontSize(15);
   const titleLines = doc.splitTextToSize(content.title, CONTENT_WIDTH);
   doc.text(titleLines, A4_WIDTH / 2, y, { align: 'center' });
   y += titleLines.length * 6;

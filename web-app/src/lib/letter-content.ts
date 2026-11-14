@@ -12,6 +12,12 @@ import { LETTER_MAP } from './letter-definitions';
  * Fase 2: 30 jenis (12 lama + 18 baru), varian domisili & SKTM,
  * kop Disdukcapil (teks saja) untuk formulir seri F, dan blok 'table'
  * untuk daftar anggota / daftar anak / daftar kolektif.
+ *
+ * Fase 3: kop DINAMIS per penandatangan — satu fungsi kopFor(signer)
+ * dipakai preview (LetterBody) DAN PDF (pdf-generator), jadi keduanya
+ * tidak bisa drift. Ahli waris ditulis ulang mengikuti contoh DOCX
+ * (narasi pembuka, tabel ahli waris dinamis, saksi RT/RW, keperluan,
+ * penutup khusus, Mengetahui Camat).
  */
 
 export interface FieldRow {
@@ -31,6 +37,39 @@ export interface SignerBlock {
   role: string;
   name: string;
   nip: string;
+  /**
+   * Asal penandatangan (diisi resolveSigner; signer literal formulir/
+   * SPTJM/PBI tidak punya kind — kopFor menebaknya dari role/prefix).
+   * 'kades' = ttd langsung Kades; 'sekdes-an' = a.n. Kades oleh Sekdes;
+   * 'sekdes' = ttd langsung Sekdes; 'pemohon' = pemohon/yang menyatakan.
+   */
+  kind?: 'kades' | 'sekdes-an' | 'sekdes' | 'pemohon';
+}
+
+/**
+ * Varian kop (Fase 3) — ditentukan dari penandatangan, BUKAN dari tipe
+ * surat, supaya satu aturan berlaku di preview, PDF, dan cetak:
+ * - 'garuda-center': ttd langsung Kepala Desa → logo Garuda SAJA di
+ *   tengah paling atas, teks kop rata tengah di bawahnya.
+ * - 'subang-left': ttd a.n. Kades oleh Sekdes, atau ttd langsung Sekdes
+ *   → logo Subang di kiri, tanpa Garuda.
+ * - 'dua-logo': penandatangan utama warga/pemohon (SPTJM/PBI/dll.,
+ *   Kades hanya "Mengetahui") → kop dua logo seperti sebelumnya.
+ * - 'disdukcapil': formulir Dukcapil seri F → kop Disdukcapil teks saja.
+ */
+export type KopVariant = 'garuda-center' | 'subang-left' | 'dua-logo' | 'disdukcapil';
+
+export function kopFor(content: Pick<LetterContent, 'kop' | 'signer'>): KopVariant {
+  if (content.kop === 'disdukcapil') return 'disdukcapil';
+  const s = content.signer;
+  if (s.kind === 'sekdes-an' || s.kind === 'sekdes') return 'subang-left';
+  if (s.kind === 'kades') return 'garuda-center';
+  if (s.kind === 'pemohon') return 'dua-logo';
+  // Fallback untuk signer literal tanpa kind (formulir/SPTJM/PBI).
+  if (s.prefix && s.prefix.startsWith('a.n.')) return 'subang-left';
+  if (s.role === 'Sekretaris Desa') return 'subang-left';
+  if (s.role === 'Kepala Desa') return 'garuda-center';
+  return 'dua-logo';
 }
 
 export interface LetterContent {
@@ -38,6 +77,8 @@ export interface LetterContent {
   nomor: string;
   /** Kop yang dipakai: 'desa' (logo Garuda + Subang) atau 'disdukcapil' (teks saja). */
   kop: 'desa' | 'disdukcapil';
+  /** Varian kop dinamis per penandatangan (Fase 3) — lihat kopFor(). */
+  kopVariant: KopVariant;
   /** Sembunyikan baris "Nomor :" (formulir yang memang tidak bernomor). */
   hideNomor?: boolean;
   intro: string;
@@ -141,6 +182,7 @@ function resolveSigner(type: LetterType, header: HeaderData): SignerBlock {
       role: 'Sekretaris Desa',
       name: header.namaSekdes || 'APIPUDIN, S.IP',
       nip: (header.nipSekdes || '').trim(),
+      kind: 'sekdes-an',
     };
   }
   // Sekretaris Desa (tanpa a.n.): usaha + duda/janda.
@@ -149,16 +191,20 @@ function resolveSigner(type: LetterType, header: HeaderData): SignerBlock {
       role: 'Sekretaris Desa',
       name: header.namaSekdes || 'APIPUDIN, S.IP',
       nip: (header.nipSekdes || '').trim(),
+      kind: 'sekdes',
     };
   }
   return {
     role: header.jabatanPejabat || 'Kepala Desa',
     name: header.namaPejabat || 'H. AMIRUDIN, S.Pd.I',
     nip: (header.nipPejabat || '').trim(),
+    kind: 'kades',
   };
 }
 
 const CLOSING = 'Demikian surat keterangan ini dibuat dengan sebenarnya agar dapat dipergunakan sebagaimana mestinya.';
+const CLOSING_AHLI_WARIS =
+  'Demikian surat ini kami buat dengan sebenarnya dan kepada yang bersangkutan menjadi tahu adanya.';
 const CLOSING_FORM = 'Demikian formulir ini diisi dengan sebenarnya dan dapat dipertanggungjawabkan.';
 const CLOSING_SPTJM =
   'Demikian surat pernyataan ini dibuat dengan sebenarnya dan apabila di kemudian hari ternyata tidak benar, saya bersedia dituntut sesuai dengan ketentuan peraturan perundang-undangan yang berlaku.';
@@ -190,7 +236,11 @@ export function getLetterContent(
     signer,
   };
 
-  switch (type) {
+  // kopVariant dihitung dari signer AKHIR — kasus di bawah bisa
+  // meng-override signer dari base (mis. SPTJM/PBI → Yang Menyatakan),
+  // jadi varian kop TIDAK boleh dihitung dari base saja.
+  const out: Omit<LetterContent, 'kopVariant'> = (() => {
+    switch (type) {
     case 'domisili': {
       const jenis = data.jenisDomisili || 'Perorangan';
       if (jenis === 'Lembaga') {
@@ -519,40 +569,95 @@ export function getLetterContent(
     }
 
     case 'ahli_waris': {
+      // Ditulis ulang Fase 3 mengikuti contoh
+      // "SURAT KETERANGAN AHLI WARIS 2021.docx" (bundle 9 contoh surat):
+      // pembuka narasi (nama almarhum, hari/tanggal/tempat meninggal,
+      // nama pasangan + jumlah anak, opsional nomor surat kematian),
+      // tabel ahli waris dinamis (No, Nama, NIK, Tempat/Tgl Lahir,
+      // Hubungan Keluarga, Tanda Tangan), saksi Ketua RT/RW, keperluan,
+      // penutup khusus, Mengetahui Camat (kiri) + Kades (kanan).
+      // Kolom NIK tidak ada di tabel utama contoh, tapi ada di daftar
+      // ahli waris pada dokumen pendamping (Surat Kuasa) untuk orang
+      // yang sama — dimasukkan sebagai kolom agar datanya lengkap.
+      // NIK/alamat peninggal TIDAK ada di contoh → dihapus dari form.
+      const sebutan = data.sebutanPeninggal === 'Almarhumah' ? 'almarhumah' : 'almarhum';
+      const pasanganLabel = sebutan === 'almarhumah' ? 'Suami' : 'Istri';
+      const namaPeninggal = (data.namaPeninggal || '').trim();
+      const meninggalParts: string[] = [];
+      if ((data.hariMeninggal || '').trim()) meninggalParts.push(`hari ${data.hariMeninggal.trim()}`);
+      const tglMeninggal = formatDateTTL(data.tanggalMeninggal);
+      if (tglMeninggal) meninggalParts.push(`tanggal ${tglMeninggal}`);
+      if ((data.tempatMeninggal || '').trim()) meninggalParts.push(`di ${data.tempatMeninggal.trim()}`);
+      let pembuka =
+        `Yang bertanda tangan di bawah ini Kepala Desa ${desa}, dengan ini menerangkan bahwa ` +
+        `${sebutan} ${namaPeninggal} yang telah meninggal dunia` +
+        (meninggalParts.length ? ` pada ${meninggalParts.join(', ')}` : '') +
+        (data.nomorSuratKematian ? ` sesuai Surat Kematian Nomor: ${data.nomorSuratKematian}` : '') +
+        '.';
+      if ((data.namaPasangan || '').trim()) {
+        const jmlAnak = parseInt(String(data.jumlahAnak ?? ''), 10);
+        pembuka +=
+          ` Semasa hidupnya ${sebutan} telah menikah sah dengan Satu (1) orang ${pasanganLabel} ` +
+          `bernama ${data.namaPasangan.trim()} yang masih hidup sampai sekarang.` +
+          (Number.isFinite(jmlAnak) && jmlAnak > 0
+            ? ` Dari hasil Perkawinan tersebut telah dilahirkan ${jmlAnak} orang anak.`
+            : '');
+      }
+
+      const daftar = tableFromData(data, 'daftarAhliWaris', [
+        { name: 'nama', label: 'Nama' },
+        { name: 'nik', label: 'NIK' },
+        { name: 'ttl', label: 'Tempat, Tgl Lahir' },
+        { name: 'hubungan', label: 'Hubungan Keluarga' },
+      ]).map((r) => [...r, '']); // kolom Tanda Tangan (kosong — ditandatangani)
+
+      const saksiRows: string[][] = [];
+      if ((data.namaSaksi1 || '').trim()) {
+        saksiRows.push(['1', data.namaSaksi1.trim(), (data.jabatanSaksi1 || '').trim(), '']);
+      }
+      if ((data.namaSaksi2 || '').trim()) {
+        saksiRows.push(['2', data.namaSaksi2.trim(), (data.jabatanSaksi2 || '').trim(), '']);
+      }
+
       return {
         ...base,
-        intro: introKades,
+        intro: pembuka,
         blocks: [
           {
-            kind: 'fields',
-            rows: rows(
-              row('Nama Peninggal', data.namaPeninggal, true),
-              row('NIK Peninggal', data.nikPeninggal, true),
-              row('Alamat Peninggal', data.alamatPeninggal, true),
-            ),
+            kind: 'paragraph',
+            text: 'Dengan demikian susunan Ahli Waris adalah sebagai berikut:',
+          },
+          ...tableBlock(
+            undefined,
+            ['No.', 'Nama', 'NIK', 'Tempat, Tgl Lahir', 'Hubungan Keluarga', 'Tanda Tangan'],
+            daftar.map((r, i) => [String(i + 1), ...r]),
+            [7, 27, 20, 20, 16, 10],
+          ),
+          {
+            kind: 'paragraph',
+            text: `Nama-nama tersebut di atas merupakan ahli waris yang sah dari ${sebutan} ${namaPeninggal}.`,
           },
           {
             kind: 'paragraph',
-            text:
-              'Almarhum/almarhumah tersebut di atas telah meninggal dunia dan meninggalkan ahli ' +
-              'waris sebagai berikut:',
+            text: 'Tidak ada ahli waris selain yang tercantum di dalam surat keterangan ini, sesuai pengakuannya.',
           },
-          {
-            kind: 'fields',
-            rows: rows(
-              row('Ahli Waris 1 — Nama', data.namaAhliWaris1, true),
-              row('Ahli Waris 1 — NIK', data.nikAhliWaris1),
-              row('Ahli Waris 1 — Hubungan', data.hubunganAhliWaris1),
-              row('Ahli Waris 2 — Nama', data.namaAhliWaris2),
-              row('Ahli Waris 2 — NIK', data.nikAhliWaris2),
-              row('Ahli Waris 2 — Hubungan', data.hubunganAhliWaris2),
-            ),
-          },
+          ...(saksiRows.length
+            ? tableBlock(
+                'Saksi-saksi yang mengetahui keterangan tersebut adalah',
+                ['No.', 'Nama', 'Jabatan', 'Tanda Tangan'],
+                saksiRows,
+                [8, 42, 30, 20],
+              )
+            : []),
+          ...(data.keperluan
+            ? [{ kind: 'paragraph' as const, text: `Untuk Keperluan : ${data.keperluan}` }]
+            : []),
           ...(data.keterangan
             ? [{ kind: 'paragraph' as const, text: `Keterangan: ${data.keterangan}` }]
             : []),
         ],
-        closing: CLOSING,
+        closing: CLOSING_AHLI_WARIS,
+        leftSigner: { prefix: 'Mengetahui,', role: 'Camat Kasomalang' },
       };
     }
 
@@ -1525,5 +1630,8 @@ export function getLetterContent(
         signer: { role: 'Yang Menyatakan', name: nameOrDots(data.namaLengkap), nip: '' },
       };
     }
-  }
+    }
+  })();
+
+  return { ...out, kopVariant: kopFor(out) };
 }
