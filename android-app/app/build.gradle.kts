@@ -1,7 +1,6 @@
 plugins {
     id("com.android.application")
     id("kotlin-android")
-    id("kotlin-kapt")
 }
 
 android {
@@ -83,7 +82,7 @@ dependencies {
     implementation("com.itextpdf:itext-pdfa:5.5.10")
 
     // Date/Time
-    implementation("com.kizitonwose:calendar-compose:2.3.0")
+    implementation("com.kizitonwose.calendar:compose:2.3.0")
 
     // Serialization
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
