@@ -11,27 +11,43 @@ import java.io.File
 import java.io.FileOutputStream
 
 /**
- * Generator PDF 30 surat/formulir (iText 5). Isi SAMA dengan kanon web (FIX_BRIEF.md + FILE_INTEGRATION_BRIEF.md).
+ * Generator PDF 33 surat/formulir (iText 5). Isi SAMA dengan kanon web (FIX_BRIEF.md + FILE_INTEGRATION_BRIEF.md + FASE5_SPEC.md).
  * Kop FASE 3 — SATU penentu [kopFor] (Models.kt) dipakai di sini dan di
  * PreviewScreen: ttd Kades → logo Garuda SAJA di tengah paling atas;
  * ttd a.n. Kades oleh Sekdes / ttd Sekdes langsung → logo Kabupaten
  * Subang di kiri; SPTJM/PBI → dua logo seperti semula; formulir
- * Dukcapil seri F → kop Disdukcapil Subang TEKS saja (tanpa logo desa).
+ * Dukcapil seri F → kop Disdukcapil Subang TEKS saja (tanpa logo desa);
+ * FASE 5: kematian → TANPA kop, header tabel 3 baris, landscape, isi kiri 62%.
  * Bila logo tidak ada/rusak, kop tetap tampil sebagai teks — tidak crash.
  * Font FASE 3 (samakan dengan web): isi 12pt, judul 14pt bold, teks kop
  * 12pt (baris desa 14pt); tabel padat 8–10pt.
- * Tanda tangan: Kepala Desa (default); pisah_kk/kematian/usaha/duda_janda =
- * a.n. Kepala Desa oleh Sekretaris Desa (user 2026-11-15: blok Sekdes selalu
- * "a.n. Kepala Desa Kasomalang Kulon / Sekretaris Desa").
- * tidak_mampu = Kepala Desa + "Mengetahui, Ketua RW" di kiri;
+ * Tanda tangan: Kepala Desa (default); pisah_kk/usaha/duda_janda/beda_luas/
+ * beda_nama/belum_menikah/tidak_mampu/nikah_tidak_tercatat/pemakaman/
+ * tidak_memiliki_rumah/pernyataan_akta_kelahiran = a.n. Kepala Desa oleh
+ * Sekretaris Desa (Fase 4: blok Sekdes selalu "a.n. Kepala Desa Kasomalang
+ * Kulon / Sekretaris Desa") — KECUALI kematian (FASE 5, ikut template:
+ * "Sekretaris Desa Kasomalang Kulon" tanpa a.n.).
+ * tidak_mampu = a.n. Sekdes + "Mengetahui, Ketua RW" di kiri (Umum) /
+ * tanpa leftSigner (Sekolah) / "Ketua RW" (Kolektif);
  * ahli_waris = Kepala Desa + "Mengetahui, Camat Kasomalang" di kiri.
  * Formulir panjang (F-1.01, F-2.01, F-1.03, PBI Asesmen) BOLEH multi-halaman.
+ * Penutup FASE 5: setiap generate*Pdf merender kalimat penutup template
+ * (§3 FASE5_SPEC.md) tepat sebelum addFooter / addPlaceDate — kecuali
+ * kematian (template tidak punya penutup).
  */
 class PdfGenerator(private val context: Context) {
 
     private val baseFont = BaseFont.createFont(BaseFont.HELVETICA, BaseFont.WINANSI, BaseFont.EMBEDDED)
 
-    private enum class Signer { KADES, SEKDES_AN }
+    // FASE 5 — Konstanta penutup (CLOSING_*) tinggal di Models.kt (top-level,
+    // dipakai bersama PdfGenerator + PreviewScreen) — lihat FASE5_SPEC.md §3.
+
+    private enum class Signer {
+        KADES,
+        SEKDES_AN,
+        /** FASE 5 — kematian SAJA: "Sekretaris Desa Kasomalang Kulon" tanpa a.n. */
+        SEKDES_KEMATIAN
+    }
 
     // ------------------------------------------------------------------
     // Dispatcher — satu pintu masuk untuk semua tipe.
@@ -74,6 +90,10 @@ class PdfGenerator(private val context: Context) {
             LetterType.PBI_ASESMEN -> generatePbiAsesmenPdf(headerData, letterData as PbiAsesmenData, outputFile)
             LetterType.PBI_PERNYATAAN -> generatePbiPernyataanPdf(headerData, letterData as PbiPernyataanData, outputFile)
             LetterType.PBI_TIDAK_PUNYA_REKENING -> generatePbiTidakPunyaRekeningPdf(headerData, letterData as PbiTidakPunyaRekeningData, outputFile)
+            // ---- Fase 5: 3 tipe baru ----
+            LetterType.SKTM_PBI -> generateSktmPbiPdf(headerData, letterData as SktmPbiData, outputFile)
+            LetterType.PBI_REKENING_LISTRIK -> generatePbiRekeningListrikPdf(headerData, letterData as PbiRekeningListrikData, outputFile)
+            LetterType.PERNYATAAN_AKTA_KELAHIRAN -> generatePernyataanAktaKelahiranPdf(headerData, letterData as PernyataanAktaKelahiranData, outputFile)
         }
     }
 
@@ -84,6 +104,8 @@ class PdfGenerator(private val context: Context) {
         val document = newDocument(outputFile)
         addHeaderFor(document, headerData, LetterType.DOMISILI)
         addTitle(document, effectivePdfTitle(LetterType.DOMISILI, data), effectiveNomorSurat(data.nomorSurat, LetterType.DOMISILI))
+        // FASE 5 — narasi = versi WEB (template DOCX); urutan field NIK dulu.
+        // Signer TETAP Kades (konflik template DOCX a.n. Sekdes vs xlsm Kades — butuh keputusan user).
         when (data.jenisDomisili) {
             "Lembaga" -> {
                 addContent(document, "Yang bertanda tangan di bawah ini, Kepala Desa ${titleCase(headerData.namaDesa)}, Kecamatan ${titleCase(headerData.namaKecamatan)}, Kabupaten ${titleCase(headerData.namaKabupaten.removePrefix("KABUPATEN "))}, menerangkan dengan sesungguhnya bahwa:")
@@ -95,7 +117,8 @@ class PdfGenerator(private val context: Context) {
                         "Alamat" to data.alamatOrganisasi
                     )
                 )
-                addContent(document, "Adalah benar bahwa lembaga tersebut di atas berdomisili di alamat tersebut di atas, Desa ${titleCase(headerData.namaDesa)}. Surat keterangan ini diberikan untuk keperluan ${data.keperluanSurat}.")
+                addContent(document, "Lembaga tersebut di atas benar berdomisili di ${data.alamatOrganisasi} dan dipimpin oleh ${data.namaPimpinan}.")
+                addContent(document, "Surat keterangan ini kami berikan untuk keperluan ${data.keperluanSurat}.")
             }
             "Perusahaan" -> {
                 addContent(document, "Yang bertanda tangan di bawah ini, Kepala Desa ${titleCase(headerData.namaDesa)}, Kecamatan ${titleCase(headerData.namaKecamatan)}, Kabupaten ${titleCase(headerData.namaKabupaten.removePrefix("KABUPATEN "))}, menerangkan dengan sesungguhnya bahwa:")
@@ -105,30 +128,34 @@ class PdfGenerator(private val context: Context) {
                         "Nama Perusahaan" to data.namaPerusahaan,
                         "Nama Pimpinan" to data.namaPimpinan,
                         "Nama Sekretaris" to data.namaSekretaris,
-                        "Bidang Usaha" to data.bidangUsaha,
+                        "Bergerak di Bidang" to data.bidangUsaha,
                         "Alamat" to data.alamatOrganisasi
                     )
                 )
-                addContent(document, "Adalah benar bahwa perusahaan tersebut di atas berdomisili di alamat tersebut di atas, Desa ${titleCase(headerData.namaDesa)}. Surat keterangan ini diberikan untuk keperluan ${data.keperluanSurat}.")
+                addContent(document, "Perusahaan tersebut di atas benar berdomisili di ${data.alamatOrganisasi} dan bergerak di bidang ${data.bidangUsaha}.")
+                addContent(document, "Surat keterangan ini kami berikan untuk keperluan ${data.keperluanSurat}.")
             }
             else -> {
                 addContent(document, "Yang bertanda tangan di bawah ini, Kepala Desa ${titleCase(headerData.namaDesa)}, Kecamatan ${titleCase(headerData.namaKecamatan)}, Kabupaten ${titleCase(headerData.namaKabupaten.removePrefix("KABUPATEN "))}, menerangkan dengan sesungguhnya bahwa:")
                 addDataTable(
                     document,
                     listOf(
-                        "Nama" to data.namaLengkap,
                         "NIK" to data.nik,
-                        "Jenis Kelamin" to data.jenisKelamin,
+                        "Nama" to data.namaLengkap,
                         "Tempat/Tanggal Lahir" to listOf(data.tempatLahir, data.tanggalLahir).filter { it.isNotEmpty() }.joinToString(", "),
+                        "Jenis Kelamin" to data.jenisKelamin,
                         "Pekerjaan" to data.pekerjaan,
                         "Alamat (KTP)" to data.alamatAsal,
                         "RT/RW" to rtRw(data.rt, data.rw),
                         "Alamat Domisili Saat Ini" to data.alamatDomisili
                     )
                 )
-                addContent(document, "Adalah benar bahwa orang tersebut di atas adalah penduduk Desa ${titleCase(headerData.namaDesa)} dan bertempat tinggal di alamat tersebut di atas. Surat keterangan ini diberikan untuk keperluan ${data.keperluanSurat}.")
+                val rtRwText = if (data.rt.isNotBlank() || data.rw.isNotBlank()) "RT ${data.rt} RW ${data.rw}, " else ""
+                addContent(document, "Orang tersebut sudah tidak tinggal di alamat sebagaimana tercantum di atas, dan berdasarkan keterangan dari Ketua RT/RW, orang tersebut saat ini benar berdomisili di $rtRwText${data.alamatDomisili}.")
+                addContent(document, "Surat keterangan ini kami berikan untuk keperluan ${data.keperluanSurat}.")
             }
         }
+        addContent(document, CLOSING)
         addFooter(document, headerData, effectiveTanggalSurat(data.tanggalSurat), Signer.KADES)
         document.close()
     }
@@ -140,19 +167,20 @@ class PdfGenerator(private val context: Context) {
         val document = newDocument(outputFile)
         addHeaderFor(document, headerData, LetterType.PISAH_KK)
         addTitle(document, LetterType.PISAH_KK, effectiveNomorSurat(data.nomorSurat, LetterType.PISAH_KK))
-        addContent(document, "Yang bertanda tangan di bawah ini, Kepala Desa ${titleCase(headerData.namaDesa)}, menerangkan bahwa:")
+        addContent(document, "Yang bertanda tangan di bawah ini, Kepala Desa ${titleCase(headerData.namaDesa)}, menerangkan dengan sesungguhnya bahwa:")
         addDataTable(
             document,
             listOf(
-                "Nama 1" to data.nama1,
-                "NIK 1" to data.nik1,
-                "Nama 2" to data.nama2,
-                "NIK 2" to data.nik2,
+                "NIK (1)" to data.nik1,
+                "Nama (1)" to data.nama1,
+                "NIK (2)" to data.nik2,
+                "Nama (2)" to data.nama2,
                 "Nomor KK Lama" to data.nomorKKLama,
                 "Alamat" to data.alamat
             )
         )
-        addContent(document, "Adalah benar bahwa ${data.nama1} telah pisah Kartu Keluarga dari ${data.nama2} (KK lama nomor ${data.nomorKKLama}) dan beralamat di ${data.alamat}. Surat keterangan ini diberikan untuk keperluan pengurusan Kartu Keluarga baru.")
+        addContent(document, "Nama-nama tersebut di atas adalah benar warga Desa kami dan telah Pisah KK dari KK Nomor ${data.nomorKKLama} untuk membentuk Kartu Keluarga baru dengan alamat ${data.alamat}.")
+        addContent(document, CLOSING_PISAH_KK)
         addFooter(document, headerData, effectiveTanggalSurat(data.tanggalSurat), Signer.SEKDES_AN)
         document.close()
     }
@@ -177,6 +205,7 @@ class PdfGenerator(private val context: Context) {
                 "SPPT / NOP" to data.spptNop
             )
         )
+        addContent(document, "Tanah tersebut di atas adalah benar milik / dikuasai oleh yang bersangkutan dengan batas-batas sebagaimana tersebut di atas, dan sampai saat ini tidak dalam sengketa dengan pihak mana pun.")
         addContent(document, "Batas-batas tanah tersebut adalah sebagai berikut:")
         addDataTable(
             document,
@@ -187,8 +216,32 @@ class PdfGenerator(private val context: Context) {
                 "Sebelah Barat" to data.batasBarat
             )
         )
-        addContent(document, "Adalah benar bahwa tanah beserta bangunan di atas adalah milik ${data.namaLengkap} dan tidak dalam keadaan sengketa. Surat keterangan ini diberikan untuk keperluan administrasi pertanahan.")
-        addFooter(document, headerData, effectiveTanggalSurat(data.tanggalSurat), Signer.KADES)
+        // FASE 5 — Harga taksiran tanah + No. Register (template SKT Dayat).
+        if (data.hargaTaksiranBangunan.isNotBlank() || data.hargaTaksiranTanah.isNotBlank() || data.hargaTaksiranJumlah.isNotBlank()) {
+            addContent(document, "HARGA TAKSIRAN TANAH :")
+            addDataTable(
+                document,
+                listOf(
+                    "Bangunan" to data.hargaTaksiranBangunan.ifBlank { "" }.let { if (it.isEmpty()) "" else "Rp $it" },
+                    "Tanah" to data.hargaTaksiranTanah.ifBlank { "" }.let { if (it.isEmpty()) "" else "Rp $it" },
+                    "Jumlah" to data.hargaTaksiranJumlah.ifBlank { "" }.let { if (it.isEmpty()) "" else "Rp $it" }
+                )
+            )
+        }
+        if (data.noRegister.isNotBlank() || data.tanggalRegister.isNotBlank()) {
+            addDataTable(
+                document,
+                listOf(
+                    "No. Register" to data.noRegister,
+                    "Tanggal" to data.tanggalRegister
+                )
+            )
+        }
+        addContent(document, CLOSING_SKT)
+        addFooter(
+            document, headerData, effectiveTanggalSurat(data.tanggalSurat), Signer.KADES,
+            leftNote = "Mengetahui,\nCamat Kasomalang"
+        )
         document.close()
     }
 
@@ -199,7 +252,7 @@ class PdfGenerator(private val context: Context) {
         val document = newDocument(outputFile)
         addHeaderFor(document, headerData, LetterType.BEDA_LUAS)
         addTitle(document, LetterType.BEDA_LUAS, effectiveNomorSurat(data.nomorSurat, LetterType.BEDA_LUAS))
-        addContent(document, "Yang bertanda tangan di bawah ini, Kepala Desa ${titleCase(headerData.namaDesa)}, menerangkan bahwa:")
+        addContent(document, "Yang bertanda tangan di bawah ini, Kepala Desa ${titleCase(headerData.namaDesa)}, menerangkan dengan sesungguhnya bahwa:")
         addDataTable(
             document,
             listOf(
@@ -208,13 +261,15 @@ class PdfGenerator(private val context: Context) {
                 "Alamat" to data.alamat,
                 "RT/RW" to rtRw(data.rt, data.rw),
                 "Nomor Sertifikat" to data.nomorSertifikat,
+                "Nomor NIB" to data.nomorNIB,
                 "Luas Sertifikat" to data.luasSertifikat.ifEmpty { "" }.let { if (it.isEmpty()) "" else "$it m²" },
                 "Nomor SPPT" to data.nomorSPPT,
                 "Luas SPPT" to data.luasSPPT.ifEmpty { "" }.let { if (it.isEmpty()) "" else "$it m²" }
             )
         )
         addContent(document, "Adalah benar bahwa terdapat perbedaan luas tanah antara Sertifikat dan SPPT yang dimiliki oleh yang bersangkutan, sedangkan pemilik tanah tersebut adalah orang yang sama. Surat keterangan ini diberikan untuk keperluan administrasi pertanahan.")
-        addFooter(document, headerData, effectiveTanggalSurat(data.tanggalSurat), Signer.KADES)
+        addContent(document, CLOSING_BEDA_LUAS)
+        addFooter(document, headerData, effectiveTanggalSurat(data.tanggalSurat), Signer.SEKDES_AN)
         document.close()
     }
 
@@ -225,19 +280,31 @@ class PdfGenerator(private val context: Context) {
         val document = newDocument(outputFile)
         addHeaderFor(document, headerData, LetterType.BEDA_NAMA)
         addTitle(document, LetterType.BEDA_NAMA, effectiveNomorSurat(data.nomorSurat, LetterType.BEDA_NAMA))
-        addContent(document, "Yang bertanda tangan di bawah ini, Kepala Desa ${titleCase(headerData.namaDesa)}, menerangkan bahwa:")
+        addContent(document, "Yang bertanda tangan di bawah ini, Kepala Desa ${titleCase(headerData.namaDesa)}, menerangkan dengan sesungguhnya bahwa:")
+        // FASE 5 — 2 seksi "Keterangan data dari [dokumen]" (template 3b).
+        addSectionTitle(document, "Keterangan data dari ${data.dokumenPertama.ifBlank { "IJAZAH" }} :")
         addDataTable(
             document,
             listOf(
-                "Nama" to data.namaLengkap,
-                "NIK" to data.nik,
-                "Nama di Dokumen 1" to data.namaDokumen1,
-                "Nama di Dokumen 2" to data.namaDokumen2,
-                "Alasan / Keterangan" to data.alasan
+                "NIK" to data.nikDokumenPertama,
+                "Nama" to data.namaDokumenPertama,
+                "Tempat/Tgl Lahir" to data.ttlDokumenPertama,
+                "Alamat" to data.alamatDokumenPertama
             )
         )
-        addContent(document, "Adalah benar bahwa nama \"${data.namaDokumen1}\" dan nama \"${data.namaDokumen2}\" tersebut di atas adalah orang yang sama, yaitu ${data.namaLengkap}. Surat keterangan ini diberikan untuk keperluan administrasi kependudukan.")
-        addFooter(document, headerData, effectiveTanggalSurat(data.tanggalSurat), Signer.KADES)
+        addSectionTitle(document, "Keterangan data dari ${data.dokumenKedua.ifBlank { "BUKU NIKAH & KK" }} :")
+        addDataTable(
+            document,
+            listOf(
+                "NIK" to data.nikDokumenKedua,
+                "Nama" to data.namaDokumenKedua,
+                "Tempat/Tgl Lahir" to data.ttlDokumenKedua,
+                "Alamat" to data.alamatDokumenKedua
+            )
+        )
+        addContent(document, "Terdapat perbedaan Nama/Tanggal/Tahun kelahiran yang tertulis di ${data.dokumenPertama.ifBlank { "IJAZAH" }} adalah ${data.namaDokumenPertama} dengan yang tertulis di ${data.dokumenKedua.ifBlank { "BUKU NIKAH & KK" }} adalah ${data.namaDokumenKedua} dan orangnya sama itu-itu juga.")
+        addContent(document, CLOSING_BEDA_NAMA)
+        addFooter(document, headerData, effectiveTanggalSurat(data.tanggalSurat), Signer.SEKDES_AN)
         document.close()
     }
 
@@ -248,7 +315,7 @@ class PdfGenerator(private val context: Context) {
         val document = newDocument(outputFile)
         addHeaderFor(document, headerData, LetterType.BELUM_MENIKAH)
         addTitle(document, LetterType.BELUM_MENIKAH, effectiveNomorSurat(data.nomorSurat, LetterType.BELUM_MENIKAH))
-        addContent(document, "Yang bertanda tangan di bawah ini, Kepala Desa ${titleCase(headerData.namaDesa)}, menerangkan bahwa:")
+        addContent(document, "Yang bertanda tangan di bawah ini, Kepala Desa ${titleCase(headerData.namaDesa)}, menerangkan dengan sesungguhnya bahwa:")
         addDataTable(
             document,
             listOf(
@@ -262,7 +329,8 @@ class PdfGenerator(private val context: Context) {
             )
         )
         addContent(document, "Adalah benar bahwa yang bersangkutan sampai saat ini belum pernah melakukan perkawinan yang tercatat pada kantor pencatat perkawinan yang berwenang. Surat keterangan ini diberikan untuk keperluan ${data.keperluan}.")
-        addFooter(document, headerData, effectiveTanggalSurat(data.tanggalSurat), Signer.KADES)
+        addContent(document, CLOSING)
+        addFooter(document, headerData, effectiveTanggalSurat(data.tanggalSurat), Signer.SEKDES_AN)
         document.close()
     }
 
@@ -273,20 +341,24 @@ class PdfGenerator(private val context: Context) {
         val document = newDocument(outputFile)
         addHeaderFor(document, headerData, LetterType.TIDAK_MAMPU)
         addTitle(document, effectivePdfTitle(LetterType.TIDAK_MAMPU, data), effectiveNomorSurat(data.nomorSurat, LetterType.TIDAK_MAMPU))
+        // FASE 5 — signer a.n. Sekdes untuk SEMUA varian (kop Subang-left).
         if (data.varianSKTM == "Daftar Kolektif") {
-            addContent(document, "Yang bertanda tangan di bawah ini, Kepala Desa ${titleCase(headerData.namaDesa)}, menerangkan bahwa warga-warga berikut ini termasuk dalam kategori keluarga kurang mampu (tidak mampu) menurut keterangan Ketua RT/RW setempat dan sepengetahuan kami:")
+            addContent(document, "Yang bertanda tangan di bawah ini, Kepala Desa ${titleCase(headerData.namaDesa)}, menerangkan dengan sesungguhnya bahwa:")
+            addContent(document, "Orang-orang yang tercantum dalam daftar terlampir adalah benar-benar warga Desa kami dan tergolong dalam kategori Keluarga Tidak Mampu. Daftar nama terlampir adalah warga RW 02 Desa ${titleCase(headerData.namaDesa)}:")
             val warga = data.daftarKolektif.filter { it.nama.isNotBlank() || it.nik.isNotBlank() }
             addSimpleTable(
                 document,
                 listOf("No", "Nama", "NIK", "Alamat"),
                 warga.mapIndexed { i, w -> listOf("${i + 1}", w.nama, w.nik, w.alamat) }
             )
-            addContent(document, "Surat keterangan ini diberikan untuk keperluan ${data.keperluan}.")
-            addFooter(document, headerData, effectiveTanggalSurat(data.tanggalSurat), Signer.KADES, leftNote = "Mengetahui,\nKetua RW")
+            val keperluanKolektif = data.keperluan.ifBlank { "pengajuan bantuan sosial Program Jabar Caang" }
+            addContent(document, "Surat keterangan ini dibuat sebagai salah satu syarat untuk keperluan $keperluanKolektif.")
+            addContent(document, CLOSING_MISKIN_KOLEKTIF)
+            addFooter(document, headerData, effectiveTanggalSurat(data.tanggalSurat), Signer.SEKDES_AN, leftNote = "Ketua RW")
             document.close()
             return
         }
-        addContent(document, "Yang bertanda tangan di bawah ini, Kepala Desa ${titleCase(headerData.namaDesa)}, menerangkan bahwa:")
+        addContent(document, "Yang bertanda tangan di bawah ini, Kepala Desa ${titleCase(headerData.namaDesa)}, menerangkan dengan sesungguhnya bahwa:")
         addDataTable(
             document,
             listOf(
@@ -300,9 +372,19 @@ class PdfGenerator(private val context: Context) {
                 "Penghasilan Bulanan" to data.penghasilanBulanan.ifEmpty { "" }.let { if (it.isEmpty()) "" else "Rp $it" }
             )
         )
-        val tujuanText = if (data.tujuan.isNotBlank()) " di ${data.tujuan}" else ""
-        addContent(document, "Adalah benar bahwa yang bersangkutan termasuk dalam kategori keluarga kurang mampu (tidak mampu) menurut keterangan Ketua RT/RW setempat dan sepengetahuan kami. Surat keterangan ini diberikan untuk keperluan ${data.keperluan}$tujuanText.")
-        addFooter(document, headerData, effectiveTanggalSurat(data.tanggalSurat), Signer.KADES, leftNote = "Mengetahui,\nKetua RW")
+        if (data.varianSKTM == "Sekolah") {
+            // FASE 5 — narasi Sekolah (template Miskin Sekolah); tujuan default SMPN Negeri Kasomalang.
+            val tujuan = data.tujuan.ifBlank { "SMPN Negeri Kasomalang" }
+            addContent(document, "Orang tersebut adalah warga Desa ${titleCase(headerData.namaDesa)} dan saat ini akan mendaftar ke $tujuan, namun menurut keterangan Ketua RT/RW setempat dan sepengetahuan kami keadaan ekonominya saat ini termasuk kategori keluarga kurang mampu (Miskin). Untuk itu kami mohon kepada pihak $tujuan agar dapat memberikan keringanan/kebebasan biaya pendidikannya.")
+            addContent(document, CLOSING_MISKIN_SEKOLAH)
+            addFooter(document, headerData, effectiveTanggalSurat(data.tanggalSurat), Signer.SEKDES_AN)
+        } else {
+            // Umum — narasi samakan ke web.
+            val tujuanText = if (data.tujuan.isNotBlank()) " di ${data.tujuan}" else ""
+            addContent(document, "Adalah benar bahwa yang bersangkutan termasuk dalam kategori tidak mampu menurut kriteria yang berlaku di desa kami. Surat keterangan ini dibuat sebagai salah satu syarat untuk keperluan ${data.keperluan}$tujuanText.")
+            addContent(document, CLOSING)
+            addFooter(document, headerData, effectiveTanggalSurat(data.tanggalSurat), Signer.SEKDES_AN, leftNote = "Mengetahui,\nKetua RW")
+        }
         document.close()
     }
 
@@ -323,16 +405,21 @@ class PdfGenerator(private val context: Context) {
         addContent(document, paragrafPembukaAhliWaris(data, titleCase(headerData.namaDesa)))
         addContent(document, "Dengan demikian susunan Ahli Waris adalah sebagai berikut:")
         val waris = data.daftarAhliWaris.filter { it.nama.isNotBlank() || it.nik.isNotBlank() }
+        // FASE 5 — kolom tabel utama: No, Nama, NIK, Tempat/Tgl Lahir, Hubungan Keluarga, Tanda Tangan.
         addSimpleTable(
             document,
-            listOf("No", "Nama", "Hubungan Keluarga", "Tanda Tangan"),
-            waris.mapIndexed { i, w -> listOf("${i + 1}", w.nama, w.hubungan, "") }
+            listOf("No", "Nama", "NIK", "Tempat/Tgl Lahir", "Hubungan Keluarga", "Tanda Tangan"),
+            waris.mapIndexed { i, w ->
+                listOf("${i + 1}", w.nama, w.nik, ttl(w.tempatLahir, w.tanggalLahir), w.hubungan, "")
+            }
         )
         addContent(
             document,
             "Orang-orang tersebut di atas merupakan ahli waris yang sah dari " +
-                "${sebutanAlmarhum(data.jenisKelaminPeninggal)} ${data.namaPeninggal}."
+                "${sebutanOf(data)} ${data.namaPeninggal}."
         )
+        // FASE 5 — paragraf penegas (kanonik web Fase 3).
+        addContent(document, "Tidak ada ahli waris selain yang tercantum di dalam surat keterangan ini, sesuai pengakuannya.")
         val saksi = listOf(
             data.namaSaksi1 to data.jabatanSaksi1,
             data.namaSaksi2 to data.jabatanSaksi2
@@ -348,51 +435,15 @@ class PdfGenerator(private val context: Context) {
         if (data.keperluan.isNotBlank()) {
             addContent(document, "Untuk Keperluan : ${data.keperluan}")
         }
-        addContent(document, "Demikian surat ini kami buat dengan sebenarnya dan kepada yang bersangkutan menjadi tahu adanya.")
+        if (data.keterangan.isNotBlank()) {
+            addContent(document, "Keterangan: ${data.keterangan}")
+        }
+        addContent(document, CLOSING_AHLI_WARIS)
         addFooter(
             document, headerData, effectiveTanggalSurat(data.tanggalSurat), Signer.KADES,
             leftNote = "Mengetahui,\nCamat Kasomalang"
         )
-        // Lampiran — detail per ahli waris (seperti lembar detail di DOCX:
-        // NIK, Nama, Jenis Kelamin, Tempat/Tanggal Lahir, Alamat).
-        val adaDetail = waris.any {
-            it.nik.isNotBlank() || it.jenisKelamin.isNotBlank() ||
-                it.tempatLahir.isNotBlank() || it.tanggalLahir.isNotBlank() || it.alamat.isNotBlank()
-        }
-        val adaDataPeninggal = data.nikPeninggal.isNotBlank() ||
-            data.jenisKelaminPeninggal.isNotBlank() || data.alamatPeninggal.isNotBlank()
-        if (adaDetail || adaDataPeninggal) {
-            addSectionTitle(document, "Lampiran — Data Ahli Waris")
-            if (adaDataPeninggal) {
-                addSectionTitle(document, "Data Peninggal")
-                addDataTable(
-                    document,
-                    listOf(
-                        "Nama" to data.namaPeninggal,
-                        "NIK" to data.nikPeninggal,
-                        "Jenis Kelamin" to data.jenisKelaminPeninggal,
-                        "Alamat" to data.alamatPeninggal
-                    )
-                )
-            }
-            waris.forEachIndexed { i, w ->
-                if (w.nik.isBlank() && w.jenisKelamin.isBlank() && w.tempatLahir.isBlank() &&
-                    w.tanggalLahir.isBlank() && w.alamat.isBlank()
-                ) return@forEachIndexed
-                addSectionTitle(document, "Ahli Waris ${i + 1} — ${w.nama}")
-                addDataTable(
-                    document,
-                    listOf(
-                        "NIK" to w.nik,
-                        "Nama" to w.nama,
-                        "Jenis Kelamin" to w.jenisKelamin,
-                        "Tempat/Tanggal Lahir" to ttl(w.tempatLahir, w.tanggalLahir),
-                        "Hubungan Keluarga" to w.hubungan,
-                        "Alamat" to w.alamat
-                    )
-                )
-            }
-        }
+        // FASE 5 — Lampiran "Data Ahli Waris" DIHAPUS (tidak ada di kanonik web Fase 3).
         document.close()
     }
 
@@ -403,22 +454,32 @@ class PdfGenerator(private val context: Context) {
         val document = newDocument(outputFile)
         addHeaderFor(document, headerData, LetterType.NIKAH_TIDAK_TERCATAT)
         addTitle(document, LetterType.NIKAH_TIDAK_TERCATAT, effectiveNomorSurat(data.nomorSurat, LetterType.NIKAH_TIDAK_TERCATAT))
-        addContent(document, "Yang bertanda tangan di bawah ini, Kepala Desa ${titleCase(headerData.namaDesa)}, menerangkan bahwa:")
+        addContent(document, "Yang bertanda tangan di bawah ini, Kepala Desa ${titleCase(headerData.namaDesa)}, Kecamatan ${titleCase(headerData.namaKecamatan)}, Kabupaten ${titleCase(headerData.namaKabupaten.removePrefix("KABUPATEN "))}, menerangkan perihal perkawinan antara:")
+        addContent(document, "Pihak Pertama (Suami):")
         addDataTable(
             document,
             listOf(
-                "Nama Pria" to data.namaPria,
-                "NIK Pria" to data.nikPria,
-                "Tempat/Tanggal Lahir Pria" to listOf(data.tempatLahirPria, data.tanggalLahirPria).filter { it.isNotEmpty() }.joinToString(", "),
-                "Nama Wanita" to data.namaWanita,
-                "NIK Wanita" to data.nikWanita,
-                "Tempat/Tanggal Lahir Wanita" to listOf(data.tempatLahirWanita, data.tanggalLahirWanita).filter { it.isNotEmpty() }.joinToString(", "),
-                "Tanggal Pernikahan" to data.tanggalPernikahan,
-                "Tempat Pernikahan" to data.tempatPernikahan
+                "Nama" to data.namaPria,
+                "Bin" to data.binSuami,
+                "NIK" to data.nikPria,
+                "Tempat/Tanggal Lahir" to listOf(data.tempatLahirPria, data.tanggalLahirPria).filter { it.isNotEmpty() }.joinToString(", "),
+                "Agama" to data.agamaSuami
             )
         )
-        addContent(document, "Adalah benar bahwa ${data.namaPria} dan ${data.namaWanita} telah melangsungkan pernikahan pada tanggal ${data.tanggalPernikahan} di ${data.tempatPernikahan}, namun pernikahan tersebut belum tercatat pada kantor pencatat perkawinan yang berwenang.")
-        addFooter(document, headerData, effectiveTanggalSurat(data.tanggalSurat), Signer.KADES)
+        addContent(document, "Dengan seorang Wanita (Istri):")
+        addDataTable(
+            document,
+            listOf(
+                "Nama" to data.namaWanita,
+                "Bin" to data.binIstri,
+                "NIK" to data.nikWanita,
+                "Tempat/Tanggal Lahir" to listOf(data.tempatLahirWanita, data.tanggalLahirWanita).filter { it.isNotEmpty() }.joinToString(", "),
+                "Agama" to data.agamaIstri
+            )
+        )
+        addContent(document, narasiNikahTidakTercatat(data))
+        addContent(document, CLOSING_NIKAH)
+        addFooter(document, headerData, effectiveTanggalSurat(data.tanggalSurat), Signer.SEKDES_AN)
         document.close()
     }
 
@@ -429,21 +490,49 @@ class PdfGenerator(private val context: Context) {
         val document = newDocument(outputFile)
         addHeaderFor(document, headerData, LetterType.PEMAKAMAN)
         addTitle(document, LetterType.PEMAKAMAN, effectiveNomorSurat(data.nomorSurat, LetterType.PEMAKAMAN))
-        addContent(document, "Yang bertanda tangan di bawah ini, Kepala Desa ${titleCase(headerData.namaDesa)}, menerangkan bahwa:")
+        // FASE 5 — intro template: "Yang bertanda tangan di bawah ini," +
+        // blok identitas (3 baris field) + "Dengan ini menerangkan bahwa :".
+        addContent(document, "Yang bertanda tangan di bawah ini,")
+        addDataTable(
+            document,
+            listOf(
+                "Kepala Desa" to titleCase(headerData.namaDesa),
+                "Kecamatan" to titleCase(headerData.namaKecamatan.removePrefix("KECAMATAN ")),
+                "Kabupaten" to titleCase(headerData.namaKabupaten.removePrefix("KABUPATEN "))
+            )
+        )
+        addContent(document, "Dengan ini menerangkan bahwa :")
         addDataTable(
             document,
             listOf(
                 "Nama Almarhum/almarhumah" to data.namaAlmarhum,
                 "NIK" to data.nikAlmarhum,
                 "Tempat/Tanggal Lahir" to listOf(data.tempatLahir, data.tanggalLahir).filter { it.isNotEmpty() }.joinToString(", "),
-                "Alamat" to data.alamat,
-                "Tanggal Meninggal" to data.tanggalMeninggal,
-                "Lokasi Makam" to data.lokasiMakam,
-                "Nama Keluarga" to data.namaKeluarga
+                "Alamat" to data.alamat
             )
         )
-        addContent(document, "Adalah benar bahwa ${data.namaAlmarhum} telah meninggal dunia pada tanggal ${data.tanggalMeninggal} dan dimakamkan di ${data.lokasiMakam}. Surat keterangan ini diberikan atas permohonan keluarga ${data.namaKeluarga} untuk keperluan administrasi pemakaman.")
-        addFooter(document, headerData, effectiveTanggalSurat(data.tanggalSurat), Signer.KADES)
+        addContent(document, "Telah meninggal dunia pada :")
+        addDataTable(
+            document,
+            listOf(
+                "Hari" to data.hariMeninggal,
+                "Tanggal" to data.tanggalMeninggal,
+                "Jam" to data.jamMeninggal,
+                "Tempat" to data.tempatMeninggal
+            )
+        )
+        addContent(document, "Dan telah disemayamkan pada :")
+        addDataTable(
+            document,
+            listOf(
+                "Hari" to data.hariDisemayamkan,
+                "Tanggal" to data.tanggalDisemayamkan,
+                "Tempat" to data.tempatDisemayamkan
+            )
+        )
+        addContent(document, "Almarhum/almarhumah tersebut di atas telah meninggal dunia dan dimakamkan di ${data.lokasiMakam} atas permohonan keluarga, yaitu ${data.namaKeluarga}.")
+        addContent(document, CLOSING_PEMAKAMAN)
+        addFooter(document, headerData, effectiveTanggalSurat(data.tanggalSurat), Signer.SEKDES_AN)
         document.close()
     }
 
@@ -465,9 +554,13 @@ class PdfGenerator(private val context: Context) {
                 "Alamat Tinggal" to data.alamatTinggal
             )
         )
-        addContent(document, "Dengan ini menyatakan dengan sesungguhnya bahwa sampai saat ini saya belum/tidak memiliki rumah tinggal sendiri dan menumpang/tinggal di alamat tersebut di atas.${if (data.keterangan.isNotBlank()) " ${data.keterangan}" else ""}")
-        addContent(document, "Demikian surat pernyataan ini dibuat dengan sebenar-benarnya dan dapat dipergunakan sebagaimana mestinya.")
-        addFooter(document, headerData, effectiveTanggalSurat(data.tanggalSurat), Signer.KADES)
+        // FASE 5 — narasi orang ketiga (template); Android lama orang pertama ("saya") — SALAH.
+        addContent(document, "Menyatakan dengan sebenarnya bahwa orang tersebut sampai saat ini benar-benar belum memiliki rumah tinggal sendiri dan masih menumpang / tinggal bersama keluarga di alamat tersebut di atas.")
+        if (data.keterangan.isNotBlank()) {
+            addContent(document, "Keterangan: ${data.keterangan}")
+        }
+        addContent(document, CLOSING_PERMOHONAN_RUMAH)
+        addFooter(document, headerData, effectiveTanggalSurat(data.tanggalSurat), Signer.SEKDES_AN)
         document.close()
     }
 
@@ -477,7 +570,8 @@ class PdfGenerator(private val context: Context) {
     fun generateUndanganPdf(headerData: HeaderData, data: UndanganData, outputFile: File) {
         val document = newDocument(outputFile)
         addHeaderFor(document, headerData, LetterType.UNDANGAN)
-        addTitle(document, LetterType.UNDANGAN, effectiveNomorSurat(data.nomorSurat, LetterType.UNDANGAN))
+        // FASE 5 — template tidak punya judul: sembunyikan judul, tampilkan hanya baris Nomor.
+        addNomorLine(document, effectiveNomorSurat(data.nomorSurat, LetterType.UNDANGAN))
         addDataTable(
             document,
             listOf(
@@ -498,9 +592,9 @@ class PdfGenerator(private val context: Context) {
                 "Agenda" to data.agendaAcara
             )
         )
-        addContent(document, "Atas perhatian dan kehadiran Bapak/Ibu/Saudara/i, kami ucapkan terima kasih.")
+        addContent(document, CLOSING_UNDANGAN)
         if (data.daftarTembusan.isNotBlank()) {
-            addContent(document, "Tembusan:\n${data.daftarTembusan}")
+            addContent(document, "Tembusan:\n${tembusanItems(data.daftarTembusan).joinToString("\n")}")
         }
         addFooter(document, headerData, effectiveTanggalSurat(data.tanggalSurat), Signer.KADES)
         document.close()
@@ -511,51 +605,59 @@ class PdfGenerator(private val context: Context) {
     // ==================================================================
 
     // ------------------------------------------------------------------
-    // 13. Kematian — ttd a.n. Kepala Desa oleh Sekretaris Desa.
-    // Nomor seri 460.3/.../KS/ SAMA dengan pemakaman (sesuai template,
-    // dipertahankan apa adanya — perlu konfirmasi desa).
+    // 13. Kematian — FASE 5, ditulis ulang PERSIS FASE5_BRIEF.md:
+    // TANPA kop (header tabel 3 baris), landscape A4, isi kiri ~62%,
+    // judul+nomor format template, seksi meninggal/pelapor sebagai
+    // field, TANPA penutup, ttd "Sekretaris Desa Kasomalang Kulon"
+    // TANPA a.n. (konflik: SURAT KEMATIAN.doc justru menulis a.n.;
+    // keputusan ikut screenshot/xlsm sesuai brief Fase 5).
+    // Tanggal format DD-MM-YYYY khusus form ini.
     // ------------------------------------------------------------------
     fun generateKematianPdf(headerData: HeaderData, data: KematianData, outputFile: File) {
-        val document = newDocument(outputFile)
-        addHeaderFor(document, headerData, LetterType.KEMATIAN)
-        addTitle(document, LetterType.KEMATIAN, effectiveNomorSurat(data.nomorSurat, LetterType.KEMATIAN))
-        addContent(document, "Yang bertanda tangan di bawah ini, Kepala Desa ${titleCase(headerData.namaDesa)}, menerangkan bahwa:")
+        val document = newDocument(outputFile, landscape = true, rightMargin = 320f)
+        addHeaderTabelKematian(document, headerData)
+        addKematianTitle(document, data)
+        addContent(document, "Yang bertanda tangan di bawah ini menerangkan")
         addDataTable(
             document,
             listOf(
-                "Nama Almarhum/almarhumah" to data.namaAlmarhum,
+                "Nama" to data.namaAlmarhum,
                 "NIK" to data.nikAlmarhum,
                 "Jenis Kelamin" to data.jenisKelamin,
                 "Agama" to data.agama,
-                "Tempat/Tanggal Lahir" to ttl(data.tempatLahir, data.tanggalLahir),
+                "Tempat/Tanggal Lahir" to ttl(data.tempatLahir, toDdMmYyyy(data.tanggalLahir)),
                 "Pekerjaan" to data.pekerjaan,
                 "Alamat" to data.alamat
             )
         )
-        addContent(document, "Telah meninggal dunia pada:")
+        addContent(document, "Telah meninggal dunia pada :")
         addDataTable(
             document,
             listOf(
                 "Hari" to data.hariMeninggal,
-                "Tanggal" to data.tanggalMeninggal,
-                "Tempat" to data.tempatMeninggal,
-                "Penyebab" to data.penyebabMeninggal
+                "Tanggal" to toDdMmYyyy(data.tanggalMeninggal),
+                "Bertempat di" to data.tempatMeninggal,
+                "Penyebab Kematian" to data.penyebabMeninggal
             )
         )
-        addContent(document, "Adapun yang melaporkan adalah:")
+        addContent(document, "Surat Keterangan ini dibuat berdasarkan keterangan Pelapor :")
         addDataTable(
             document,
             listOf(
-                "Nama Pelapor" to data.namaPelapor,
-                "NIK Pelapor" to data.nikPelapor,
-                "Tempat/Tanggal Lahir Pelapor" to ttl(data.tempatLahirPelapor, data.tanggalLahirPelapor),
-                "Pekerjaan Pelapor" to data.pekerjaanPelapor,
-                "Alamat Pelapor" to data.alamatPelapor,
-                "Hubungan dengan Almarhum" to data.hubunganPelapor
+                "NIK" to data.nikPelapor,
+                "Nama" to data.namaPelapor,
+                "Tempat/Tanggal Lahir" to ttl(data.tempatLahirPelapor, toDdMmYyyy(data.tanggalLahirPelapor)),
+                "Pekerjaan" to data.pekerjaanPelapor,
+                "Alamat" to data.alamatPelapor
             )
         )
-        addContent(document, "Adalah benar bahwa ${data.namaAlmarhum} telah meninggal dunia pada ${data.hariMeninggal}, ${data.tanggalMeninggal} di ${data.tempatMeninggal} karena ${data.penyebabMeninggal}. Surat keterangan ini diberikan untuk keperluan pengurusan akta kematian.")
-        addFooter(document, headerData, effectiveTanggalSurat(data.tanggalSurat), Signer.SEKDES_AN)
+        addContent(document, "Hubungan pelapor dengan yang meninggal adalah : ${data.hubunganPelapor}")
+        // TANPA paragraf penutup (template tidak punya penutup).
+        addFooter(
+            document, headerData,
+            toDdMmYyyy(effectiveTanggalSurat(data.tanggalSurat)),
+            Signer.SEKDES_KEMATIAN
+        )
         document.close()
     }
 
@@ -566,7 +668,7 @@ class PdfGenerator(private val context: Context) {
         val document = newDocument(outputFile)
         addHeaderFor(document, headerData, LetterType.USAHA)
         addTitle(document, LetterType.USAHA, effectiveNomorSurat(data.nomorSurat, LetterType.USAHA))
-        addContent(document, "Yang bertanda tangan di bawah ini, Kepala Desa ${titleCase(headerData.namaDesa)}, menerangkan bahwa:")
+        addContent(document, "Yang bertanda tangan di bawah ini, Kepala Desa ${titleCase(headerData.namaDesa)}, menerangkan dengan sesungguhnya bahwa:")
         addDataTable(
             document,
             listOf(
@@ -574,12 +676,20 @@ class PdfGenerator(private val context: Context) {
                 "NIK" to data.nik,
                 "Tempat/Tanggal Lahir" to ttl(data.tempatLahir, data.tanggalLahir),
                 "Pekerjaan" to data.pekerjaan,
-                "Alamat" to data.alamat,
-                "Nama Usaha" to data.namaUsaha,
+                "Alamat" to data.alamat
+            )
+        )
+        // FASE 5 — kalimat pengantar template xlsm sebelum field usaha.
+        addContent(document, "Orang tersebut adalah warga Desa ${titleCase(headerData.namaDesa)}, dan menurut pengakuannya, saat ini mempunyai usaha sebagai berikut:")
+        addDataTable(
+            document,
+            listOf(
+                "Usaha" to data.namaUsaha,
                 "Alamat Usaha" to data.alamatUsaha
             )
         )
         addContent(document, "Adalah benar bahwa yang bersangkutan memiliki usaha ${data.namaUsaha} yang bertempat di ${data.alamatUsaha}. Surat keterangan ini diberikan untuk keperluan administrasi usaha.")
+        addContent(document, CLOSING_USAHA)
         addFooter(document, headerData, effectiveTanggalSurat(data.tanggalSurat), Signer.SEKDES_AN)
         document.close()
     }
@@ -590,12 +700,12 @@ class PdfGenerator(private val context: Context) {
     fun generateDudaJandaPdf(headerData: HeaderData, data: DudaJandaData, outputFile: File) {
         val document = newDocument(outputFile)
         addHeaderFor(document, headerData, LetterType.DUDA_JANDA)
-        addTitle(document, LetterType.DUDA_JANDA, effectiveNomorSurat(data.nomorSurat, LetterType.DUDA_JANDA))
-        addContent(document, "Yang bertanda tangan di bawah ini, Kepala Desa ${titleCase(headerData.namaDesa)}, menerangkan bahwa:")
+        // FASE 5 — judul dinamis DUDA / JANDA.
+        addTitle(document, effectivePdfTitle(LetterType.DUDA_JANDA, data), effectiveNomorSurat(data.nomorSurat, LetterType.DUDA_JANDA))
+        addContent(document, "Yang bertanda tangan di bawah ini, Kepala Desa ${titleCase(headerData.namaDesa)}, menerangkan dengan sesungguhnya bahwa:")
         addDataTable(
             document,
             listOf(
-                "Status" to data.statusDudaJanda,
                 "Nama" to data.namaLengkap,
                 "NIK" to data.nik,
                 "Tempat/Tanggal Lahir" to ttl(data.tempatLahir, data.tanggalLahir),
@@ -603,10 +713,17 @@ class PdfGenerator(private val context: Context) {
                 "Alamat" to data.alamat
             )
         )
+        // FASE 5 — baris Status DIHAPUS dari tabel (status hanya di judul + narasi).
+        val status = data.statusDudaJanda.lowercase()
+        if (data.rt.isNotBlank() || data.rw.isNotBlank()) {
+            addContent(document, "Berdasarkan keterangan dari Ketua RT ${data.rt} RW ${data.rw}, orang tersebut saat ini benar warga Desa ${titleCase(headerData.namaDesa)} dan sampai saat ini masih berstatus $status dan belum menikah lagi.")
+        } else {
+            addContent(document, "Adalah benar bahwa yang bersangkutan berstatus $status dan sampai saat ini belum menikah lagi.")
+        }
         if (data.keteranganRT.isNotBlank()) {
             addContent(document, "Keterangan Ketua RT: ${data.keteranganRT}.")
         }
-        addContent(document, "Adalah benar bahwa yang bersangkutan berstatus ${data.statusDudaJanda.lowercase()} dan belum menikah lagi sampai saat surat keterangan ini dibuat. Surat keterangan ini diberikan untuk keperluan administrasi kependudukan.")
+        addContent(document, CLOSING)
         addFooter(document, headerData, effectiveTanggalSurat(data.tanggalSurat), Signer.SEKDES_AN)
         document.close()
     }
@@ -619,6 +736,8 @@ class PdfGenerator(private val context: Context) {
         val document = newDocument(outputFile, landscape = true)
         addHeaderFor(document, headerData, LetterType.F101)
         addTitle(document, LetterType.F101, effectiveNomorSurat(data.nomorSurat, LetterType.F101))
+        // FASE 5 — intro (web) + penutup CLOSING_F101; judul " — " (enum).
+        addContent(document, "Dengan ini kami sampaikan biodata keluarga sebagai berikut:")
         addSectionTitle(document, "Data Kepala Keluarga")
         addDataTable(
             document,
@@ -638,12 +757,13 @@ class PdfGenerator(private val context: Context) {
             },
             fontSize = 8f
         )
+        addContent(document, CLOSING_F101)
         addPlaceDate(document, "Subang", effectiveTanggalSurat(data.tanggalSurat))
         addSignatureColumns(
             document,
             listOf(
-                "Kepala Keluarga" to data.namaKepalaKeluarga,
-                "Kepala Dinas Kependudukan dan Pencatatan Sipil Kab. Subang" to ""
+                "Kepala Dinas Kependudukan dan Pencatatan Sipil Kabupaten Subang" to "",
+                "Kepala Keluarga" to data.namaKepalaKeluarga
             )
         )
         document.close()
@@ -656,6 +776,8 @@ class PdfGenerator(private val context: Context) {
         val document = newDocument(outputFile)
         addHeaderFor(document, headerData, LetterType.F102)
         addTitle(document, LetterType.F102, effectiveNomorSurat(data.nomorSurat, LetterType.F102))
+        // FASE 5 — intro (web) + penutup CLOSING_FORM.
+        addContent(document, "Dengan ini mengajukan permohonan sebagai berikut:")
         addDataTable(
             document,
             listOf(
@@ -666,14 +788,17 @@ class PdfGenerator(private val context: Context) {
             )
         )
         if (data.daftarLampiran.isNotBlank()) {
-            addContent(document, "Lampiran yang disertakan:\n${data.daftarLampiran}")
+            addSectionTitle(document, "PERSYARATAN YANG DILAMPIRKAN")
+            addContent(document, data.daftarLampiran)
         }
+        addContent(document, CLOSING_FORM)
         addPlaceDate(document, "Subang", effectiveTanggalSurat(data.tanggalSurat))
+        // Template: Petugas (kiri) + Pemohon (kanan).
         addSignatureColumns(
             document,
             listOf(
-                "Pemohon" to data.namaLengkap,
-                "Petugas Pendaftaran" to ""
+                "Petugas Pendaftaran" to "",
+                "Pemohon" to data.namaLengkap
             )
         )
         document.close()
@@ -687,6 +812,8 @@ class PdfGenerator(private val context: Context) {
         val document = newDocument(outputFile)
         addHeaderFor(document, headerData, LetterType.F103)
         addTitle(document, LetterType.F103, effectiveNomorSurat(data.nomorSurat, LetterType.F103))
+        // FASE 5 — intro (web) + penutup CLOSING_FORM; ttd Mengetahui Kadis (kiri) + Pemohon (kanan).
+        addContent(document, "Dengan ini mengajukan permohonan pindah penduduk sebagai berikut:")
         addDataTable(
             document,
             listOf(
@@ -711,12 +838,13 @@ class PdfGenerator(private val context: Context) {
         if (data.anggotaTidakPindah.isNotBlank()) {
             addContent(document, "Anggota keluarga yang tidak pindah: ${data.anggotaTidakPindah}.")
         }
+        addContent(document, CLOSING_FORM)
         addPlaceDate(document, "Subang", effectiveTanggalSurat(data.tanggalSurat))
         addSignatureColumns(
             document,
             listOf(
-                "Pemohon" to data.namaPemohon,
-                "Petugas Pendaftaran" to ""
+                "Mengetahui, Kepala Dinas Kependudukan dan Pencatatan Sipil Kabupaten Subang" to "",
+                "Pemohon" to data.namaPemohon
             )
         )
         document.close()
@@ -729,7 +857,8 @@ class PdfGenerator(private val context: Context) {
         val document = newDocument(outputFile)
         addHeaderFor(document, headerData, LetterType.F104)
         addTitle(document, LetterType.F104, effectiveNomorSurat(data.nomorSurat, LetterType.F104))
-        addContent(document, "Yang bertanda tangan di bawah ini:")
+        // FASE 5 — intro pola web + paragraf pernyataan template + penutup CLOSING_SPTJM.
+        addContent(document, "Yang bertanda tangan di bawah ini, dengan sesungguhnya menyatakan bahwa saya tidak memiliki dokumen kependudukan.")
         addDataTable(
             document,
             listOf(
@@ -739,8 +868,8 @@ class PdfGenerator(private val context: Context) {
                 "Nama Ibu" to data.namaIbu
             )
         )
-        addContent(document, "Dengan ini menyatakan dengan sesungguhnya bahwa sampai saat ini saya tidak memiliki dokumen kependudukan.")
-        addContent(document, "Demikian surat pernyataan ini dibuat dengan sebenar-benarnya dan bermaterai cukup, untuk dapat dipergunakan sebagaimana mestinya.")
+        addContent(document, "Dengan ini menyatakan bahwa saya tidak memiliki Dokumen Kependudukan dan apabila di kemudian hari ternyata pernyataan saya ini tidak benar, maka saya bersedia diproses secara hukum sesuai dengan peraturan perundang-undangan serta dokumen yang diterbitkan dari permohonan ini menjadi tidak sah.")
+        addContent(document, CLOSING_SPTJM)
         addPlaceDate(document, "Subang", effectiveTanggalSurat(data.tanggalSurat))
         addSignatureColumns(document, listOf("Yang Menyatakan" to data.namaLengkap))
         document.close()
@@ -753,7 +882,8 @@ class PdfGenerator(private val context: Context) {
         val document = newDocument(outputFile)
         addHeaderFor(document, headerData, LetterType.F105)
         addTitle(document, LetterType.F105, effectiveNomorSurat(data.nomorSurat, LetterType.F105))
-        addContent(document, "Yang bertanda tangan di bawah ini:")
+        // FASE 5 — intro template; urutan blok suami/istri → tanggal → SAKSI → tabel anak.
+        addContent(document, "Kami yang bertanda tangan di bawah ini menyatakan dengan sesungguhnya bahwa perkawinan kami belum tercatat.")
         addDataTable(
             document,
             listOf(
@@ -764,7 +894,6 @@ class PdfGenerator(private val context: Context) {
                 "Tanggal Perkawinan" to listOf(data.tanggalPerkawinan, data.bulanPerkawinan, data.tahunPerkawinan).filter { it.isNotEmpty() }.joinToString(" ")
             )
         )
-        addContent(document, "Dengan ini menyatakan dengan sesungguhnya bahwa kami telah melangsungkan perkawinan dan belum tercatat pada kantor pencatat perkawinan yang berwenang.")
         addSectionTitle(document, "Saksi-saksi")
         addDataTable(
             document,
@@ -781,15 +910,16 @@ class PdfGenerator(private val context: Context) {
             listOf("No", "Nama", "No. Akta Kelahiran", "SHDK"),
             data.daftarAnak.mapIndexed { i, a -> listOf("${i + 1}", a.nama, a.noAktaKelahiran, a.shdk) }
         )
-        addContent(document, "Demikian surat pernyataan ini dibuat dengan sebenar-benarnya dan bermaterai cukup.")
+        addContent(document, CLOSING_F105)
         addPlaceDate(document, "Subang", effectiveTanggalSurat(data.tanggalSurat))
-        addSignatureColumns(
+        // Template: PIHAK KEDUA | PIHAK PERTAMA (+materai) | SAKSI II | SAKSI I, tiap-tiap sub NIK.
+        addSignatureColumnsSub(
             document,
             listOf(
-                "Suami" to data.namaSuami,
-                "Istri" to data.namaIstri,
-                "Saksi 1" to data.namaSaksi1,
-                "Saksi 2" to data.namaSaksi2
+                Triple("PIHAK KEDUA (Istri)", data.namaIstri, "NIK. ${data.nikIstri}"),
+                Triple("PIHAK PERTAMA (Suami)", data.namaSuami, "NIK. ${data.nikSuami}"),
+                Triple("SAKSI II", data.namaSaksi2, "NIK. ${data.nikSaksi2}"),
+                Triple("SAKSI I", data.namaSaksi1, "NIK. ${data.nikSaksi1}")
             )
         )
         document.close()
@@ -802,6 +932,8 @@ class PdfGenerator(private val context: Context) {
         val document = newDocument(outputFile)
         addHeaderFor(document, headerData, LetterType.F106)
         addTitle(document, LetterType.F106, effectiveNomorSurat(data.nomorSurat, LetterType.F106))
+        // FASE 5 — intro (web) + tabel rincian KK kolom NIK/SHDK/Keterangan + catatan lampiran + CLOSING_F106.
+        addContent(document, "Yang bertanda tangan di bawah ini menyatakan dengan sesungguhnya bahwa telah terjadi perubahan elemen data kependudukan sebagai berikut:")
         addDataTable(
             document,
             listOf(
@@ -814,8 +946,10 @@ class PdfGenerator(private val context: Context) {
         addSectionTitle(document, "Anggota Keluarga yang Mengalami Perubahan")
         addSimpleTable(
             document,
-            listOf("No", "Nama", "Perubahan"),
-            data.tabelAnggota.mapIndexed { i, a -> listOf("${i + 1}", a.nama, a.perubahan) }
+            listOf("No", "Nama", "NIK", "SHDK", "Keterangan"),
+            data.tabelAnggota.mapIndexed { i, a ->
+                listOf("${i + 1}", a.nama, a.nik, a.shdk, a.keterangan.ifBlank { a.perubahan })
+            }
         )
         addSectionTitle(document, "Perubahan Pendidikan")
         addDataTable(
@@ -838,7 +972,8 @@ class PdfGenerator(private val context: Context) {
         if (data.perubahanAgama.isNotBlank()) {
             addContent(document, "Perubahan Agama: ${data.perubahanAgama}.")
         }
-        addContent(document, "Demikian surat pernyataan ini dibuat dengan sebenar-benarnya dan bermaterai cukup.")
+        addContent(document, "Terlampir disampaikan fotocopi berkas-berkas yang terkait dengan perubahan elemen data tersebut.")
+        addContent(document, CLOSING_F106)
         addPlaceDate(document, "Subang", effectiveTanggalSurat(data.tanggalSurat))
         addSignatureColumns(document, listOf("Yang Menyatakan" to data.namaLengkap))
         document.close()
@@ -851,6 +986,8 @@ class PdfGenerator(private val context: Context) {
         val document = newDocument(outputFile)
         addHeaderFor(document, headerData, LetterType.F115)
         addTitle(document, LetterType.F115, effectiveNomorSurat(data.nomorSurat, LetterType.F115))
+        // FASE 5 — intro (web) + blok PERSYARATAN PENERBITAN KK + penutup CLOSING_FORM.
+        addContent(document, "Dengan ini mengajukan permohonan Kartu Keluarga baru sebagai berikut:")
         addDataTable(
             document,
             listOf(
@@ -869,13 +1006,24 @@ class PdfGenerator(private val context: Context) {
             listOf("No", "NIK", "Nama", "SHDK"),
             data.daftarAnggota.mapIndexed { i, a -> listOf("${i + 1}", a.nik, a.nama, a.shdk) }
         )
+        addSectionTitle(document, "PERSYARATAN PENERBITAN KK")
+        addContent(document, "A. KK BARU: 1. Fotokopi kutipan akta kawin/nikah; 2. Fotokopi kutipan akta perceraian; 3. Fotokopi kutipan akta kelahiran kepala keluarga & seluruh anggota; 4. Surat keterangan pindah/datang; 5. KK yang rusak (apabila KK rusak).")
+        addContent(document, "B. PERUBAHAN KK: 1. Penambahan anggota karena kelahiran (KK lama, kutipan akta kelahiran); 2. Pengurangan anggota (KK lama, surat keterangan kematian, surat keterangan pindah); 3. Penambahan anggota karena menumpang dalam KK (KK yang akan ditumpangi, surat keterangan pindah datang).")
+        addContent(document, CLOSING_FORM)
         addPlaceDate(document, "Subang", effectiveTanggalSurat(data.tanggalSurat))
+        // Grid 2 kolom (template): baris 1 [Camat, Pemohon], baris 2 [Kades/Lurah, Petugas].
         addSignatureColumns(
             document,
             listOf(
-                "Pemohon" to data.namaPemohon,
-                "Kepala Desa/Lurah" to "",
-                "Camat" to ""
+                "Mengetahui, Camat Kasomalang" to "",
+                "Pemohon" to data.namaPemohon
+            )
+        )
+        addSignatureColumnsSub(
+            document,
+            listOf(
+                Triple("Kepala Desa / Lurah", headerData.namaPejabat, null),
+                Triple("Petugas", "", "Tanggal Pemasukan Data\nParaf Petugas")
             )
         )
         document.close()
@@ -890,6 +1038,9 @@ class PdfGenerator(private val context: Context) {
         val document = newDocument(outputFile)
         addHeaderFor(document, headerData, LetterType.F201)
         addTitle(document, LetterType.F201, effectiveNomorSurat(data.nomorSurat, LetterType.F201))
+        // FASE 5 — intro (web); urutan blok: Jenis+Pelapor → Subjek Akta →
+        // Saksi-saksi → Orang Tua → seksi kondisional TERAKHIR.
+        addContent(document, "Dengan ini melaporkan peristiwa pencatatan sipil sebagai berikut:")
         addContent(document, "Jenis Pelaporan: ${data.jenisPelaporan}")
         addSectionTitle(document, "Data Pelapor")
         addDataTable(
@@ -938,6 +1089,7 @@ class PdfGenerator(private val context: Context) {
                     listOf(
                         "Nama Anak" to data.anakNama,
                         "Tempat/Tanggal Lahir" to ttl(data.anakTempatLahir, data.anakTanggalLahir),
+                        "Pukul Lahir" to data.anakPukulLahir,
                         "Jenis Kelamin" to data.anakJenisKelamin,
                         "Anak Ke" to data.anakKe
                     )
@@ -952,7 +1104,9 @@ class PdfGenerator(private val context: Context) {
                         "Tanggal" to data.lahirMatiTanggal,
                         "Pukul" to data.lahirMatiPukul,
                         "Tempat" to data.lahirMatiTempat,
-                        "Sebab" to data.lahirMatiSebab
+                        "Jenis Kelamin" to data.lahirMatiJenisKelamin,
+                        "Sebab" to data.lahirMatiSebab,
+                        "Keterangan" to data.lahirMatiKeterangan
                     )
                 )
             }
@@ -964,7 +1118,8 @@ class PdfGenerator(private val context: Context) {
                         "Nama Suami" to data.pasanganSuamiNama,
                         "Nama Istri" to data.pasanganIstriNama,
                         "Tanggal Peristiwa" to data.tanggalPeristiwa,
-                        "Tempat Peristiwa" to data.tempatPeristiwa
+                        "Tempat Peristiwa" to data.tempatPeristiwa,
+                        "Keterangan" to data.pasanganKeterangan
                     )
                 )
             }
@@ -984,18 +1139,27 @@ class PdfGenerator(private val context: Context) {
                 )
             }
             else -> {
-                if (data.keteranganPeristiwa.isNotBlank()) {
+                if (data.tanggalPeristiwa.isNotBlank() || data.tempatPeristiwa.isNotBlank() || data.keteranganPeristiwa.isNotBlank()) {
                     addSectionTitle(document, "Keterangan Peristiwa")
-                    addContent(document, data.keteranganPeristiwa)
+                    addDataTable(
+                        document,
+                        listOf(
+                            "Tanggal Peristiwa" to data.tanggalPeristiwa,
+                            "Tempat Peristiwa" to data.tempatPeristiwa,
+                            "Keterangan" to data.keteranganPeristiwa
+                        )
+                    )
                 }
             }
         }
+        addContent(document, CLOSING_FORM)
         addPlaceDate(document, "Subang", effectiveTanggalSurat(data.tanggalSurat))
-        addSignatureColumns(
+        // Template: kiri "Mengetahui, Kepala Desa / Lurah" (+ "Pejabat Dukcapil yang Membidangi"), kanan Pelapor.
+        addSignatureColumnsSub(
             document,
             listOf(
-                "Pelapor" to data.pelaporNama,
-                "Petugas Pencatat" to ""
+                Triple("Mengetahui, Kepala Desa / Lurah", "", "Pejabat Dukcapil yang Membidangi"),
+                Triple("Pelapor", data.pelaporNama, null)
             )
         )
         document.close()
@@ -1008,7 +1172,8 @@ class PdfGenerator(private val context: Context) {
         val document = newDocument(outputFile)
         addHeaderFor(document, headerData, LetterType.F203)
         addTitle(document, LetterType.F203, effectiveNomorSurat(data.nomorSurat, LetterType.F203))
-        addContent(document, "Yang bertanda tangan di bawah ini:")
+        // FASE 5 — intro kanonik; penutup CLOSING_F203; signers [Saksi I, Saya yang Menyatakan, Saksi II] + NIK.
+        addContent(document, "Yang bertanda tangan di bawah ini menyatakan dengan sesungguhnya kebenaran data kelahiran sebagai berikut:")
         addDataTable(
             document,
             listOf(
@@ -1063,14 +1228,14 @@ class PdfGenerator(private val context: Context) {
                 "NIK Saksi 2" to data.nikSaksi2
             )
         )
-        addContent(document, "Demikian surat pernyataan ini dibuat dengan sebenar-benarnya dan bermaterai cukup.")
+        addContent(document, CLOSING_F203)
         addPlaceDate(document, "Subang", effectiveTanggalSurat(data.tanggalSurat))
-        addSignatureColumns(
+        addSignatureColumnsSub(
             document,
             listOf(
-                "Yang Menyatakan" to data.namaYangMenyatakan,
-                "Saksi 1" to data.namaSaksi1,
-                "Saksi 2" to data.namaSaksi2
+                Triple("Saksi I", data.namaSaksi1, "NIK. ${data.nikSaksi1}"),
+                Triple("Saya yang Menyatakan", data.namaYangMenyatakan, "NIK. ${data.nik}"),
+                Triple("Saksi II", data.namaSaksi2, "NIK. ${data.nikSaksi2}")
             )
         )
         document.close()
@@ -1083,7 +1248,9 @@ class PdfGenerator(private val context: Context) {
         val document = newDocument(outputFile)
         addHeaderFor(document, headerData, LetterType.F204)
         addTitle(document, LetterType.F204, effectiveNomorSurat(data.nomorSurat, LetterType.F204))
-        addContent(document, "Yang bertanda tangan di bawah ini:")
+        // FASE 5 — intro kanonik; penutup CLOSING_F204; signers [Saksi I, Saya yang Menyatakan, Saksi II] + NIK;
+        // Pasangan TIDAK menandatangani; footnote "*) Coret yang tidak perlu."
+        addContent(document, "Yang bertanda tangan di bawah ini menyatakan dengan sesungguhnya bahwa kami adalah pasangan suami istri yang sah.")
         addDataTable(
             document,
             listOf(
@@ -1116,14 +1283,15 @@ class PdfGenerator(private val context: Context) {
                 "NIK Saksi 2" to data.nikSaksi2
             )
         )
-        addContent(document, "Demikian surat pernyataan ini dibuat dengan sebenar-benarnya dan bermaterai cukup.")
+        addContent(document, CLOSING_F204)
+        addContent(document, "*) Coret yang tidak perlu.")
         addPlaceDate(document, "Subang", effectiveTanggalSurat(data.tanggalSurat))
-        addSignatureColumns(
+        addSignatureColumnsSub(
             document,
             listOf(
-                "Yang Menyatakan" to data.namaYangMenyatakan,
-                "Saksi 1" to data.namaSaksi1,
-                "Saksi 2" to data.namaSaksi2
+                Triple("Saksi I", data.namaSaksi1, "NIK. ${data.nikSaksi1}"),
+                Triple("Saya yang Menyatakan", data.namaYangMenyatakan, "NIK. ${data.nik}"),
+                Triple("Saksi II", data.namaSaksi2, "NIK. ${data.nikSaksi2}")
             )
         )
         document.close()
@@ -1137,7 +1305,8 @@ class PdfGenerator(private val context: Context) {
         val document = newDocument(outputFile)
         addHeaderFor(document, headerData, LetterType.SPTJM_KEMATIAN)
         addTitle(document, LetterType.SPTJM_KEMATIAN, effectiveNomorSurat(data.nomorSurat, LetterType.SPTJM_KEMATIAN))
-        addContent(document, "Yang bertanda tangan di bawah ini:")
+        // FASE 5 — intro kanonik (web); penutup CLOSING_SPTJM; judul panjang tetap.
+        addContent(document, "Yang bertanda tangan di bawah ini menyatakan dengan sesungguhnya kebenaran data kematian sebagai berikut:")
         addDataTable(
             document,
             listOf(
@@ -1172,8 +1341,9 @@ class PdfGenerator(private val context: Context) {
                 "NIK Saksi 2" to data.nikSaksi2
             )
         )
-        addContent(document, "Demikian surat pernyataan ini dibuat dengan sebenar-benarnya dan bermaterai cukup, untuk keperluan pengurusan akta kematian.")
+        addContent(document, CLOSING_SPTJM)
         addPlaceDate(document, titleCase(headerData.namaDesa), effectiveTanggalSurat(data.tanggalSurat))
+        // Grid 3 kolom: baris 1 [Saksi 1, Yang Menyatakan, Saksi 2], baris 2 [Ketua RT, Ketua RW, Kepala Desa / Lurah].
         addSignatureColumns(
             document,
             listOf(
@@ -1199,9 +1369,10 @@ class PdfGenerator(private val context: Context) {
     fun generateSptjmPerkawinanPerceraianPdf(headerData: HeaderData, data: SptjmPerkawinanPerceraianData, outputFile: File) {
         val document = newDocument(outputFile)
         addHeaderFor(document, headerData, LetterType.SPTJM_PERKAWINAN_PERCERAIAN)
-        addTitle(document, LetterType.SPTJM_PERKAWINAN_PERCERAIAN, effectiveNomorSurat(data.nomorSurat, LetterType.SPTJM_PERKAWINAN_PERCERAIAN))
+        // FASE 5 — judul dinamis PANJANG (Perkawinan / Perceraian belum tercatat).
+        addTitle(document, effectivePdfTitle(LetterType.SPTJM_PERKAWINAN_PERCERAIAN, data), effectiveNomorSurat(data.nomorSurat, LetterType.SPTJM_PERKAWINAN_PERCERAIAN))
         val peristiwa = data.jenisSPTJM.lowercase()
-        addContent(document, "Yang bertanda tangan di bawah ini:")
+        addContent(document, "Yang bertanda tangan di bawah ini menyatakan dengan sesungguhnya bahwa $peristiwa kami belum tercatat.")
         addDataTable(
             document,
             listOf(
@@ -1212,7 +1383,6 @@ class PdfGenerator(private val context: Context) {
                 "Tanggal $peristiwa" to data.tanggalPeristiwa
             )
         )
-        addContent(document, "Dengan ini menyatakan dengan sesungguhnya bahwa kami telah melangsungkan $peristiwa dan belum tercatat pada kantor pencatat perkawinan yang berwenang.")
         addSectionTitle(document, "Saksi-saksi")
         addDataTable(
             document,
@@ -1229,15 +1399,16 @@ class PdfGenerator(private val context: Context) {
             listOf("No", "Nama", "No. Akta Kelahiran", "SHDK"),
             data.daftarAnak.mapIndexed { i, a -> listOf("${i + 1}", a.nama, a.noAktaKelahiran, a.shdk) }
         )
-        addContent(document, "Demikian surat pernyataan ini dibuat dengan sebenar-benarnya dan bermaterai cukup.")
+        addContent(document, CLOSING_SPTJM_PERKAWINAN)
         addPlaceDate(document, titleCase(headerData.namaDesa), effectiveTanggalSurat(data.tanggalSurat))
-        addSignatureColumns(
+        // Template: PIHAK KEDUA | PIHAK PERTAMA | SAKSI II | SAKSI I, tiap-tiap sub NIK.
+        addSignatureColumnsSub(
             document,
             listOf(
-                "Suami" to data.namaSuami,
-                "Istri" to data.namaIstri,
-                "Saksi 1" to data.namaSaksi1,
-                "Saksi 2" to data.namaSaksi2
+                Triple("PIHAK KEDUA (Istri)", data.namaIstri, "NIK. ${data.nikIstri}"),
+                Triple("PIHAK PERTAMA (Suami)", data.namaSuami, "NIK. ${data.nikSuami}"),
+                Triple("SAKSI II", data.namaSaksi2, "NIK. ${data.nikSaksi2}"),
+                Triple("SAKSI I", data.namaSaksi1, "NIK. ${data.nikSaksi1}")
             )
         )
         document.close()
@@ -1251,6 +1422,14 @@ class PdfGenerator(private val context: Context) {
         val document = newDocument(outputFile)
         addHeaderFor(document, headerData, LetterType.PBI_ASESMEN)
         addTitle(document, LetterType.PBI_ASESMEN, effectiveNomorSurat(data.nomorSurat, LetterType.PBI_ASESMEN))
+        // FASE 5 — baris TAHUN di bawah judul + intro (web) + penutup CLOSING_FORM +
+        // signers + a.n. Kades/Sekdes (ke-7).
+        val tahun = tahunDariTanggal(effectiveTanggalSurat(data.tanggalSurat))
+        val tahunPara = Paragraph("TAHUN $tahun", Font(baseFont, 12f, Font.BOLD))
+        tahunPara.alignment = Element.ALIGN_CENTER
+        tahunPara.spacingAfter = 8f
+        document.add(tahunPara)
+        addContent(document, "Instrumen asesmen calon penerima bansos KIS-PBI / SKM. Identitas dan kondisi umum calon penerima sebagai berikut:")
         addSectionTitle(document, "Identitas Calon Penerima")
         addDataTable(
             document,
@@ -1286,6 +1465,7 @@ class PdfGenerator(private val context: Context) {
         if (data.catatanPetugas.isNotBlank()) {
             addContent(document, "Catatan petugas: ${data.catatanPetugas}")
         }
+        addContent(document, CLOSING_FORM)
         addPlaceDate(document, titleCase(headerData.namaDesa), effectiveTanggalSurat(data.tanggalSurat))
         addSignatureColumns(
             document,
@@ -1300,7 +1480,13 @@ class PdfGenerator(private val context: Context) {
             listOf(
                 "Ketua RW" to "",
                 "Ketua RT" to "",
-                "Camat" to ""
+                "Camat Kasomalang" to ""
+            )
+        )
+        addSignatureColumns(
+            document,
+            listOf(
+                "a.n. Kepala Desa ${titleCase(headerData.namaDesa)}\nSekretaris Desa" to headerData.namaSekdes
             )
         )
         document.close()
@@ -1314,26 +1500,49 @@ class PdfGenerator(private val context: Context) {
         addHeaderFor(document, headerData, LetterType.PBI_PERNYATAAN)
         addTitle(document, LetterType.PBI_PERNYATAAN, effectiveNomorSurat(data.nomorSurat, LetterType.PBI_PERNYATAAN))
         addContent(document, "Yang bertanda tangan di bawah ini:")
+        // FASE 5 — urutan field template xls sheet `2`.
         addDataTable(
             document,
             listOf(
-                "Nama" to data.namaLengkap,
+                "No. KK" to data.noKK,
                 "NIK" to data.nik,
+                "Nama" to data.namaLengkap,
                 "Tempat/Tanggal Lahir" to ttl(data.tempatLahir, data.tanggalLahir),
+                "Jenis Kelamin" to data.jenisKelamin,
+                "Warga Negara" to data.wargaNegara,
+                "Status Kawin" to data.statusPerkawinan,
+                "Agama" to data.agama,
                 "Pekerjaan" to data.pekerjaan,
                 "Alamat" to data.alamat
             )
         )
+        // 2 butir pernyataan tetap template.
+        addContent(document, "1. Saya benar-benar termasuk Keluarga Miskin;")
+        addContent(document, "2. Apabila pernyataan saya ini tidak sesuai dengan kenyataan yang sebenarnya, saya siap mempertanggung jawabkan dihadapan hukum sesuai dengan ketentuan yang berlaku.")
         if (data.isiPernyataan.isNotBlank()) {
             addContent(document, data.isiPernyataan)
         }
-        addContent(document, "Demikian surat pernyataan ini dibuat dengan sebenar-benarnya dan bermaterai cukup, untuk dapat dipergunakan sebagaimana mestinya.")
+        addContent(document, CLOSING_PBI_PERNYATAAN)
         addPlaceDate(document, titleCase(headerData.namaDesa), effectiveTanggalSurat(data.tanggalSurat))
+        // Grid 2 kolom: [Yang Bersangkutan (+materai), Saksi Ketua RW], [Saksi Ketua RT, Mengetahui Camat], [a.n. Sekdes].
+        addSignatureColumnsSub(
+            document,
+            listOf(
+                Triple("Yang Bersangkutan", data.namaLengkap, "Materai Rp10.000"),
+                Triple("Saksi Ketua RW", "", null)
+            )
+        )
         addSignatureColumns(
             document,
             listOf(
-                "Yang Menyatakan" to data.namaLengkap,
-                "Mengetahui, Kepala Desa ${titleCase(headerData.namaDesa)}" to headerData.namaPejabat
+                "Saksi Ketua RT" to "",
+                "Mengetahui, Camat Kasomalang" to ""
+            )
+        )
+        addSignatureColumns(
+            document,
+            listOf(
+                "a.n. Kepala Desa ${titleCase(headerData.namaDesa)}\nSekretaris Desa" to headerData.namaSekdes
             )
         )
         document.close()
@@ -1346,7 +1555,9 @@ class PdfGenerator(private val context: Context) {
         val document = newDocument(outputFile)
         addHeaderFor(document, headerData, LetterType.PBI_TIDAK_PUNYA_REKENING)
         addTitle(document, LetterType.PBI_TIDAK_PUNYA_REKENING, effectiveNomorSurat(data.nomorSurat, LetterType.PBI_TIDAK_PUNYA_REKENING))
-        addContent(document, "Yang bertanda tangan di bawah ini:")
+        // FASE 5 — intro samakan ke web; penutup CLOSING_SPTJM; signer Yang Menyatakan SAJA
+        // ("Mengetahui, Kepala Desa" DIHAPUS dari Android — tidak ada di template mana pun).
+        addContent(document, "Yang bertanda tangan di bawah ini menyatakan dengan sesungguhnya bahwa saya tidak memiliki rekening bank.")
         addDataTable(
             document,
             listOf(
@@ -1357,46 +1568,156 @@ class PdfGenerator(private val context: Context) {
                 "Alamat" to data.alamat
             )
         )
-        addContent(document, "Dengan ini menyatakan dengan sesungguhnya bahwa sampai saat ini saya tidak memiliki rekening bank atas nama saya sendiri.")
-        addContent(document, "Demikian surat pernyataan ini dibuat dengan sebenar-benarnya dan bermaterai cukup, untuk dapat dipergunakan sebagaimana mestinya.")
+        addContent(document, CLOSING_SPTJM)
         addPlaceDate(document, titleCase(headerData.namaDesa), effectiveTanggalSurat(data.tanggalSurat))
         addSignatureColumns(
             document,
             listOf(
-                "Yang Menyatakan" to data.namaLengkap,
-                "Mengetahui, Kepala Desa ${titleCase(headerData.namaDesa)}" to headerData.namaPejabat
+                "Yang Menyatakan" to data.namaLengkap
             )
         )
         document.close()
     }
 
     // ------------------------------------------------------------------
+    // 31. SKTM PBI-JKN (FASE 5, baru) — kop dua logo, ttd RW/RT/Camat/a.n. Sekdes.
+    // ------------------------------------------------------------------
+    fun generateSktmPbiPdf(headerData: HeaderData, data: SktmPbiData, outputFile: File) {
+        val document = newDocument(outputFile)
+        addHeaderFor(document, headerData, LetterType.SKTM_PBI)
+        addTitle(document, LetterType.SKTM_PBI, effectiveNomorSurat(data.nomorSurat, LetterType.SKTM_PBI))
+        addContent(document, "Yang bertanda tangan di bawah ini Kepala Desa ${titleCase(headerData.namaDesa)} Kecamatan ${titleCase(headerData.namaKecamatan.removePrefix("KECAMATAN "))} Kabupaten ${titleCase(headerData.namaKabupaten.removePrefix("KABUPATEN "))}, menerangkan dengan sesungguhnya bahwa :")
+        addDataTable(
+            document,
+            listOf(
+                "No. KK" to data.noKK,
+                "NIK" to data.nik,
+                "Nama" to data.namaLengkap,
+                "Tempat/Tanggal Lahir" to ttl(data.tempatLahir, data.tanggalLahir),
+                "Jenis Kelamin" to data.jenisKelamin,
+                "Warga Negara" to data.wargaNegara,
+                "Status Kawin" to data.statusPerkawinan,
+                "Agama" to data.agama,
+                "Pekerjaan" to data.pekerjaan,
+                "Alamat" to data.alamat
+            )
+        )
+        val anak = data.daftarAnak.filter { it.nama.isNotBlank() || it.nik.isNotBlank() }
+        if (anak.isNotEmpty()) {
+            addSectionTitle(document, "Daftar Anak")
+            addSimpleTable(
+                document,
+                listOf("No", "No. KK", "NIK", "Nama", "Tempat/Tgl Lahir", "JK", "WN", "Status", "Agama", "Pekerjaan", "Alamat"),
+                anak.mapIndexed { i, a ->
+                    listOf("${i + 1}", a.noKK, a.nik, a.nama, a.ttl, a.jenisKelamin, a.wargaNegara, a.statusPerkawinan, a.agama, a.pekerjaan, a.alamat)
+                },
+                fontSize = 8f
+            )
+        }
+        if (data.tujuan.isNotBlank()) addContent(document, "Surat keterangan ini dibuat untuk keperluan ${kalimatTujuanSktmPbi(data.tujuan)}.")
+        addContent(document, CLOSING_SKTM_PBI)
+        addPlaceDate(document, titleCase(headerData.namaDesa), effectiveTanggalSurat(data.tanggalSurat))
+        addSignatureColumns(
+            document,
+            listOf(
+                "Ketua RW" to "",
+                "Ketua RT" to ""
+            )
+        )
+        addSignatureColumns(
+            document,
+            listOf(
+                "Mengetahui, Camat Kasomalang" to "",
+                "a.n. Kepala Desa ${titleCase(headerData.namaDesa)}\nSekretaris Desa" to headerData.namaSekdes
+            )
+        )
+        document.close()
+    }
+
+    // ------------------------------------------------------------------
+    // 32. Pernyataan Tidak Memiliki Rekening Listrik (FASE 5, baru) —
+    // kop dua logo, ttd sama seperti SKTM PBI.
+    // ------------------------------------------------------------------
+    fun generatePbiRekeningListrikPdf(headerData: HeaderData, data: PbiRekeningListrikData, outputFile: File) {
+        val document = newDocument(outputFile)
+        addHeaderFor(document, headerData, LetterType.PBI_REKENING_LISTRIK)
+        addTitle(document, LetterType.PBI_REKENING_LISTRIK, effectiveNomorSurat(data.nomorSurat, LetterType.PBI_REKENING_LISTRIK))
+        addContent(document, "Yang bertanda tangan di bawah ini Kepala Desa ${titleCase(headerData.namaDesa)} Kecamatan ${titleCase(headerData.namaKecamatan.removePrefix("KECAMATAN "))} Kabupaten ${titleCase(headerData.namaKabupaten.removePrefix("KABUPATEN "))}, menerangkan dengan sesungguhnya bahwa :")
+        addDataTable(
+            document,
+            listOf(
+                "No. KK" to data.noKK,
+                "NIK" to data.nik,
+                "Nama" to data.namaLengkap,
+                "Tempat/Tanggal Lahir" to ttl(data.tempatLahir, data.tanggalLahir),
+                "Jenis Kelamin" to data.jenisKelamin,
+                "Warga Negara" to data.wargaNegara,
+                "Status Kawin" to data.statusPerkawinan,
+                "Agama" to data.agama,
+                "Pekerjaan" to data.pekerjaan,
+                "Alamat" to data.alamat
+            )
+        )
+        addContent(document, "Menurut pengakuannya belum mempunyai rekening listrik dan menumpang aliran listrik ke ${data.namaTetangga} dengan nomor pelanggan ${data.nomorPelanggan}.")
+        addContent(document, CLOSING_SKTM_PBI)
+        addPlaceDate(document, titleCase(headerData.namaDesa), effectiveTanggalSurat(data.tanggalSurat))
+        addSignatureColumns(
+            document,
+            listOf(
+                "Ketua RW" to "",
+                "Ketua RT" to ""
+            )
+        )
+        addSignatureColumns(
+            document,
+            listOf(
+                "Mengetahui, Camat Kasomalang" to "",
+                "a.n. Kepala Desa ${titleCase(headerData.namaDesa)}\nSekretaris Desa" to headerData.namaSekdes
+            )
+        )
+        document.close()
+    }
+
+    // ------------------------------------------------------------------
+    // 33. Pernyataan Akta Kelahiran (FASE 5, baru) — kop Subang-left,
+    // ttd a.n. Sekdes (ikut P3).
+    // ------------------------------------------------------------------
+    fun generatePernyataanAktaKelahiranPdf(headerData: HeaderData, data: PernyataanAktaKelahiranData, outputFile: File) {
+        val document = newDocument(outputFile)
+        addHeaderFor(document, headerData, LetterType.PERNYATAAN_AKTA_KELAHIRAN)
+        addTitle(document, LetterType.PERNYATAAN_AKTA_KELAHIRAN, effectiveNomorSurat(data.nomorSurat, LetterType.PERNYATAAN_AKTA_KELAHIRAN))
+        addContent(document, "Yang bertanda tangan di bawah ini :")
+        addDataTable(
+            document,
+            listOf(
+                "NIK" to data.nik,
+                "Nama" to data.namaLengkap,
+                "Tempat/Tanggal Lahir" to ttl(data.tempatLahir, data.tanggalLahir),
+                "Nama Ayah" to data.namaAyah,
+                "Nama Ibu" to data.namaIbu,
+                "Alamat" to data.alamat
+            )
+        )
+        addContent(document, "Menyatakan dengan sebenarnya bahwa orang tersebut sedang membuat AKTA KELAHIRAN dan sampai saat ini masih menunggu selesai dibuat.")
+        addContent(document, CLOSING_PERMOHONAN_RUMAH)
+        addFooter(document, headerData, effectiveTanggalSurat(data.tanggalSurat), Signer.SEKDES_AN)
+        document.close()
+    }
+
+    // ------------------------------------------------------------------
     // Helpers
     // ------------------------------------------------------------------
-    private fun newDocument(outputFile: File, landscape: Boolean = false): Document {
+    private fun newDocument(outputFile: File, landscape: Boolean = false, rightMargin: Float = 56f): Document {
         val document = Document(if (landscape) PageSize.A4.rotate() else PageSize.A4)
-        // Margin ~20 mm kiri/kanan, ~17 mm atas/bawah.
-        document.setMargins(56f, 56f, 48f, 48f)
+        // Margin ~20 mm kiri, ~17 mm atas/bawah; margin kanan bisa
+        // diperlebar (kematian: isi kiri ~62% lebar landscape).
+        document.setMargins(56f, rightMargin, 48f, 48f)
         PdfWriter.getInstance(document, FileOutputStream(outputFile))
         document.open()
         return document
     }
 
-    /** "Subang", "12 Januari 1990" -> "Subang, 12 Januari 1990" (bagian kosong dilewati). */
-    private fun ttl(tempat: String, tanggal: String): String =
-        listOf(tempat, tanggal).filter { it.isNotEmpty() }.joinToString(", ")
-
-    private fun rtRw(rt: String, rw: String): String {
-        val r = rt.ifBlank { "-" }
-        val w = rw.ifBlank { "-" }
-        return "$r / $w"
-    }
-
-    /** "KASOMALANG KULON" -> "Kasomalang Kulon". */
-    private fun titleCase(value: String): String =
-        value.trim().split("\\s+".toRegex()).joinToString(" ") { word ->
-            word.lowercase().replaceFirstChar { it.uppercase() }
-        }
+    // Helper ttl/rtRw/titleCase tinggal di Models.kt (top-level, dipakai bersama).
 
     /** Muat logo dari assets; null bila file tidak ada / rusak (kop tetap jalan sebagai teks). */
     private fun loadLogoImage(assetPath: String, maxWidth: Float = 48f, maxHeight: Float = 52f): Image? {
@@ -1421,7 +1742,74 @@ class PdfGenerator(private val context: Context) {
             KopStyle.SUBANG_LEFT -> addHeaderSubangLeft(document, header)
             KopStyle.DUA_LOGO -> addHeader(document, header)
             KopStyle.DISDUKCAPIL -> addHeaderDisdukcapil(document)
+            KopStyle.TABEL_KEMATIAN -> addHeaderTabelKematian(document, header)
         }
+    }
+
+    /**
+     * FASE 5 — Header surat kematian (template, tanpa kop/logo): tabel
+     * 3 baris dengan garis vertikal di kiri.
+     */
+    private fun addHeaderTabelKematian(document: Document, header: HeaderData) {
+        val table = PdfPTable(2)
+        table.widthPercentage = 100f
+        table.setWidths(floatArrayOf(2f, 5f))
+        val rows = listOf(
+            "Pemerintah/Kota/Kab" to titleCase(header.namaKabupaten.removePrefix("KABUPATEN ")),
+            "Kecamatan" to titleCase(header.namaKecamatan.removePrefix("KECAMATAN ")),
+            "Desa/Kelurahan" to titleCase(header.namaDesa)
+        )
+        for ((label, value) in rows) {
+            val labelCell = PdfPCell(Phrase(label, Font(baseFont, 12f)))
+            labelCell.border = Rectangle.LEFT
+            labelCell.borderWidthLeft = 1.5f
+            labelCell.paddingBottom = 2f
+            table.addCell(labelCell)
+            val valueCell = PdfPCell(Phrase(": $value", Font(baseFont, 12f)))
+            valueCell.border = Rectangle.NO_BORDER
+            valueCell.paddingBottom = 2f
+            table.addCell(valueCell)
+        }
+        document.add(table)
+        val spacer = Paragraph(" ")
+        spacer.spacingAfter = 8f
+        document.add(spacer)
+    }
+
+    /**
+     * FASE 5 — Judul + nomor surat kematian format template:
+     * judul bold + underline, nomor "No.: 460.3 / <reg|............> / KS / <tahun>"
+     * bold + underline, rata tengah dalam area isi.
+     */
+    private fun addKematianTitle(document: Document, data: KematianData) {
+        val titlePara = Paragraph("SURAT KETERANGAN KEMATIAN", Font(baseFont, 14f, Font.BOLD))
+        titlePara.alignment = Element.ALIGN_CENTER
+        titlePara.spacingAfter = 2f
+        document.add(titlePara)
+        val underline = Paragraph()
+        underline.alignment = Element.ALIGN_CENTER
+        underline.spacingAfter = 4f
+        underline.add(LineSeparator(0.5f, 45f, BaseColor.BLACK, Element.ALIGN_CENTER, 0f))
+        document.add(underline)
+        val reg = data.nomorSurat.ifBlank { "............" }
+        val tahun = tahunDariTanggal(effectiveTanggalSurat(data.tanggalSurat))
+        val nomorPara = Paragraph("No.: 460.3 / $reg / KS / $tahun", Font(baseFont, 11f, Font.BOLD))
+        nomorPara.alignment = Element.ALIGN_CENTER
+        nomorPara.spacingAfter = 2f
+        document.add(nomorPara)
+        val underline2 = Paragraph()
+        underline2.alignment = Element.ALIGN_CENTER
+        underline2.spacingAfter = 8f
+        underline2.add(LineSeparator(0.5f, 45f, BaseColor.BLACK, Element.ALIGN_CENTER, 0f))
+        document.add(underline2)
+    }
+
+    /** Baris Nomor saja (tanpa judul) — undangan (FASE 5: template tidak punya judul). */
+    private fun addNomorLine(document: Document, nomorSurat: String) {
+        val nomorText = if (nomorSurat.isBlank()) "Nomor : ${".".repeat(48)}" else "Nomor : $nomorSurat"
+        val nomorPara = Paragraph(nomorText, Font(baseFont, 11f))
+        nomorPara.spacingAfter = 10f
+        document.add(nomorPara)
     }
 
     /** Sel teks kop desa (dipakai semua varian kop desa): 12pt, baris desa 14pt, alamat 10pt. */
@@ -1633,6 +2021,38 @@ class PdfGenerator(private val context: Context) {
         document.add(table)
     }
 
+    /**
+     * FASE 5 — varian addSignatureColumns dengan baris `sub` di bawah nama
+     * (mis. "NIK. ............" untuk saksi, "Materai Rp10.000",
+     * "Pejabat Dukcapil yang Membidangi", "Tanggal Pemasukan Data /
+     * Paraf Petugas"). Sub null/blank = tidak dirender.
+     */
+    private fun addSignatureColumnsSub(document: Document, columns: List<Triple<String, String, String?>>) {
+        val spacer = Paragraph(" ")
+        spacer.spacingAfter = 8f
+        document.add(spacer)
+        val table = PdfPTable(columns.size)
+        table.widthPercentage = 100f
+        for ((label, name, sub) in columns) {
+            val cell = PdfPCell()
+            cell.border = Rectangle.NO_BORDER
+            val text = buildString {
+                appendLine(label)
+                appendLine()
+                appendLine()
+                appendLine(if (name.isBlank()) "(.......................................)" else name)
+                if (!sub.isNullOrBlank()) {
+                    appendLine()
+                    append(sub)
+                }
+            }
+            cell.phrase = Phrase(text, Font(baseFont, 12f))
+            cell.horizontalAlignment = Element.ALIGN_CENTER
+            table.addCell(cell)
+        }
+        document.add(table)
+    }
+
     private fun addContent(document: Document, content: String) {
         val para = Paragraph(content, Font(baseFont, 12f))
         para.alignment = Element.ALIGN_JUSTIFIED
@@ -1699,6 +2119,12 @@ class PdfGenerator(private val context: Context) {
             Signer.KADES -> Triple("Kepala Desa", header.namaPejabat, header.nipPejabat)
             Signer.SEKDES_AN -> Triple(
                 "a.n. Kepala Desa ${titleCase(header.namaDesa)}\nSekretaris Desa",
+                header.namaSekdes,
+                header.nipSekdes
+            )
+            // FASE 5 — kematian SAJA: tanpa a.n.
+            Signer.SEKDES_KEMATIAN -> Triple(
+                "Sekretaris Desa ${titleCase(header.namaDesa)}",
                 header.namaSekdes,
                 header.nipSekdes
             )

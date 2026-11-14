@@ -1,13 +1,17 @@
 import { LetterCategory, LetterType } from '../types';
 
 /**
- * SATU sumber kebenaran untuk definisi 30 jenis surat/formulir:
+ * SATU sumber kebenaran untuk definisi 33 jenis surat/formulir:
  * judul, kategori, pola nomor, dan daftar field form.
  * Dipakai oleh store, form, selector, preview, dan PDF generator.
  *
  * Fase 2: 18 tipe baru (surat desa + formulir Dukcapil F + SPTJM + PBI-JKN)
  * + varian domisili (Perorangan/Lembaga/Perusahaan) dan SKTM
  * (Umum/Sekolah/Daftar Kolektif) sebagai opsi di dalam surat yang sudah ada.
+ *
+ * Fase 5: 3 tipe baru (sktm_pbi, pbi_rekening_listrik,
+ * pernyataan_akta_kelahiran) + perbaikan nomor/narasi/penutup per audit
+ * template (lihat FASE5_SPEC.md di ~/workspace/kasipem-study/).
  */
 
 export interface FormField {
@@ -102,7 +106,8 @@ export const LETTER_DEFINITIONS: LetterDefinition[] = [
     shortTitle: 'Keterangan Domisili',
     description: 'Menerangkan tempat tinggal / domisili penduduk desa, lembaga, atau perusahaan.',
     category: 'Individu',
-    nomorPrefix: '474',
+    // Fase 5: 140/PEM — kedua template (DOCX + xlsm) sepakat (sebelumnya 474).
+    nomorPrefix: '140',
     nomorSuffix: 'PEM',
     applicantField: 'namaLengkap',
     fields: [
@@ -150,10 +155,11 @@ export const LETTER_DEFINITIONS: LetterDefinition[] = [
     nomorSuffix: 'PEM',
     applicantField: 'nama1',
     fields: [
-      { name: 'nama1', label: 'Nama Pemisah Pertama', type: 'text', required: true },
+      // Fase 5: urutan template — NIK dulu, baru Nama (tiap orang).
       { name: 'nik1', label: 'NIK Pemisah Pertama', type: 'text', required: true, placeholder: '16 digit angka' },
-      { name: 'nama2', label: 'Nama Pemisah Kedua', type: 'text', required: true },
+      { name: 'nama1', label: 'Nama Pemisah Pertama', type: 'text', required: true },
       { name: 'nik2', label: 'NIK Pemisah Kedua', type: 'text', required: true, placeholder: '16 digit angka' },
+      { name: 'nama2', label: 'Nama Pemisah Kedua', type: 'text', required: true },
       { name: 'nomorKKLama', label: 'Nomor KK Lama', type: 'text', required: true },
       { name: 'alamat', label: 'Alamat', type: 'textarea', required: true, rows: 2 },
     ],
@@ -176,10 +182,16 @@ export const LETTER_DEFINITIONS: LetterDefinition[] = [
       { name: 'luasTanah', label: 'Luas Tanah (m²)', type: 'text', required: true },
       { name: 'luasBangunan', label: 'Luas Bangunan (m²)', type: 'text' },
       { name: 'spptNop', label: 'SPPT / NOP', type: 'text' },
-      { name: 'batasUtara', label: 'Batas Utara', type: 'text' },
-      { name: 'batasTimur', label: 'Batas Timur', type: 'text' },
-      { name: 'batasSelatan', label: 'Batas Selatan', type: 'text' },
-      { name: 'batasBarat', label: 'Batas Barat', type: 'text' },
+      { name: 'batasUtara', label: 'Sebelah Utara', type: 'text' },
+      { name: 'batasTimur', label: 'Sebelah Timur', type: 'text' },
+      { name: 'batasSelatan', label: 'Sebelah Selatan', type: 'text' },
+      { name: 'batasBarat', label: 'Sebelah Barat', type: 'text' },
+      // Fase 5: harga taksiran + register (template DOCX).
+      { name: 'hargaTaksiranBangunan', label: 'Harga Taksiran Bangunan (Rp)', type: 'text' },
+      { name: 'hargaTaksiranTanah', label: 'Harga Taksiran Tanah (Rp)', type: 'text' },
+      { name: 'hargaTaksiranJumlah', label: 'Jumlah Harga Taksiran (Rp)', type: 'text' },
+      { name: 'noRegister', label: 'No. Register', type: 'text' },
+      { name: 'tanggalRegister', label: 'Tanggal Register', type: 'date' },
     ],
   },
   {
@@ -198,6 +210,7 @@ export const LETTER_DEFINITIONS: LetterDefinition[] = [
       { name: 'rt', label: 'RT', type: 'text', placeholder: 'Contoh: 002' },
       { name: 'rw', label: 'RW', type: 'text', placeholder: 'Contoh: 02' },
       { name: 'nomorSertifikat', label: 'Nomor Sertifikat', type: 'text', required: true },
+      { name: 'nomorNIB', label: 'Nomor NIB (Sertifikat)', type: 'text' },
       { name: 'luasSertifikat', label: 'Luas Sertifikat (m²)', type: 'text', required: true },
       { name: 'nomorSPPT', label: 'Nomor SPPT', type: 'text', required: true },
       { name: 'luasSPPT', label: 'Luas SPPT (m²)', type: 'text', required: true },
@@ -211,13 +224,22 @@ export const LETTER_DEFINITIONS: LetterDefinition[] = [
     category: 'Administrasi',
     nomorPrefix: '474',
     nomorSuffix: 'PEM',
-    applicantField: 'namaLengkap',
+    applicantField: 'namaDokumenPertama',
     fields: [
-      { name: 'namaLengkap', label: 'Nama Saat Ini', type: 'text', required: true },
-      { name: 'nik', label: 'NIK', type: 'text', required: true, placeholder: '16 digit angka' },
-      { name: 'namaDokumen1', label: 'Nama di Dokumen Pertama', type: 'text', required: true },
-      { name: 'namaDokumen2', label: 'Nama di Dokumen Kedua', type: 'text', required: true },
-      { name: 'alasan', label: 'Alasan Perbedaan Nama', type: 'textarea', required: true, rows: 2 },
+      // Fase 5: dua seksi per dokumen (template 3b); field lama
+      // (namaSaatIni/nik/alasan) dihapus — alasan tidak ada di template.
+      { name: 'dokumenPertama', label: 'Dokumen Pertama', type: 'text', required: true, defaultValue: 'IJAZAH', placeholder: 'Contoh: IJAZAH' },
+      { name: 'nikDokumenPertama', label: 'Dokumen Pertama — NIK', type: 'text', required: true, placeholder: '16 digit angka' },
+      { name: 'namaDokumenPertama', label: 'Dokumen Pertama — Nama', type: 'text', required: true },
+      { name: 'tempatLahirDokumenPertama', label: 'Dokumen Pertama — Tempat Lahir', type: 'text' },
+      { name: 'tanggalLahirDokumenPertama', label: 'Dokumen Pertama — Tanggal Lahir', type: 'date' },
+      { name: 'alamatDokumenPertama', label: 'Dokumen Pertama — Alamat', type: 'textarea', rows: 2 },
+      { name: 'dokumenKedua', label: 'Dokumen Kedua', type: 'text', required: true, defaultValue: 'BUKU NIKAH & KK', placeholder: 'Contoh: BUKU NIKAH & KK' },
+      { name: 'nikDokumenKedua', label: 'Dokumen Kedua — NIK', type: 'text', required: true, placeholder: '16 digit angka' },
+      { name: 'namaDokumenKedua', label: 'Dokumen Kedua — Nama', type: 'text', required: true },
+      { name: 'tempatLahirDokumenKedua', label: 'Dokumen Kedua — Tempat Lahir', type: 'text' },
+      { name: 'tanggalLahirDokumenKedua', label: 'Dokumen Kedua — Tanggal Lahir', type: 'date' },
+      { name: 'alamatDokumenKedua', label: 'Dokumen Kedua — Alamat', type: 'textarea', rows: 2 },
     ],
   },
   {
@@ -351,20 +373,30 @@ export const LETTER_DEFINITIONS: LetterDefinition[] = [
     shortTitle: 'Nikah Tidak Tercatat',
     description: 'Menerangkan perkawinan yang belum tercatat resmi.',
     category: 'Administrasi',
-    nomorPrefix: '460.2',
+    // Fase 5: 474/Ks — template DOCX (sebelumnya 460.2/Ks).
+    nomorPrefix: '474',
     nomorSuffix: 'Ks',
     applicantField: 'namaPria',
     fields: [
       { name: 'namaPria', label: 'Nama Pria', type: 'text', required: true },
+      { name: 'binSuami', label: 'Bin Suami', type: 'text', placeholder: 'Contoh: Ahmad' },
       { name: 'nikPria', label: 'NIK Pria', type: 'text', required: true, placeholder: '16 digit angka' },
       { name: 'tempatLahirPria', label: 'Tempat Lahir Pria', type: 'text' },
       { name: 'tanggalLahirPria', label: 'Tanggal Lahir Pria', type: 'date' },
+      { name: 'agamaSuami', label: 'Agama Suami', type: 'text' },
+      { name: 'statusPerkawinan', label: 'Status Perkawinan', type: 'text', placeholder: 'Contoh: duda dan janda (opsional)' },
       { name: 'namaWanita', label: 'Nama Wanita', type: 'text', required: true },
+      { name: 'binIstri', label: 'Bin Istri', type: 'text', placeholder: 'Contoh: Siti' },
       { name: 'nikWanita', label: 'NIK Wanita', type: 'text', required: true, placeholder: '16 digit angka' },
       { name: 'tempatLahirWanita', label: 'Tempat Lahir Wanita', type: 'text' },
       { name: 'tanggalLahirWanita', label: 'Tanggal Lahir Wanita', type: 'date' },
+      { name: 'agamaIstri', label: 'Agama Istri', type: 'text' },
       { name: 'tanggalPernikahan', label: 'Tanggal Pernikahan', type: 'date', required: true },
       { name: 'tempatPernikahan', label: 'Tempat Pernikahan', type: 'text', required: true },
+      { name: 'namaWali', label: 'Nama Wali', type: 'text', placeholder: 'Contoh: Bapak ...' },
+      { name: 'saksi1', label: 'Saksi 1', type: 'text', placeholder: 'Contoh: Bapak ...' },
+      { name: 'saksi2', label: 'Saksi 2', type: 'text', placeholder: 'Contoh: Bapak ...' },
+      { name: 'masKawin', label: 'Mas Kawin', type: 'text', defaultValue: 'Alat sholat' },
     ],
   },
   {
@@ -382,7 +414,14 @@ export const LETTER_DEFINITIONS: LetterDefinition[] = [
       { name: 'tempatLahir', label: 'Tempat Lahir', type: 'text' },
       { name: 'tanggalLahir', label: 'Tanggal Lahir', type: 'date' },
       { name: 'alamat', label: 'Alamat', type: 'textarea', required: true, rows: 2 },
+      // Fase 5: seksi meninggal + disemayamkan (template DOCX).
+      { name: 'hariMeninggal', label: 'Hari Meninggal', type: 'text', required: true, placeholder: 'Contoh: Rabu' },
       { name: 'tanggalMeninggal', label: 'Tanggal Meninggal', type: 'date', required: true },
+      { name: 'jamMeninggal', label: 'Jam Meninggal', type: 'text', placeholder: 'Contoh: 21.15' },
+      { name: 'tempatMeninggal', label: 'Tempat Meninggal', type: 'text', required: true },
+      { name: 'hariDisemayamkan', label: 'Hari Disemayamkan', type: 'text', required: true, placeholder: 'Contoh: Kamis' },
+      { name: 'tanggalDisemayamkan', label: 'Tanggal Disemayamkan', type: 'date', required: true },
+      { name: 'tempatDisemayamkan', label: 'Tempat Disemayamkan', type: 'text', required: true },
       { name: 'lokasiMakam', label: 'Lokasi Makam', type: 'text', required: true },
       { name: 'namaKeluarga', label: 'Nama Keluarga yang Memohon', type: 'text', required: true },
     ],
@@ -393,8 +432,9 @@ export const LETTER_DEFINITIONS: LetterDefinition[] = [
     shortTitle: 'Tidak Memiliki Rumah',
     description: 'Pernyataan bahwa yang bersangkutan tidak memiliki rumah.',
     category: 'Sosial',
-    nomorPrefix: '474',
-    nomorSuffix: 'PEM',
+    // Fase 5: 141/Pem — template DOCX (sebelumnya 474/PEM).
+    nomorPrefix: '141',
+    nomorSuffix: 'Pem',
     applicantField: 'namaLengkap',
     fields: [
       { name: 'namaLengkap', label: 'Nama Lengkap', type: 'text', required: true },
@@ -424,7 +464,8 @@ export const LETTER_DEFINITIONS: LetterDefinition[] = [
       { name: 'pukul', label: 'Pukul', type: 'text', required: true, placeholder: 'Contoh: 09.00' },
       { name: 'tempat', label: 'Tempat', type: 'textarea', required: true, rows: 2 },
       { name: 'agendaAcara', label: 'Agenda Acara', type: 'textarea', required: true, rows: 3 },
-      { name: 'daftarTembusan', label: 'Tembusan (pisahkan dengan koma, opsional)', type: 'textarea', rows: 2 },
+      // Fase 5: tembusan default template (pengguna bisa edit).
+      { name: 'daftarTembusan', label: 'Tembusan (pisahkan dengan koma, opsional)', type: 'textarea', rows: 2, defaultValue: 'Camat Kasomalang; Ketua BPD Desa Kasomalang Kulon; Arsip' },
     ],
   },
   // ================= FASE 2 — SURAT DESA BARU =================
@@ -506,6 +547,9 @@ export const LETTER_DEFINITIONS: LetterDefinition[] = [
       { name: 'tanggalLahir', label: 'Tanggal Lahir', type: 'date' },
       { name: 'pekerjaan', label: 'Pekerjaan', type: 'text' },
       { name: 'alamat', label: 'Alamat', type: 'textarea', required: true, rows: 2 },
+      // Fase 5: RT/RW untuk narasi "Berdasarkan keterangan dari Ketua RT ... RW ...".
+      { name: 'rt', label: 'RT', type: 'text', placeholder: 'Contoh: 001' },
+      { name: 'rw', label: 'RW', type: 'text', placeholder: 'Contoh: 006' },
       { name: 'keteranganRT', label: 'Keterangan Ketua RT', type: 'textarea', rows: 2, placeholder: 'Keterangan dari Ketua RT setempat' },
     ],
   },
@@ -569,17 +613,36 @@ export const LETTER_DEFINITIONS: LetterDefinition[] = [
         label: 'Jenis Permohonan',
         type: 'select',
         required: true,
+        // Fase 5: opsi lengkap template F-1.02 (4 kelompok permohonan).
         options: [
           { value: '', label: 'Pilih...' },
-          { value: 'KK baru', label: 'KK baru' },
-          { value: 'KK perubahan', label: 'KK perubahan' },
-          { value: 'KK hilang / rusak', label: 'KK hilang / rusak' },
-          { value: 'KTP-el baru', label: 'KTP-el baru' },
-          { value: 'KTP-el pindah', label: 'KTP-el pindah' },
-          { value: 'KTP-el hilang / rusak', label: 'KTP-el hilang / rusak' },
+          { value: 'KK Baru — Membentuk Keluarga Baru', label: 'KK Baru — Membentuk Keluarga Baru' },
+          { value: 'KK Baru — Penggantian Kepala Keluarga', label: 'KK Baru — Penggantian Kepala Keluarga' },
+          { value: 'KK Baru — Pisah KK', label: 'KK Baru — Pisah KK' },
+          { value: 'KK Baru — Pindah Datang', label: 'KK Baru — Pindah Datang' },
+          { value: 'KK Baru — WNI dari LN karena Pindah', label: 'KK Baru — WNI dari LN karena Pindah' },
+          { value: 'KK Baru — Rentan Adminduk', label: 'KK Baru — Rentan Adminduk' },
+          { value: 'KK Perubahan Data — Menumpang dalam KK', label: 'KK Perubahan Data — Menumpang dalam KK' },
+          { value: 'KK Perubahan Data — Peristiwa Penting', label: 'KK Perubahan Data — Peristiwa Penting' },
+          { value: 'KK Perubahan Data — Perubahan elemen Data dalam KK', label: 'KK Perubahan Data — Perubahan elemen Data dalam KK' },
+          { value: 'KK Hilang/Rusak — Hilang', label: 'KK Hilang/Rusak — Hilang' },
+          { value: 'KK Hilang/Rusak — Rusak', label: 'KK Hilang/Rusak — Rusak' },
+          { value: 'KTP-el Baru', label: 'KTP-el Baru' },
+          { value: 'KTP-el Pindah Datang', label: 'KTP-el Pindah Datang' },
+          { value: 'KTP-el Hilang/Rusak — Hilang', label: 'KTP-el Hilang/Rusak — Hilang' },
+          { value: 'KTP-el Hilang/Rusak — Rusak', label: 'KTP-el Hilang/Rusak — Rusak' },
           { value: 'Perpanjangan ITAP', label: 'Perpanjangan ITAP' },
-          { value: 'KIA', label: 'KIA (Kartu Identitas Anak)' },
-          { value: 'Perubahan data', label: 'Perubahan data' },
+          { value: 'KTP-el Perubahan Status Kewarganegaraan', label: 'KTP-el Perubahan Status Kewarganegaraan' },
+          { value: 'KTP-el Luar Domisili', label: 'KTP-el Luar Domisili' },
+          { value: 'KTP-el Transmigrasi', label: 'KTP-el Transmigrasi' },
+          { value: 'KIA Baru', label: 'KIA Baru' },
+          { value: 'KIA Hilang/Rusak — Hilang', label: 'KIA Hilang/Rusak — Hilang' },
+          { value: 'KIA Hilang/Rusak — Rusak', label: 'KIA Hilang/Rusak — Rusak' },
+          { value: 'KIA Perpanjangan ITAP', label: 'KIA Perpanjangan ITAP' },
+          { value: 'KIA Lainnya', label: 'KIA Lainnya' },
+          { value: 'Perubahan Data — KK', label: 'Perubahan Data — KK' },
+          { value: 'Perubahan Data — KTP-el', label: 'Perubahan Data — KTP-el' },
+          { value: 'Perubahan Data — KIA', label: 'Perubahan Data — KIA' },
         ],
       },
       { name: 'daftarLampiran', label: 'Daftar Persyaratan / Lampiran', type: 'textarea', rows: 3, placeholder: 'Tuliskan dokumen lampiran yang disertakan' },
@@ -605,11 +668,13 @@ export const LETTER_DEFINITIONS: LetterDefinition[] = [
         label: 'Jenis Permohonan',
         type: 'select',
         required: true,
+        // Fase 5: 4 opsi template F-1.03.
         options: [
           { value: '', label: 'Pilih...' },
-          { value: 'SKP', label: 'SKP (Surat Keterangan Pindah)' },
+          { value: 'Surat Keterangan Kependudukan', label: 'Surat Keterangan Kependudukan' },
+          { value: 'Surat Keterangan Pindah', label: 'Surat Keterangan Pindah' },
           { value: 'SKPLN', label: 'SKPLN (Surat Keterangan Pindah Luar Negeri)' },
-          { value: 'SKTT', label: 'SKTT (Surat Keterangan Tempat Tinggal)' },
+          { value: 'SKTT Bagi Orang Asing Tinggal Terbatas', label: 'SKTT Bagi Orang Asing Tinggal Terbatas' },
         ],
       },
       { name: 'alamatAsal', label: 'Alamat Asal', type: 'textarea', required: true, rows: 2 },
@@ -736,8 +801,12 @@ export const LETTER_DEFINITIONS: LetterDefinition[] = [
         type: 'table',
         minRows: 1,
         maxRows: 7,
+        // Fase 5: tiap baris punya nama, nik, shdk, keterangan, perubahan.
         columns: [
           { name: 'nama', label: 'Nama Anggota Keluarga' },
+          { name: 'nik', label: 'NIK' },
+          { name: 'shdk', label: 'SHDK' },
+          { name: 'keterangan', label: 'Keterangan' },
           { name: 'perubahan', label: 'Perubahan Elemen Data' },
         ],
       },
@@ -859,10 +928,12 @@ export const LETTER_DEFINITIONS: LetterDefinition[] = [
       { name: 'jenisKelaminAnak', label: 'Data Anak — Jenis Kelamin', type: 'select', options: [{ value: '', label: 'Pilih...' }, { value: 'Laki-laki', label: 'Laki-laki' }, { value: 'Perempuan', label: 'Perempuan' }], visibleWhen: { field: 'jenisPelaporan', values: ['Kelahiran'] } },
       { name: 'anakKe', label: 'Data Anak — Anak Ke-', type: 'number', visibleWhen: { field: 'jenisPelaporan', values: ['Kelahiran'] } },
       // --- Seksi kondisional: Lahir Mati ---
+      { name: 'namaLahirMati', label: 'Lahir Mati — Nama', type: 'text', required: true, visibleWhen: { field: 'jenisPelaporan', values: ['Lahir Mati'] } },
       { name: 'tanggalLahirMati', label: 'Lahir Mati — Tanggal', type: 'date', required: true, visibleWhen: { field: 'jenisPelaporan', values: ['Lahir Mati'] } },
       { name: 'pukulLahirMati', label: 'Lahir Mati — Pukul', type: 'text', placeholder: 'Contoh: 08.30', visibleWhen: { field: 'jenisPelaporan', values: ['Lahir Mati'] } },
       { name: 'tempatLahirMati', label: 'Lahir Mati — Tempat', type: 'text', visibleWhen: { field: 'jenisPelaporan', values: ['Lahir Mati'] } },
       { name: 'jenisKelaminLahirMati', label: 'Lahir Mati — Jenis Kelamin', type: 'select', options: [{ value: '', label: 'Pilih...' }, { value: 'Laki-laki', label: 'Laki-laki' }, { value: 'Perempuan', label: 'Perempuan' }], visibleWhen: { field: 'jenisPelaporan', values: ['Lahir Mati'] } },
+      { name: 'sebabLahirMati', label: 'Lahir Mati — Sebab', type: 'text', visibleWhen: { field: 'jenisPelaporan', values: ['Lahir Mati'] } },
       { name: 'keteranganLahirMati', label: 'Lahir Mati — Keterangan', type: 'textarea', rows: 2, visibleWhen: { field: 'jenisPelaporan', values: ['Lahir Mati'] } },
       // --- Seksi kondisional: Kematian ---
       { name: 'namaMeninggal', label: 'Data Kematian — Nama', type: 'text', required: true, visibleWhen: { field: 'jenisPelaporan', values: ['Kematian'] } },
@@ -873,6 +944,9 @@ export const LETTER_DEFINITIONS: LetterDefinition[] = [
       { name: 'tempatMeninggal', label: 'Data Kematian — Tempat Meninggal', type: 'text', visibleWhen: { field: 'jenisPelaporan', values: ['Kematian'] } },
       { name: 'yangMenerangkan', label: 'Data Kematian — Yang Menerangkan', type: 'text', visibleWhen: { field: 'jenisPelaporan', values: ['Kematian'] } },
       // --- Seksi kondisional: jenis pelaporan lain (data peristiwa umum) ---
+      // Fase 5: Perkawinan/Perceraian (+ pembatalannya) memakai Nama Suami/Istri.
+      { name: 'namaSuamiPeristiwa', label: 'Data Peristiwa — Nama Suami', type: 'text', required: true, visibleWhen: { field: 'jenisPelaporan', values: ['Perkawinan', 'Pembatalan Perkawinan', 'Perceraian', 'Pembatalan Perceraian'] } },
+      { name: 'namaIstriPeristiwa', label: 'Data Peristiwa — Nama Istri', type: 'text', required: true, visibleWhen: { field: 'jenisPelaporan', values: ['Perkawinan', 'Pembatalan Perkawinan', 'Perceraian', 'Pembatalan Perceraian'] } },
       { name: 'tanggalPeristiwa', label: 'Data Peristiwa — Tanggal', type: 'date', required: true, visibleWhen: { field: 'jenisPelaporan', values: ['Perkawinan', 'Pembatalan Perkawinan', 'Perceraian', 'Pembatalan Perceraian', 'Pengangkatan Anak', 'Pengakuan Anak', 'Pengesahan Anak', 'Perubahan Nama', 'Perubahan Status Kewarganegaraan', 'Peristiwa Penting Lainnya', 'Pembetulan Akta', 'Pembatalan Akta', 'Pelaporan dari Luar Wilayah NKRI'] } },
       { name: 'tempatPeristiwa', label: 'Data Peristiwa — Tempat', type: 'text', visibleWhen: { field: 'jenisPelaporan', values: ['Perkawinan', 'Pembatalan Perkawinan', 'Perceraian', 'Pembatalan Perceraian', 'Pengangkatan Anak', 'Pengakuan Anak', 'Pengesahan Anak', 'Perubahan Nama', 'Perubahan Status Kewarganegaraan', 'Peristiwa Penting Lainnya', 'Pembetulan Akta', 'Pembatalan Akta', 'Pelaporan dari Luar Wilayah NKRI'] } },
       { name: 'keteranganPeristiwa', label: 'Data Peristiwa — Keterangan', type: 'textarea', rows: 2, visibleWhen: { field: 'jenisPelaporan', values: ['Perkawinan', 'Pembatalan Perkawinan', 'Perceraian', 'Pembatalan Perceraian', 'Pengangkatan Anak', 'Pengakuan Anak', 'Pengesahan Anak', 'Perubahan Nama', 'Perubahan Status Kewarganegaraan', 'Peristiwa Penting Lainnya', 'Pembetulan Akta', 'Pembatalan Akta', 'Pelaporan dari Luar Wilayah NKRI'] } },
@@ -954,7 +1028,8 @@ export const LETTER_DEFINITIONS: LetterDefinition[] = [
   // ================= FASE 2 — SPTJM BARU =================
   {
     id: 'sptjm_kematian',
-    title: 'SPTJM KEBENARAN DATA KEMATIAN',
+    // Fase 5: judul panjang pola SPTJM (sebelumnya "SPTJM KEBENARAN DATA KEMATIAN").
+    title: 'SURAT PERNYATAAN TANGGUNG JAWAB MUTLAK KEBENARAN DATA KEMATIAN',
     shortTitle: 'SPTJM Kematian',
     description: 'SPTJM kebenaran data kematian untuk pengurusan akta kematian (bermaterai).',
     category: 'SPTJM',
@@ -1128,6 +1203,11 @@ export const LETTER_DEFINITIONS: LetterDefinition[] = [
       { name: 'bansosDiterima', label: '10. Bansos yang diterima saat ini', type: 'textarea', rows: 2 },
       { name: 'usahaPenghasilan', label: '11. Usaha / penghasilan', type: 'textarea', rows: 2 },
       { name: 'catatanPetugas', label: 'Catatan petugas', type: 'textarea', rows: 2 },
+      // Fase 5: nama penandatangan grid (bila kosong → garis titik-titik).
+      { name: 'namaFasilitator', label: 'Nama Fasilitator', type: 'text' },
+      { name: 'namaKetuaRW', label: 'Nama Ketua RW', type: 'text' },
+      { name: 'namaKetuaRT', label: 'Nama Ketua RT', type: 'text' },
+      { name: 'namaCamat', label: 'Nama Camat', type: 'text' },
     ],
   },
   {
@@ -1140,13 +1220,37 @@ export const LETTER_DEFINITIONS: LetterDefinition[] = [
     nomorSuffix: 'KS',
     applicantField: 'namaLengkap',
     fields: [
-      { name: 'namaLengkap', label: 'Nama Lengkap', type: 'text', required: true },
+      // Fase 5: urutan render template — No KK, NIK, Nama, TTL, JK, WN,
+      // Status Kawin, Agama, Pekerjaan, Alamat.
+      { name: 'noKK', label: 'Nomor Kartu Keluarga', type: 'text' },
       { name: 'nik', label: 'NIK', type: 'text', required: true, placeholder: '16 digit angka' },
+      { name: 'namaLengkap', label: 'Nama Lengkap', type: 'text', required: true },
       { name: 'tempatLahir', label: 'Tempat Lahir', type: 'text' },
       { name: 'tanggalLahir', label: 'Tanggal Lahir', type: 'date' },
+      { ...JENIS_KELAMIN },
+      { name: 'wargaNegara', label: 'Warga Negara', type: 'text', defaultValue: 'Indonesia' },
+      {
+        name: 'statusPerkawinan',
+        label: 'Status Perkawinan',
+        type: 'select',
+        options: [
+          { value: '', label: 'Pilih...' },
+          { value: 'Belum Kawin', label: 'Belum Kawin' },
+          { value: 'Kawin', label: 'Kawin' },
+          { value: 'Cerai Hidup', label: 'Cerai Hidup' },
+          { value: 'Cerai Mati', label: 'Cerai Mati' },
+        ],
+      },
+      { name: 'agama', label: 'Agama', type: 'text', defaultValue: 'Islam' },
       { name: 'pekerjaan', label: 'Pekerjaan', type: 'text' },
       { name: 'alamat', label: 'Alamat', type: 'textarea', required: true, rows: 2 },
-      { name: 'isiPernyataan', label: 'Isi Pernyataan', type: 'textarea', required: true, rows: 4, placeholder: 'Tuliskan isi pernyataan dengan sebenarnya...' },
+      // Isi pernyataan lama dipertahankan sebagai paragraf tambahan
+      // (bila terisi) — 2 butir tetap template selalu tampil.
+      { name: 'isiPernyataan', label: 'Isi Pernyataan Tambahan (opsional)', type: 'textarea', rows: 4, placeholder: 'Bila ada pernyataan tambahan di luar 2 butir template...' },
+      // Fase 5: nama penandatangan grid (bila kosong → garis titik-titik).
+      { name: 'namaKetuaRW', label: 'Nama Saksi Ketua RW', type: 'text' },
+      { name: 'namaKetuaRT', label: 'Nama Saksi Ketua RT', type: 'text' },
+      { name: 'namaCamat', label: 'Nama Camat', type: 'text' },
     ],
   },
   {
@@ -1164,6 +1268,135 @@ export const LETTER_DEFINITIONS: LetterDefinition[] = [
       { name: 'tempatLahir', label: 'Tempat Lahir', type: 'text' },
       { name: 'tanggalLahir', label: 'Tanggal Lahir', type: 'date' },
       { name: 'pekerjaan', label: 'Pekerjaan', type: 'text' },
+      { name: 'alamat', label: 'Alamat', type: 'textarea', required: true, rows: 2 },
+    ],
+  },
+
+  // ================= FASE 5 — TIPE BARU (total 33) =================
+  {
+    id: 'sktm_pbi',
+    title: 'SURAT KETERANGAN MISKIN (PBI-JKN)',
+    shortTitle: 'SKTM PBI-JKN',
+    description: 'Surat keterangan miskin untuk keperluan PBI-JKN (RSUD / IPB / pengajuan PBI KIS).',
+    category: 'Bansos (PBI-JKN)',
+    nomorPrefix: '474.4',
+    nomorSuffix: 'KS',
+    applicantField: 'namaLengkap',
+    fields: [
+      { name: 'noKK', label: 'Nomor Kartu Keluarga', type: 'text' },
+      { name: 'nik', label: 'NIK', type: 'text', required: true, placeholder: '16 digit angka' },
+      { name: 'namaLengkap', label: 'Nama Lengkap', type: 'text', required: true },
+      { name: 'tempatLahir', label: 'Tempat Lahir', type: 'text' },
+      { name: 'tanggalLahir', label: 'Tanggal Lahir', type: 'date' },
+      { ...JENIS_KELAMIN },
+      { name: 'wargaNegara', label: 'Warga Negara', type: 'text', defaultValue: 'Indonesia' },
+      {
+        name: 'statusPerkawinan',
+        label: 'Status Perkawinan',
+        type: 'select',
+        options: [
+          { value: '', label: 'Pilih...' },
+          { value: 'Belum Kawin', label: 'Belum Kawin' },
+          { value: 'Kawin', label: 'Kawin' },
+          { value: 'Cerai Hidup', label: 'Cerai Hidup' },
+          { value: 'Cerai Mati', label: 'Cerai Mati' },
+        ],
+      },
+      { name: 'agama', label: 'Agama', type: 'text', defaultValue: 'Islam' },
+      { name: 'pekerjaan', label: 'Pekerjaan', type: 'text' },
+      { name: 'alamat', label: 'Alamat', type: 'textarea', required: true, rows: 2 },
+      {
+        name: 'tujuan',
+        label: 'Tujuan Surat',
+        type: 'select',
+        required: true,
+        options: [
+          { value: '', label: 'Pilih...' },
+          { value: 'RSUD Subang', label: 'RSUD Subang' },
+          { value: 'Institut Pertanian Bogor (IPB)', label: 'Institut Pertanian Bogor (IPB)' },
+          { value: 'Pengajuan PBI KIS', label: 'Pengajuan PBI KIS' },
+          { value: 'RSUD Ciereng Subang', label: 'RSUD Ciereng Subang' },
+        ],
+      },
+      {
+        name: 'daftarAnak',
+        label: 'Daftar Anggota Keluarga (opsional — dirender bila ada baris terisi)',
+        type: 'table',
+        minRows: 1,
+        maxRows: 10,
+        columns: [
+          { name: 'noKK', label: 'No KK' },
+          { name: 'nik', label: 'NIK' },
+          { name: 'nama', label: 'Nama' },
+          { name: 'ttl', label: 'TTL' },
+          { name: 'jenisKelamin', label: 'JK' },
+          { name: 'wargaNegara', label: 'WN' },
+          { name: 'statusPerkawinan', label: 'Status' },
+          { name: 'agama', label: 'Agama' },
+          { name: 'pekerjaan', label: 'Pekerjaan' },
+          { name: 'alamat', label: 'Alamat' },
+        ],
+      },
+      { name: 'namaKetuaRW', label: 'Nama Ketua RW', type: 'text' },
+      { name: 'namaKetuaRT', label: 'Nama Ketua RT', type: 'text' },
+      { name: 'namaCamat', label: 'Nama Camat', type: 'text' },
+    ],
+  },
+  {
+    id: 'pbi_rekening_listrik',
+    title: 'SURAT PERNYATAAN TIDAK MEMILIKI REKENING LISTRIK',
+    shortTitle: 'Tidak Memiliki Rekening Listrik',
+    description: 'Surat pernyataan tidak memiliki rekening listrik; menumpang aliran listrik tetangga (PBI-JKN).',
+    category: 'Bansos (PBI-JKN)',
+    nomorPrefix: '474.4',
+    nomorSuffix: 'KS',
+    applicantField: 'namaLengkap',
+    fields: [
+      { name: 'noKK', label: 'Nomor Kartu Keluarga', type: 'text' },
+      { name: 'nik', label: 'NIK', type: 'text', required: true, placeholder: '16 digit angka' },
+      { name: 'namaLengkap', label: 'Nama Lengkap', type: 'text', required: true },
+      { name: 'tempatLahir', label: 'Tempat Lahir', type: 'text' },
+      { name: 'tanggalLahir', label: 'Tanggal Lahir', type: 'date' },
+      { ...JENIS_KELAMIN },
+      { name: 'wargaNegara', label: 'Warga Negara', type: 'text', defaultValue: 'Indonesia' },
+      {
+        name: 'statusPerkawinan',
+        label: 'Status Perkawinan',
+        type: 'select',
+        options: [
+          { value: '', label: 'Pilih...' },
+          { value: 'Belum Kawin', label: 'Belum Kawin' },
+          { value: 'Kawin', label: 'Kawin' },
+          { value: 'Cerai Hidup', label: 'Cerai Hidup' },
+          { value: 'Cerai Mati', label: 'Cerai Mati' },
+        ],
+      },
+      { name: 'agama', label: 'Agama', type: 'text', defaultValue: 'Islam' },
+      { name: 'pekerjaan', label: 'Pekerjaan', type: 'text' },
+      { name: 'alamat', label: 'Alamat', type: 'textarea', required: true, rows: 2 },
+      { name: 'namaTetangga', label: 'Nama Tetangga (pemilik aliran listrik)', type: 'text', required: true },
+      { name: 'nomorPelanggan', label: 'Nomor Pelanggan Listrik', type: 'text', required: true },
+      { name: 'namaKetuaRW', label: 'Nama Ketua RW', type: 'text' },
+      { name: 'namaKetuaRT', label: 'Nama Ketua RT', type: 'text' },
+      { name: 'namaCamat', label: 'Nama Camat', type: 'text' },
+    ],
+  },
+  {
+    id: 'pernyataan_akta_kelahiran',
+    title: 'SURAT PERNYATAAN',
+    shortTitle: 'Pernyataan Akta Kelahiran',
+    description: 'Pernyataan bahwa yang bersangkutan sedang membuat akta kelahiran (template DOCX 12b).',
+    category: 'Surat Desa',
+    nomorPrefix: '141',
+    nomorSuffix: 'Pem',
+    applicantField: 'namaLengkap',
+    fields: [
+      { name: 'nik', label: 'NIK', type: 'text', required: true, placeholder: '16 digit angka' },
+      { name: 'namaLengkap', label: 'Nama Lengkap', type: 'text', required: true },
+      { name: 'tempatLahir', label: 'Tempat Lahir', type: 'text' },
+      { name: 'tanggalLahir', label: 'Tanggal Lahir', type: 'date' },
+      { name: 'namaAyah', label: 'Nama Ayah', type: 'text', required: true },
+      { name: 'namaIbu', label: 'Nama Ibu', type: 'text', required: true },
       { name: 'alamat', label: 'Alamat', type: 'textarea', required: true, rows: 2 },
     ],
   },

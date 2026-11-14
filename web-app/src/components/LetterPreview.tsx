@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useLetterStore } from '../lib/store';
 import { generatePdf } from '../lib/pdf-generator';
+import { getLetterContent } from '../lib/letter-content';
 import { recordHistory } from '../lib/history';
 import { LetterBody } from './LetterBody';
 import { Download, Printer, X, FileText, RotateCcw } from 'lucide-react';
@@ -23,6 +24,10 @@ export function LetterPreview({ isOpen, onClose, onNewLetter }: LetterPreviewPro
   const [error, setError] = useState('');
 
   if (!isOpen) return null;
+
+  // Fase 5: @page landscape kondisional untuk kematian/f101 — <style> di
+  // dalam modal menang atas @page portrait di globals.css saat mencetak.
+  const isLandscape = getLetterContent(letterType, headerData, letterData).landscape === true;
 
   const handleDownloadPdf = async () => {
     setIsGenerating(true);
@@ -75,6 +80,7 @@ export function LetterPreview({ isOpen, onClose, onNewLetter }: LetterPreviewPro
 
         {/* Area surat — INI yang dicetak */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-stone-200">
+          {isLandscape && <style>{`@page { size: A4 landscape; margin: 15mm 20mm; }`}</style>}
           <div className="print-area">
             <LetterBody letterType={letterType} headerData={headerData} letterData={letterData} />
           </div>

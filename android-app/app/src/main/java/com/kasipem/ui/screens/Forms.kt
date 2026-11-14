@@ -147,6 +147,19 @@ fun LetterForm(
             data = letterData as PbiTidakPunyaRekeningData,
             onDataChange = { onDataChange(it) }
         )
+        // ---- Fase 5: 3 tipe baru ----
+        LetterType.SKTM_PBI -> SktmPbiForm(
+            data = letterData as SktmPbiData,
+            onDataChange = { onDataChange(it) }
+        )
+        LetterType.PBI_REKENING_LISTRIK -> PbiRekeningListrikForm(
+            data = letterData as PbiRekeningListrikData,
+            onDataChange = { onDataChange(it) }
+        )
+        LetterType.PERNYATAAN_AKTA_KELAHIRAN -> PernyataanAktaKelahiranForm(
+            data = letterData as PernyataanAktaKelahiranData,
+            onDataChange = { onDataChange(it) }
+        )
     }
 }
 
@@ -401,7 +414,10 @@ private fun AnggotaPerubahanEditor(
     list.forEachIndexed { index, a ->
         SectionTitle("Baris ${index + 1}")
         F("Nama", a.nama, upd(index) { x, v -> x.copy(nama = v) })
-        F("Perubahan", a.perubahan, upd(index) { x, v -> x.copy(perubahan = v) }, placeholder = "Contoh: Nama semula → nama menjadi", singleLine = false, maxLines = 2, optional = true)
+        NikF(value = a.nik, onChange = upd(index) { x, v -> x.copy(nik = v) })
+        F("SHDK", a.shdk, upd(index) { x, v -> x.copy(shdk = v) }, placeholder = "Contoh: Kepala Keluarga", optional = true)
+        F("Keterangan", a.keterangan, upd(index) { x, v -> x.copy(keterangan = v) }, placeholder = "Contoh: Nama semula → nama menjadi", singleLine = false, maxLines = 2, optional = true)
+        F("Perubahan", a.perubahan, upd(index) { x, v -> x.copy(perubahan = v) }, placeholder = "Isi lama (dipakai bila Keterangan kosong)", singleLine = false, maxLines = 2, optional = true)
         if (list.size > 1) {
             OutlinedButton(onClick = { onChange(list.filterIndexed { i, _ -> i != index }) }, modifier = Modifier.fillMaxWidth()) {
                 Text("Hapus Baris ${index + 1}")
@@ -498,7 +514,7 @@ fun DomisiliForm(
                 F("Nama Perusahaan", data.namaPerusahaan, { onDataChange(data.copy(namaPerusahaan = it)) }, required = true)
                 F("Nama Pimpinan", data.namaPimpinan, { onDataChange(data.copy(namaPimpinan = it)) }, required = true)
                 F("Nama Sekretaris", data.namaSekretaris, { onDataChange(data.copy(namaSekretaris = it)) }, optional = true)
-                F("Bidang Usaha", data.bidangUsaha, { onDataChange(data.copy(bidangUsaha = it)) }, placeholder = "Contoh: Perdagangan")
+                F("Bergerak di Bidang", data.bidangUsaha, { onDataChange(data.copy(bidangUsaha = it)) }, placeholder = "Contoh: Perdagangan")
                 F("Alamat", data.alamatOrganisasi, { onDataChange(data.copy(alamatOrganisasi = it)) }, placeholder = "Alamat perusahaan", singleLine = false, maxLines = 3)
                 F("Keperluan Surat", data.keperluanSurat, { onDataChange(data.copy(keperluanSurat = it)) }, placeholder = "Contoh: Pembuatan rekening bank")
             }
@@ -686,6 +702,47 @@ fun SktDayatForm(
             value = data.batasBarat,
             onValueChange = { onDataChange(data.copy(batasBarat = it)) }
         )
+        Divider(modifier = Modifier.padding(vertical = 8.dp))
+        SectionTitle("Harga Taksiran Tanah")
+        FormTextField(
+            label = "Harga Taksiran Bangunan (Rp)",
+            value = data.hargaTaksiranBangunan,
+            onValueChange = { onDataChange(data.copy(hargaTaksiranBangunan = it)) },
+            placeholder = "Contoh: 50000000",
+            keyboardType = KeyboardType.Number,
+            isOptional = true
+        )
+        FormTextField(
+            label = "Harga Taksiran Tanah (Rp)",
+            value = data.hargaTaksiranTanah,
+            onValueChange = { onDataChange(data.copy(hargaTaksiranTanah = it)) },
+            placeholder = "Contoh: 100000000",
+            keyboardType = KeyboardType.Number,
+            isOptional = true
+        )
+        FormTextField(
+            label = "Jumlah Harga Taksiran (Rp)",
+            value = data.hargaTaksiranJumlah,
+            onValueChange = { onDataChange(data.copy(hargaTaksiranJumlah = it)) },
+            placeholder = "Contoh: 150000000",
+            keyboardType = KeyboardType.Number,
+            isOptional = true
+        )
+        Divider(modifier = Modifier.padding(vertical = 8.dp))
+        SectionTitle("Register")
+        FormTextField(
+            label = "No. Register",
+            value = data.noRegister,
+            onValueChange = { onDataChange(data.copy(noRegister = it)) },
+            isOptional = true
+        )
+        FormTextField(
+            label = "Tanggal Register",
+            value = data.tanggalRegister,
+            onValueChange = { onDataChange(data.copy(tanggalRegister = it)) },
+            placeholder = "Contoh: 12 Januari 2026",
+            isOptional = true
+        )
     }
 }
 
@@ -733,6 +790,13 @@ fun BedaLuasForm(
             onValueChange = { onDataChange(data.copy(nomorSertifikat = it)) }
         )
         FormTextField(
+            label = "Nomor NIB",
+            value = data.nomorNIB,
+            onValueChange = { onDataChange(data.copy(nomorNIB = it)) },
+            placeholder = "Nomor Induk Bidang",
+            isOptional = true
+        )
+        FormTextField(
             label = "Luas Sertifikat (m²)",
             value = data.luasSertifikat,
             onValueChange = { onDataChange(data.copy(luasSertifikat = it)) },
@@ -757,6 +821,7 @@ fun BedaNamaForm(
     data: BedaNamaData,
     onDataChange: (BedaNamaData) -> Unit,
 ) {
+    // FASE 5 — 2 seksi "Keterangan data dari [dokumen]" (template 3b).
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         NomorTanggalFields(
             type = LetterType.BEDA_NAMA,
@@ -765,28 +830,29 @@ fun BedaNamaForm(
             onNomorSuratChange = { onDataChange(data.copy(nomorSurat = it)) },
             onTanggalSuratChange = { onDataChange(data.copy(tanggalSurat = it)) }
         )
-        NamaField(value = data.namaLengkap, onValueChange = { onDataChange(data.copy(namaLengkap = it)) })
-        NikField(value = data.nik, onValueChange = { onDataChange(data.copy(nik = it)) })
-        FormTextField(
-            label = "Nama di Dokumen 1",
-            value = data.namaDokumen1,
-            onValueChange = { onDataChange(data.copy(namaDokumen1 = it)) },
-            placeholder = "Contoh: nama di KTP"
+        SectionTitle("Keterangan data dari Dokumen Pertama")
+        D(
+            label = "Dokumen Pertama",
+            value = data.dokumenPertama,
+            options = listOf("IJAZAH", "KTP", "AKTA KELAHIRAN", "BUKU NIKAH & KK"),
+            onChange = { onDataChange(data.copy(dokumenPertama = it)) }
         )
-        FormTextField(
-            label = "Nama di Dokumen 2",
-            value = data.namaDokumen2,
-            onValueChange = { onDataChange(data.copy(namaDokumen2 = it)) },
-            placeholder = "Contoh: nama di Akta Kelahiran"
+        NikF(value = data.nikDokumenPertama, onChange = { onDataChange(data.copy(nikDokumenPertama = it)) })
+        F("Nama", data.namaDokumenPertama, { onDataChange(data.copy(namaDokumenPertama = it)) }, placeholder = "Nama di dokumen pertama", required = true)
+        F("Tempat/Tgl Lahir", data.ttlDokumenPertama, { onDataChange(data.copy(ttlDokumenPertama = it)) }, placeholder = "Contoh: Subang, 12 Januari 1990")
+        F("Alamat", data.alamatDokumenPertama, { onDataChange(data.copy(alamatDokumenPertama = it)) }, singleLine = false, maxLines = 3)
+        Divider(modifier = Modifier.padding(vertical = 8.dp))
+        SectionTitle("Keterangan data dari Dokumen Kedua")
+        D(
+            label = "Dokumen Kedua",
+            value = data.dokumenKedua,
+            options = listOf("BUKU NIKAH & KK", "IJAZAH", "KTP", "AKTA KELAHIRAN"),
+            onChange = { onDataChange(data.copy(dokumenKedua = it)) }
         )
-        FormTextField(
-            label = "Alasan / Keterangan",
-            value = data.alasan,
-            onValueChange = { onDataChange(data.copy(alasan = it)) },
-            placeholder = "Jelaskan perbedaan namanya",
-            singleLine = false,
-            maxLines = 3
-        )
+        NikF(value = data.nikDokumenKedua, onChange = { onDataChange(data.copy(nikDokumenKedua = it)) })
+        F("Nama", data.namaDokumenKedua, { onDataChange(data.copy(namaDokumenKedua = it)) }, placeholder = "Nama di dokumen kedua", required = true)
+        F("Tempat/Tgl Lahir", data.ttlDokumenKedua, { onDataChange(data.copy(ttlDokumenKedua = it)) }, placeholder = "Contoh: Subang, 12 Januari 1990")
+        F("Alamat", data.alamatDokumenKedua, { onDataChange(data.copy(alamatDokumenKedua = it)) }, singleLine = false, maxLines = 3)
     }
 }
 
@@ -1003,27 +1069,13 @@ fun AhliWarisForm(
         )
         SectionTitle("Data Almarhum/almarhumah (Peninggal)")
         NamaField(label = "Nama Peninggal", value = data.namaPeninggal, onValueChange = { onDataChange(data.copy(namaPeninggal = it)) })
-        FormTextField(
-            label = "NIK Peninggal",
-            value = data.nikPeninggal,
-            onValueChange = { onDataChange(data.copy(nikPeninggal = it)) },
-            placeholder = "16 digit angka",
-            error = nikError(data.nikPeninggal),
-            keyboardType = KeyboardType.Number
-        )
+        // FASE 5 — NIK / Jenis Kelamin / Alamat Peninggal DIHAPUS dari form
+        // (tidak ada di kanonik web Fase 3); diganti Sebutan Peninggal.
         D(
-            "Jenis Kelamin Peninggal",
-            data.jenisKelaminPeninggal,
-            listOf("", "Laki-laki", "Perempuan"),
-            { onDataChange(data.copy(jenisKelaminPeninggal = it)) },
-            optional = true
-        )
-        FormTextField(
-            label = "Alamat Peninggal",
-            value = data.alamatPeninggal,
-            onValueChange = { onDataChange(data.copy(alamatPeninggal = it)) },
-            singleLine = false,
-            maxLines = 3
+            "Sebutan Peninggal",
+            data.sebutanPeninggal,
+            listOf("Almarhum", "Almarhumah"),
+            { onDataChange(data.copy(sebutanPeninggal = it)) }
         )
         Divider(modifier = Modifier.padding(vertical = 8.dp))
         SectionTitle("Meninggal Dunia")
@@ -1035,6 +1087,15 @@ fun AhliWarisForm(
         SectionTitle("Pasangan yang Masih Hidup")
         F("Nama Pasangan", data.namaPasangan, { onDataChange(data.copy(namaPasangan = it)) }, placeholder = "Nama istri/suami yang masih hidup", optional = true)
         D("Hubungan Pasangan", data.hubunganPasangan, listOf("Istri", "Suami"), { onDataChange(data.copy(hubunganPasangan = it)) })
+        // FASE 5 — jumlah anak (dipakai pembuka bila > 0; bila 0, dihitung dari tabel).
+        F(
+            "Jumlah Anak",
+            if (data.jumlahAnak == 0) "" else data.jumlahAnak.toString(),
+            { onDataChange(data.copy(jumlahAnak = it.toIntOrNull() ?: 0)) },
+            placeholder = "Contoh: 3 (kosong = hitung dari tabel ahli waris)",
+            keyboardType = KeyboardType.Number,
+            optional = true
+        )
         Divider(modifier = Modifier.padding(vertical = 8.dp))
         SectionTitle("Daftar Ahli Waris (min. 1, maks. 20)")
         AhliWarisEditor(data.daftarAhliWaris) { onDataChange(data.copy(daftarAhliWaris = it)) }
@@ -1052,6 +1113,15 @@ fun AhliWarisForm(
             isOptional = true,
             singleLine = false,
             maxLines = 2
+        )
+        FormTextField(
+            label = "Keterangan",
+            value = data.keterangan,
+            onValueChange = { onDataChange(data.copy(keterangan = it)) },
+            placeholder = "Keterangan tambahan (opsional)",
+            isOptional = true,
+            singleLine = false,
+            maxLines = 3
         )
     }
 }
@@ -1071,6 +1141,7 @@ fun NikahTidakTercatatForm(
         )
         SectionTitle("Pihak Pria")
         NamaField(label = "Nama Pria", value = data.namaPria, onValueChange = { onDataChange(data.copy(namaPria = it)) })
+        F("Bin Suami", data.binSuami, { onDataChange(data.copy(binSuami = it)) }, placeholder = "Contoh: bin Ahmad", optional = true)
         FormTextField(
             label = "NIK Pria",
             value = data.nikPria,
@@ -1092,9 +1163,11 @@ fun NikahTidakTercatatForm(
             onValueChange = { onDataChange(data.copy(tanggalLahirPria = it)) },
             isOptional = true
         )
+        F("Agama Suami", data.agamaSuami, { onDataChange(data.copy(agamaSuami = it)) }, placeholder = "Contoh: Islam", optional = true)
         Divider(modifier = Modifier.padding(vertical = 8.dp))
         SectionTitle("Pihak Wanita")
         NamaField(label = "Nama Wanita", value = data.namaWanita, onValueChange = { onDataChange(data.copy(namaWanita = it)) })
+        F("Bin Istri", data.binIstri, { onDataChange(data.copy(binIstri = it)) }, placeholder = "Contoh: binti Ahmad", optional = true)
         FormTextField(
             label = "NIK Wanita",
             value = data.nikWanita,
@@ -1116,6 +1189,7 @@ fun NikahTidakTercatatForm(
             onValueChange = { onDataChange(data.copy(tanggalLahirWanita = it)) },
             isOptional = true
         )
+        F("Agama Istri", data.agamaIstri, { onDataChange(data.copy(agamaIstri = it)) }, placeholder = "Contoh: Islam", optional = true)
         Divider(modifier = Modifier.padding(vertical = 8.dp))
         SectionTitle("Pernikahan")
         FormTextField(
@@ -1132,6 +1206,13 @@ fun NikahTidakTercatatForm(
             singleLine = false,
             maxLines = 3
         )
+        Divider(modifier = Modifier.padding(vertical = 8.dp))
+        SectionTitle("Wali & Saksi")
+        F("Nama Wali", data.namaWali, { onDataChange(data.copy(namaWali = it)) }, placeholder = "Contoh: Bapak Ahmad", optional = true)
+        F("Saksi 1", data.saksi1, { onDataChange(data.copy(saksi1 = it)) }, placeholder = "Contoh: Bapak Udin", optional = true)
+        F("Saksi 2", data.saksi2, { onDataChange(data.copy(saksi2 = it)) }, placeholder = "Contoh: Bapak Asep", optional = true)
+        F("Mas Kawin", data.masKawin, { onDataChange(data.copy(masKawin = it)) }, placeholder = "Alat sholat", optional = true)
+        F("Status Perkawinan", data.statusPerkawinan, { onDataChange(data.copy(statusPerkawinan = it)) }, placeholder = "Contoh: duda dan janda (opsional)", optional = true)
     }
 }
 
@@ -1182,6 +1263,17 @@ fun PemakamanForm(
             onValueChange = { onDataChange(data.copy(tanggalMeninggal = it)) },
             placeholder = "Contoh: 6 Juli 2025"
         )
+        Divider(modifier = Modifier.padding(vertical = 8.dp))
+        SectionTitle("Keterangan Meninggal")
+        F("Hari Meninggal", data.hariMeninggal, { onDataChange(data.copy(hariMeninggal = it)) }, placeholder = "Contoh: Minggu", optional = true)
+        F("Jam Meninggal", data.jamMeninggal, { onDataChange(data.copy(jamMeninggal = it)) }, placeholder = "Contoh: 08.30", optional = true)
+        F("Tempat Meninggal", data.tempatMeninggal, { onDataChange(data.copy(tempatMeninggal = it)) }, placeholder = "Contoh: di rumah", optional = true)
+        Divider(modifier = Modifier.padding(vertical = 8.dp))
+        SectionTitle("Disemayamkan")
+        F("Hari Disemayamkan", data.hariDisemayamkan, { onDataChange(data.copy(hariDisemayamkan = it)) }, placeholder = "Contoh: Minggu", optional = true)
+        F("Tanggal Disemayamkan", data.tanggalDisemayamkan, { onDataChange(data.copy(tanggalDisemayamkan = it)) }, placeholder = "Contoh: 6 Juli 2025", optional = true)
+        F("Tempat Disemayamkan", data.tempatDisemayamkan, { onDataChange(data.copy(tempatDisemayamkan = it)) }, placeholder = "Contoh: rumah duka", optional = true)
+        Divider(modifier = Modifier.padding(vertical = 8.dp))
         FormTextField(
             label = "Lokasi Makam",
             value = data.lokasiMakam,
@@ -1422,6 +1514,8 @@ fun DudaJandaForm(
         TtlFields(data.tempatLahir, data.tanggalLahir, { onDataChange(data.copy(tempatLahir = it)) }, { onDataChange(data.copy(tanggalLahir = it)) })
         F("Pekerjaan", data.pekerjaan, { onDataChange(data.copy(pekerjaan = it)) }, optional = true)
         F("Alamat", data.alamat, { onDataChange(data.copy(alamat = it)) }, singleLine = false, maxLines = 3)
+        F("RT", data.rt, { onDataChange(data.copy(rt = it)) }, placeholder = "001", keyboardType = KeyboardType.Number, optional = true)
+        F("RW", data.rw, { onDataChange(data.copy(rw = it)) }, placeholder = "001", keyboardType = KeyboardType.Number, optional = true)
         F("Keterangan Ketua RT", data.keteranganRT, { onDataChange(data.copy(keteranganRT = it)) }, placeholder = "Keterangan dari Ketua RT setempat", singleLine = false, maxLines = 3, optional = true)
     }
 }
@@ -1440,7 +1534,7 @@ fun F101Form(
             onTanggalSuratChange = { onDataChange(data.copy(tanggalSurat = it)) }
         )
         Text(
-            "Formulir Disdukcapil — kop Dinas Kependudukan dan Pencatatan Sipil Kab. Subang (teks saja, tanpa logo desa).",
+            "Formulir Disdukcapil — kop Dinas Kependudukan dan Pencatatan Sipil Kabupaten Subang (teks saja, tanpa logo desa).",
             style = MaterialTheme.typography.bodyMedium
         )
         SectionTitle("Data Kepala Keluarga")
@@ -1468,7 +1562,7 @@ fun F102Form(
             onTanggalSuratChange = { onDataChange(data.copy(tanggalSurat = it)) }
         )
         Text(
-            "Formulir Disdukcapil — kop Dinas Kependudukan dan Pencatatan Sipil Kab. Subang (teks saja, tanpa logo desa).",
+            "Formulir Disdukcapil — kop Dinas Kependudukan dan Pencatatan Sipil Kabupaten Subang (teks saja, tanpa logo desa).",
             style = MaterialTheme.typography.bodyMedium
         )
         NamaField(value = data.namaLengkap, onValueChange = { onDataChange(data.copy(namaLengkap = it)) })
@@ -1477,7 +1571,7 @@ fun F102Form(
         D(
             "Jenis Permohonan",
             data.jenisPermohonan,
-            listOf("", "KK baru", "KK perubahan", "KK hilang-rusak", "KTP-el baru", "KTP-el pindah", "KTP-el hilang-rusak", "Perpanjangan ITAP", "KIA", "Perubahan data"),
+            F102_JENIS_PERMOHONAN,
             { onDataChange(data.copy(jenisPermohonan = it)) }
         )
         F("Daftar Lampiran", data.daftarLampiran, { onDataChange(data.copy(daftarLampiran = it)) }, placeholder = "Contoh: Fotokopi KK; Surat keterangan hilang", singleLine = false, maxLines = 3, optional = true)
@@ -1498,13 +1592,13 @@ fun F103Form(
             onTanggalSuratChange = { onDataChange(data.copy(tanggalSurat = it)) }
         )
         Text(
-            "Formulir Disdukcapil — kop Dinas Kependudukan dan Pencatatan Sipil Kab. Subang (teks saja, tanpa logo desa).",
+            "Formulir Disdukcapil — kop Dinas Kependudukan dan Pencatatan Sipil Kabupaten Subang (teks saja, tanpa logo desa).",
             style = MaterialTheme.typography.bodyMedium
         )
         F("No. KK", data.noKK, { onDataChange(data.copy(noKK = it)) }, placeholder = "16 digit nomor KK", keyboardType = KeyboardType.Number)
         NamaField(label = "Nama Pemohon", value = data.namaPemohon, onValueChange = { onDataChange(data.copy(namaPemohon = it)) })
         NikField(value = data.nik, onValueChange = { onDataChange(data.copy(nik = it)) })
-        D("Jenis Permohonan", data.jenisPermohonan, listOf("", "SKP", "SKPLN", "SKTT"), { onDataChange(data.copy(jenisPermohonan = it)) }, optional = true)
+        D("Jenis Permohonan", data.jenisPermohonan, F103_JENIS_PERMOHONAN, { onDataChange(data.copy(jenisPermohonan = it)) }, optional = true)
         F("Alamat Asal", data.alamatAsal, { onDataChange(data.copy(alamatAsal = it)) }, singleLine = false, maxLines = 3)
         F("RT", data.rt, { onDataChange(data.copy(rt = it)) }, placeholder = "001", keyboardType = KeyboardType.Number)
         F("RW", data.rw, { onDataChange(data.copy(rw = it)) }, placeholder = "001", keyboardType = KeyboardType.Number)
@@ -1641,7 +1735,7 @@ fun F115Form(
             onTanggalSuratChange = { onDataChange(data.copy(tanggalSurat = it)) }
         )
         Text(
-            "Formulir Disdukcapil — kop Dinas Kependudukan dan Pencatatan Sipil Kab. Subang (teks saja, tanpa logo desa).",
+            "Formulir Disdukcapil — kop Dinas Kependudukan dan Pencatatan Sipil Kabupaten Subang (teks saja, tanpa logo desa).",
             style = MaterialTheme.typography.bodyMedium
         )
         NamaField(label = "Nama Pemohon", value = data.namaPemohon, onValueChange = { onDataChange(data.copy(namaPemohon = it)) })
@@ -1710,6 +1804,7 @@ fun F201Form(
                 F("Nama Anak", data.anakNama, { onDataChange(data.copy(anakNama = it)) }, required = true)
                 F("Tempat Lahir Anak", data.anakTempatLahir, { onDataChange(data.copy(anakTempatLahir = it)) }, optional = true)
                 F("Tanggal Lahir Anak", data.anakTanggalLahir, { onDataChange(data.copy(anakTanggalLahir = it)) }, optional = true)
+                F("Pukul Lahir", data.anakPukulLahir, { onDataChange(data.copy(anakPukulLahir = it)) }, placeholder = "Contoh: 08:30", optional = true)
                 D("Jenis Kelamin Anak", data.anakJenisKelamin, listOf("", "Laki-laki", "Perempuan"), { onDataChange(data.copy(anakJenisKelamin = it)) }, optional = true)
                 F("Anak Ke", data.anakKe, { onDataChange(data.copy(anakKe = it)) }, placeholder = "Contoh: 1", keyboardType = KeyboardType.Number, optional = true)
             }
@@ -1719,7 +1814,9 @@ fun F201Form(
                 F("Tanggal", data.lahirMatiTanggal, { onDataChange(data.copy(lahirMatiTanggal = it)) })
                 F("Pukul", data.lahirMatiPukul, { onDataChange(data.copy(lahirMatiPukul = it)) }, placeholder = "Contoh: 08:30", optional = true)
                 F("Tempat", data.lahirMatiTempat, { onDataChange(data.copy(lahirMatiTempat = it)) }, optional = true)
+                D("Jenis Kelamin", data.lahirMatiJenisKelamin, listOf("", "Laki-laki", "Perempuan"), { onDataChange(data.copy(lahirMatiJenisKelamin = it)) }, optional = true)
                 F("Sebab", data.lahirMatiSebab, { onDataChange(data.copy(lahirMatiSebab = it)) }, optional = true)
+                F("Keterangan", data.lahirMatiKeterangan, { onDataChange(data.copy(lahirMatiKeterangan = it)) }, singleLine = false, maxLines = 2, optional = true)
             }
             "pasangan" -> {
                 SectionTitle("Data Perkawinan / Perceraian")
@@ -1727,6 +1824,7 @@ fun F201Form(
                 F("Nama Istri", data.pasanganIstriNama, { onDataChange(data.copy(pasanganIstriNama = it)) })
                 F("Tanggal Peristiwa", data.tanggalPeristiwa, { onDataChange(data.copy(tanggalPeristiwa = it)) }, placeholder = "Contoh: 5 Oktober 1965")
                 F("Tempat Peristiwa", data.tempatPeristiwa, { onDataChange(data.copy(tempatPeristiwa = it)) }, optional = true)
+                F("Keterangan", data.pasanganKeterangan, { onDataChange(data.copy(pasanganKeterangan = it)) }, singleLine = false, maxLines = 2, optional = true)
             }
             "kematian" -> {
                 SectionTitle("Data Kematian")
@@ -1740,6 +1838,8 @@ fun F201Form(
             }
             else -> {
                 SectionTitle("Keterangan Peristiwa")
+                F("Tanggal Peristiwa", data.tanggalPeristiwa, { onDataChange(data.copy(tanggalPeristiwa = it)) }, placeholder = "Contoh: 5 Oktober 1965", optional = true)
+                F("Tempat Peristiwa", data.tempatPeristiwa, { onDataChange(data.copy(tempatPeristiwa = it)) }, optional = true)
                 F("Keterangan Peristiwa", data.keteranganPeristiwa, { onDataChange(data.copy(keteranganPeristiwa = it)) }, placeholder = "Uraian peristiwa yang dilaporkan", singleLine = false, maxLines = 3, optional = true)
             }
         }
@@ -1994,10 +2094,15 @@ fun PbiPernyataanForm(
         )
         NamaField(value = data.namaLengkap, onValueChange = { onDataChange(data.copy(namaLengkap = it)) })
         NikField(value = data.nik, onValueChange = { onDataChange(data.copy(nik = it)) })
+        F("No. KK", data.noKK, { onDataChange(data.copy(noKK = it)) }, placeholder = "16 digit nomor KK", keyboardType = KeyboardType.Number)
         TtlFields(data.tempatLahir, data.tanggalLahir, { onDataChange(data.copy(tempatLahir = it)) }, { onDataChange(data.copy(tanggalLahir = it)) })
+        JenisKelaminField(value = data.jenisKelamin, onValueChange = { onDataChange(data.copy(jenisKelamin = it)) })
+        F("Warga Negara", data.wargaNegara, { onDataChange(data.copy(wargaNegara = it)) }, placeholder = "Indonesia")
+        F("Status Perkawinan", data.statusPerkawinan, { onDataChange(data.copy(statusPerkawinan = it)) }, placeholder = "Contoh: Kawin / Belum Kawin", optional = true)
+        F("Agama", data.agama, { onDataChange(data.copy(agama = it)) }, placeholder = "Contoh: Islam", optional = true)
         F("Pekerjaan", data.pekerjaan, { onDataChange(data.copy(pekerjaan = it)) }, optional = true)
         F("Alamat", data.alamat, { onDataChange(data.copy(alamat = it)) }, singleLine = false, maxLines = 3)
-        F("Isi Pernyataan", data.isiPernyataan, { onDataChange(data.copy(isiPernyataan = it)) }, placeholder = "Tulis isi pernyataan dengan sebenar-benarnya", singleLine = false, maxLines = 5)
+        F("Isi Pernyataan", data.isiPernyataan, { onDataChange(data.copy(isiPernyataan = it)) }, placeholder = "Isi tambahan (opsional — 2 butir pernyataan template sudah tetap)", singleLine = false, maxLines = 5, optional = true)
     }
 }
 
@@ -2022,6 +2127,138 @@ fun PbiTidakPunyaRekeningForm(
         NikField(value = data.nik, onValueChange = { onDataChange(data.copy(nik = it)) })
         TtlFields(data.tempatLahir, data.tanggalLahir, { onDataChange(data.copy(tempatLahir = it)) }, { onDataChange(data.copy(tanggalLahir = it)) })
         F("Pekerjaan", data.pekerjaan, { onDataChange(data.copy(pekerjaan = it)) }, optional = true)
+        F("Alamat", data.alamat, { onDataChange(data.copy(alamat = it)) }, singleLine = false, maxLines = 3)
+    }
+}
+
+/* ==================================================================
+   FASE 5 — 3 form baru (§2.5).
+   ================================================================== */
+
+/** Editor daftar anak SKTM PBI (tabel opsional, xls sheet `3`). */
+@Composable
+private fun AnggotaPbiEditor(
+    list: List<AnggotaPbi>,
+    onChange: (List<AnggotaPbi>) -> Unit
+) {
+    fun upd(index: Int, f: (AnggotaPbi, String) -> AnggotaPbi): (String) -> Unit =
+        { v -> onChange(list.mapIndexed { i, x -> if (i == index) f(x, v) else x }) }
+    if (list.isEmpty()) {
+        Text("Belum ada anak. Tekan \"Tambah Anak\" bila ada anak yang dicantumkan.", style = MaterialTheme.typography.bodyMedium)
+    }
+    list.forEachIndexed { index, a ->
+        SectionTitle("Anak ${index + 1}")
+        F("No. KK", a.noKK, upd(index) { x, v -> x.copy(noKK = v) }, placeholder = "16 digit nomor KK", keyboardType = KeyboardType.Number, optional = true)
+        NikF(value = a.nik, onChange = upd(index) { x, v -> x.copy(nik = v) })
+        F("Nama", a.nama, upd(index) { x, v -> x.copy(nama = v) }, required = true)
+        F("Tempat/Tgl Lahir", a.ttl, upd(index) { x, v -> x.copy(ttl = v) }, placeholder = "Contoh: Subang, 12 Januari 2020", optional = true)
+        D("Jenis Kelamin", a.jenisKelamin, listOf("", "Laki-laki", "Perempuan"), upd(index) { x, v -> x.copy(jenisKelamin = v) }, optional = true)
+        F("Warga Negara", a.wargaNegara, upd(index) { x, v -> x.copy(wargaNegara = v) }, placeholder = "Indonesia", optional = true)
+        F("Status Perkawinan", a.statusPerkawinan, upd(index) { x, v -> x.copy(statusPerkawinan = v) }, placeholder = "Contoh: Belum Kawin", optional = true)
+        F("Agama", a.agama, upd(index) { x, v -> x.copy(agama = v) }, placeholder = "Contoh: Islam", optional = true)
+        F("Pekerjaan", a.pekerjaan, upd(index) { x, v -> x.copy(pekerjaan = v) }, optional = true)
+        F("Alamat", a.alamat, upd(index) { x, v -> x.copy(alamat = v) }, singleLine = false, maxLines = 3, optional = true)
+        OutlinedButton(onClick = { onChange(list.filterIndexed { i, _ -> i != index }) }, modifier = Modifier.fillMaxWidth()) {
+            Text("Hapus Anak ${index + 1}")
+        }
+        Divider(modifier = Modifier.padding(vertical = 8.dp))
+    }
+    OutlinedButton(onClick = { onChange(list + AnggotaPbi()) }, modifier = Modifier.fillMaxWidth()) {
+        Text("Tambah Anak")
+    }
+}
+
+@Composable
+fun SktmPbiForm(
+    data: SktmPbiData,
+    onDataChange: (SktmPbiData) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        NomorTanggalFields(
+            type = LetterType.SKTM_PBI,
+            nomorSurat = data.nomorSurat,
+            tanggalSurat = data.tanggalSurat,
+            onNomorSuratChange = { onDataChange(data.copy(nomorSurat = it)) },
+            onTanggalSuratChange = { onDataChange(data.copy(tanggalSurat = it)) }
+        )
+        Text(
+            "Surat Keterangan Miskin (PBI-JKN) — kop dua logo; ditandatangani Ketua RW, Ketua RT, Camat, dan a.n. Sekdes.",
+            style = MaterialTheme.typography.bodyMedium
+        )
+        F("No. KK", data.noKK, { onDataChange(data.copy(noKK = it)) }, placeholder = "16 digit nomor KK", keyboardType = KeyboardType.Number)
+        NikField(value = data.nik, onValueChange = { onDataChange(data.copy(nik = it)) })
+        NamaField(value = data.namaLengkap, onValueChange = { onDataChange(data.copy(namaLengkap = it)) })
+        TtlFields(data.tempatLahir, data.tanggalLahir, { onDataChange(data.copy(tempatLahir = it)) }, { onDataChange(data.copy(tanggalLahir = it)) })
+        JenisKelaminField(value = data.jenisKelamin, onValueChange = { onDataChange(data.copy(jenisKelamin = it)) })
+        F("Warga Negara", data.wargaNegara, { onDataChange(data.copy(wargaNegara = it)) }, placeholder = "Indonesia")
+        F("Status Perkawinan", data.statusPerkawinan, { onDataChange(data.copy(statusPerkawinan = it)) }, placeholder = "Contoh: Kawin / Belum Kawin", optional = true)
+        F("Agama", data.agama, { onDataChange(data.copy(agama = it)) }, placeholder = "Islam", optional = true)
+        F("Pekerjaan", data.pekerjaan, { onDataChange(data.copy(pekerjaan = it)) }, optional = true)
+        F("Alamat", data.alamat, { onDataChange(data.copy(alamat = it)) }, singleLine = false, maxLines = 3)
+        Divider(modifier = Modifier.padding(vertical = 8.dp))
+        D("Tujuan", data.tujuan, listOf("") + SKTM_PBI_TUJUAN, { onDataChange(data.copy(tujuan = it)) })
+        Divider(modifier = Modifier.padding(vertical = 8.dp))
+        SectionTitle("Daftar Anak (opsional)")
+        AnggotaPbiEditor(data.daftarAnak) { onDataChange(data.copy(daftarAnak = it)) }
+    }
+}
+
+@Composable
+fun PbiRekeningListrikForm(
+    data: PbiRekeningListrikData,
+    onDataChange: (PbiRekeningListrikData) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        NomorTanggalFields(
+            type = LetterType.PBI_REKENING_LISTRIK,
+            nomorSurat = data.nomorSurat,
+            tanggalSurat = data.tanggalSurat,
+            onNomorSuratChange = { onDataChange(data.copy(nomorSurat = it)) },
+            onTanggalSuratChange = { onDataChange(data.copy(tanggalSurat = it)) }
+        )
+        Text(
+            "Surat Pernyataan Tidak Memiliki Rekening Listrik (PBI-JKN) — kop dua logo; ditandatangani Ketua RW, Ketua RT, Camat, dan a.n. Sekdes.",
+            style = MaterialTheme.typography.bodyMedium
+        )
+        F("No. KK", data.noKK, { onDataChange(data.copy(noKK = it)) }, placeholder = "16 digit nomor KK", keyboardType = KeyboardType.Number)
+        NikField(value = data.nik, onValueChange = { onDataChange(data.copy(nik = it)) })
+        NamaField(value = data.namaLengkap, onValueChange = { onDataChange(data.copy(namaLengkap = it)) })
+        TtlFields(data.tempatLahir, data.tanggalLahir, { onDataChange(data.copy(tempatLahir = it)) }, { onDataChange(data.copy(tanggalLahir = it)) })
+        JenisKelaminField(value = data.jenisKelamin, onValueChange = { onDataChange(data.copy(jenisKelamin = it)) })
+        F("Warga Negara", data.wargaNegara, { onDataChange(data.copy(wargaNegara = it)) }, placeholder = "Indonesia")
+        F("Status Perkawinan", data.statusPerkawinan, { onDataChange(data.copy(statusPerkawinan = it)) }, placeholder = "Contoh: Kawin / Belum Kawin", optional = true)
+        F("Agama", data.agama, { onDataChange(data.copy(agama = it)) }, placeholder = "Islam", optional = true)
+        F("Pekerjaan", data.pekerjaan, { onDataChange(data.copy(pekerjaan = it)) }, optional = true)
+        F("Alamat", data.alamat, { onDataChange(data.copy(alamat = it)) }, singleLine = false, maxLines = 3)
+        Divider(modifier = Modifier.padding(vertical = 8.dp))
+        SectionTitle("Rekening Listrik yang Ditumpangi")
+        F("Nama Tetangga", data.namaTetangga, { onDataChange(data.copy(namaTetangga = it)) }, placeholder = "Nama pemilik rekening listrik", required = true)
+        F("Nomor Pelanggan", data.nomorPelanggan, { onDataChange(data.copy(nomorPelanggan = it)) }, placeholder = "Contoh: 123456789012", keyboardType = KeyboardType.Number, required = true)
+    }
+}
+
+@Composable
+fun PernyataanAktaKelahiranForm(
+    data: PernyataanAktaKelahiranData,
+    onDataChange: (PernyataanAktaKelahiranData) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        NomorTanggalFields(
+            type = LetterType.PERNYATAAN_AKTA_KELAHIRAN,
+            nomorSurat = data.nomorSurat,
+            tanggalSurat = data.tanggalSurat,
+            onNomorSuratChange = { onDataChange(data.copy(nomorSurat = it)) },
+            onTanggalSuratChange = { onDataChange(data.copy(tanggalSurat = it)) }
+        )
+        Text(
+            "Surat Pernyataan (Akta Kelahiran) — kop Subang kiri; ditandatangani a.n. Kepala Desa oleh Sekretaris Desa.",
+            style = MaterialTheme.typography.bodyMedium
+        )
+        NikField(value = data.nik, onValueChange = { onDataChange(data.copy(nik = it)) })
+        NamaField(value = data.namaLengkap, onValueChange = { onDataChange(data.copy(namaLengkap = it)) })
+        TtlFields(data.tempatLahir, data.tanggalLahir, { onDataChange(data.copy(tempatLahir = it)) }, { onDataChange(data.copy(tanggalLahir = it)) })
+        F("Nama Ayah", data.namaAyah, { onDataChange(data.copy(namaAyah = it)) }, placeholder = "Nama ayah kandung", required = true)
+        F("Nama Ibu", data.namaIbu, { onDataChange(data.copy(namaIbu = it)) }, placeholder = "Nama ibu kandung", required = true)
         F("Alamat", data.alamat, { onDataChange(data.copy(alamat = it)) }, singleLine = false, maxLines = 3)
     }
 }

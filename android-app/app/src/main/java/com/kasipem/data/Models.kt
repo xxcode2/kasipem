@@ -5,7 +5,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 /**
- * 30 jenis surat/formulir KASIPEM — kanon yang SAMA dengan web (FIX_BRIEF.md + FILE_INTEGRATION_BRIEF.md).
+ * 33 jenis surat/formulir KASIPEM — kanon yang SAMA dengan web (FIX_BRIEF.md + FILE_INTEGRATION_BRIEF.md + FASE5_SPEC.md).
  * Desa asli: Desa Kasomalang Kulon, Kecamatan Kasomalang, Kabupaten Subang.
  * Pejabat (diberikan user 2026-11-14 ~23:28 WIB): Kades H. AMIRUDIN, S.Pd.I;
  * Sekdes APIPUDIN, S.IP. TIDAK ADA NIP — default NIP kosong dan baris NIP
@@ -29,7 +29,7 @@ enum class LetterType(
         "Keterangan Domisili",
         "SURAT KETERANGAN DOMISILI",
         "Verifikasi tempat tinggal",
-        "Individu", "474", "PEM"
+        "Individu", "140", "PEM"
     ),
     PISAH_KK(
         "Pisah Kartu Keluarga",
@@ -77,7 +77,7 @@ enum class LetterType(
         "Nikah Tidak Tercatat",
         "SURAT KETERANGAN NIKAH TIDAK TERCATAT",
         "Pernikahan tidak tercatat",
-        "Hukum", "460.2", "Ks"
+        "Hukum", "474", "Ks"
     ),
     PEMAKAMAN(
         "Pemakaman",
@@ -89,7 +89,7 @@ enum class LetterType(
         "Tidak Memiliki Rumah",
         "SURAT PERNYATAAN TIDAK MEMILIKI RUMAH",
         "Pernyataan belum punya rumah",
-        "Sosial", "474", "PEM"
+        "Sosial", "141", "Pem"
     ),
     UNDANGAN(
         "Undangan Resmi",
@@ -118,61 +118,61 @@ enum class LetterType(
     ),
     F101(
         "F-1.01 Biodata Keluarga",
-        "FORMULIR F-1.01 BIODATA KELUARGA",
+        "FORMULIR F-1.01 — BIODATA KELUARGA",
         "Biodata keluarga (Disdukcapil)",
         "Formulir Dukcapil", "", ""
     ),
     F102(
         "F-1.02 Peristiwa Kependudukan",
-        "FORMULIR F-1.02 PENDAFTARAN PERISTIWA KEPENDUDUKAN",
+        "FORMULIR F-1.02 — PENDAFTARAN PERISTIWA KEPENDUDUKAN",
         "Pendaftaran peristiwa kependudukan",
         "Formulir Dukcapil", "", ""
     ),
     F103(
         "F-1.03 Perpindahan Penduduk",
-        "FORMULIR F-1.03 PENDAFTARAN PERPINDAHAN PENDUDUK",
+        "FORMULIR F-1.03 — PENDAFTARAN PERPINDAHAN PENDUDUK",
         "Pendaftaran perpindahan penduduk",
         "Formulir Dukcapil", "", ""
     ),
     F104(
         "F-1.04 Tidak Punya Dokumen",
-        "FORMULIR F-1.04 PERNYATAAN TIDAK MEMILIKI DOKUMEN KEPENDUDUKAN",
+        "F-1.04 — SURAT PERNYATAAN TIDAK MEMILIKI DOKUMEN KEPENDUDUKAN",
         "Pernyataan tidak memiliki dokumen",
         "Formulir Dukcapil", "", ""
     ),
     F105(
         "F-1.05 Perkawinan Belum Tercatat",
-        "FORMULIR F-1.05 SPTJM PERKAWINAN BELUM TERCATAT",
+        "F-1.05 — SPTJM PERKAWINAN BELUM TERCATAT",
         "SPTJM perkawinan belum tercatat",
         "Formulir Dukcapil", "", ""
     ),
     F106(
         "F-1.06 Perubahan Elemen Data",
-        "FORMULIR F-1.06 PERNYATAAN PERUBAHAN ELEMEN DATA KEPENDUDUKAN",
+        "F-1.06 — SURAT PERNYATAAN PERUBAHAN ELEMEN DATA KEPENDUDUKAN",
         "Perubahan elemen data kependudukan",
         "Formulir Dukcapil", "", ""
     ),
     F115(
         "F-1.15 Permohonan KK Baru",
-        "FORMULIR F-1.15 PERMOHONAN KK BARU WNI",
+        "FORMULIR F-1.15 — PERMOHONAN KK BARU WNI",
         "Permohonan Kartu Keluarga baru",
         "Formulir Dukcapil", "", ""
     ),
     F201(
         "F-2.01 Pelaporan Pencatatan Sipil",
-        "FORMULIR F-2.01 PELAPORAN PENCATATAN SIPIL",
+        "FORMULIR F-2.01 — PELAPORAN PENCATATAN SIPIL",
         "Pelaporan pencatatan sipil (16 jenis)",
         "Formulir Dukcapil", "", ""
     ),
     F203(
         "F-2.03 SPTJM Kelahiran",
-        "FORMULIR F-2.03 SPTJM KEBENARAN DATA KELAHIRAN",
+        "F-2.03 — SPTJM KEBENARAN DATA KELAHIRAN",
         "SPTJM kebenaran data kelahiran",
         "Formulir Dukcapil", "", ""
     ),
     F204(
         "F-2.04 SPTJM Suami Istri",
-        "FORMULIR F-2.04 SPTJM KEBENARAN SEBAGAI PASANGAN SUAMI ISTRI",
+        "F-2.04 — SPTJM KEBENARAN SEBAGAI PASANGAN SUAMI ISTRI",
         "SPTJM kebenaran sebagai suami istri",
         "Formulir Dukcapil", "", ""
     ),
@@ -190,13 +190,13 @@ enum class LetterType(
     ),
     PBI_ASESMEN(
         "Asesmen PBI-JKN",
-        "INSTRUMEN ASESMEN CALON PENERIMA BANSOS KIS-PBI/SKM",
+        "INSTRUMEN ASESMEN CALON PENERIMA BANSOS KIS-PBI / SKM",
         "Asesmen calon penerima bansos",
         "Bansos (PBI-JKN)", "", ""
     ),
     PBI_PERNYATAAN(
         "Surat Pernyataan (PBI-JKN)",
-        "SURAT PERNYATAAN",
+        "SURAT PERNYATAAN (PBI-JKN)",
         "Surat pernyataan PBI-JKN",
         "Bansos (PBI-JKN)", "474.4", "KS"
     ),
@@ -205,6 +205,25 @@ enum class LetterType(
         "SURAT PERNYATAAN TIDAK MEMILIKI REKENING",
         "Pernyataan tidak memiliki rekening",
         "Bansos (PBI-JKN)", "474.4", "KS"
+    ),
+    // ---- Fase 5: 3 tipe baru (FASE5_SPEC.md §2.5) — total 33 tipe ----
+    SKTM_PBI(
+        "Keterangan Miskin (PBI-JKN)",
+        "SURAT KETERANGAN MISKIN (PBI-JKN)",
+        "Keterangan miskin untuk PBI-JKN",
+        "Bansos (PBI-JKN)", "474.4", "KS"
+    ),
+    PBI_REKENING_LISTRIK(
+        "Pernyataan Tidak Punya Rekening Listrik",
+        "SURAT PERNYATAAN TIDAK MEMILIKI REKENING LISTRIK",
+        "Pernyataan tidak memiliki rekening listrik",
+        "Bansos (PBI-JKN)", "474.4", "KS"
+    ),
+    PERNYATAAN_AKTA_KELAHIRAN(
+        "Pernyataan Akta Kelahiran",
+        "SURAT PERNYATAAN",
+        "Pernyataan sedang membuat akta kelahiran",
+        "Surat Desa", "141", "Pem"
     )
 }
 
@@ -259,7 +278,10 @@ enum class KopStyle {
     /** SPTJM / PBI (penandatangan utama warga; Kades hanya "Mengetahui"): dua logo seperti semula. */
     DUA_LOGO,
     /** Formulir Dukcapil seri F: kop Disdukcapil TEKS saja (tanpa logo desa). */
-    DISDUKCAPIL
+    DISDUKCAPIL,
+    /** FASE 5 — Surat Keterangan Kematian: TANPA kop/logo; tabel 3 baris
+     *  (Pemerintah/Kota/Kab, Kecamatan, Desa/Kelurahan) di kiri atas. */
+    TABEL_KEMATIAN
 }
 
 /**
@@ -275,10 +297,20 @@ fun kopFor(type: LetterType): KopStyle = when (type) {
     LetterType.F203, LetterType.F204 -> KopStyle.DISDUKCAPIL
     LetterType.SPTJM_KEMATIAN, LetterType.SPTJM_PERKAWINAN_PERCERAIAN,
     LetterType.PBI_ASESMEN, LetterType.PBI_PERNYATAAN,
-    LetterType.PBI_TIDAK_PUNYA_REKENING -> KopStyle.DUA_LOGO
-    // a.n. Kades oleh Sekdes (pisah_kk, kematian) + Sekdes langsung (usaha, duda_janda).
-    LetterType.PISAH_KK, LetterType.KEMATIAN,
-    LetterType.USAHA, LetterType.DUDA_JANDA -> KopStyle.SUBANG_LEFT
+    LetterType.PBI_TIDAK_PUNYA_REKENING,
+    LetterType.SKTM_PBI, LetterType.PBI_REKENING_LISTRIK -> KopStyle.DUA_LOGO
+    // FASE 5 — Kematian: tanpa kop, header tabel 3 baris (FASE5_BRIEF.md).
+    LetterType.KEMATIAN -> KopStyle.TABEL_KEMATIAN
+    // a.n. Kades oleh Sekdes (pisah_kk) + Sekdes langsung / a.n. (usaha,
+    // duda_janda, beda_luas, beda_nama, belum_menikah, tidak_mampu,
+    // nikah_tidak_tercatat, pemakaman, tidak_memiliki_rumah,
+    // pernyataan_akta_kelahiran) — FASE 5: signer → a.n. Sekdes.
+    LetterType.PISAH_KK,
+    LetterType.USAHA, LetterType.DUDA_JANDA,
+    LetterType.BEDA_LUAS, LetterType.BEDA_NAMA, LetterType.BELUM_MENIKAH,
+    LetterType.TIDAK_MAMPU, LetterType.NIKAH_TIDAK_TERCATAT,
+    LetterType.PEMAKAMAN, LetterType.TIDAK_MEMILIKI_RUMAH,
+    LetterType.PERNYATAAN_AKTA_KELAHIRAN -> KopStyle.SUBANG_LEFT
     // Sisanya ditandatangani Kepala Desa langsung.
     else -> KopStyle.GARUDA_CENTER
 }
@@ -286,6 +318,118 @@ fun kopFor(type: LetterType): KopStyle = when (type) {
 /** Tanggal yang dipakai di preview/PDF: isi form, atau hari ini bila kosong. */
 fun effectiveTanggalSurat(tanggalSurat: String): String =
     tanggalSurat.ifBlank { todayId() }
+
+/**
+ * FASE 5 — Format tanggal khusus surat kematian (template: "Subang,
+ * 01-01-1961"; tanggal meninggal "11-08-2022"; tanggal ttd
+ * "Kasomalang Kulon, 10-11-2025"): DD-MM-YYYY.
+ * Menerima "dd MMMM yyyy" id-ID, ISO yyyy-MM-dd, atau dd-MM-yyyy
+ * (passthrough); bila tidak dikenali, kembalikan apa adanya.
+ */
+fun toDdMmYyyy(value: String): String {
+    val v = value.trim()
+    if (v.isEmpty()) return v
+    if (Regex("^\\d{2}-\\d{2}-\\d{4}$").matches(v)) return v
+    val iso = Regex("^(\\d{4})-(\\d{2})-(\\d{2})$").matchEntire(v)
+    if (iso != null) return "${iso.groupValues[3]}-${iso.groupValues[2]}-${iso.groupValues[1]}"
+    for (pattern in listOf("dd MMMM yyyy", "d MMMM yyyy", "dd MMM yyyy")) {
+        try {
+            val parsed = SimpleDateFormat(pattern, Locale("id", "ID")).parse(v)
+            if (parsed != null) return SimpleDateFormat("dd-MM-yyyy", Locale("id", "ID")).format(parsed)
+        } catch (e: Exception) {
+            // Coba pola berikutnya.
+        }
+    }
+    return v
+}
+
+/**
+ * FASE 5 — Tahun dari tanggal surat (untuk nomor kematian
+ * "460.3 / <reg> / KS / <tahun>"): cari tahun 4 digit di teks tanggal
+ * (format id-ID / ISO / DD-MM-YYYY); fallback tahun berjalan.
+ */
+fun tahunDariTanggal(tanggalSurat: String): Int {
+    val v = tanggalSurat.trim()
+    if (v.isNotEmpty()) {
+        for (pattern in listOf("dd MMMM yyyy", "d MMMM yyyy", "dd MMM yyyy", "yyyy-MM-dd", "dd-MM-yyyy")) {
+            try {
+                val parsed = SimpleDateFormat(pattern, Locale("id", "ID")).parse(v)
+                if (parsed != null) return Calendar.getInstance().apply { time = parsed }.get(Calendar.YEAR)
+            } catch (e: Exception) {
+                // Coba pola berikutnya.
+            }
+        }
+        Regex("(19|20)\\d{2}").find(v)?.value?.toIntOrNull()?.let { return it }
+    }
+    return currentYear()
+}
+
+/**
+ * FASE 5 — Konstanta penutup template (FASE5_SPEC.md §3).
+ * String PERSIS sama dengan web (letter-content.ts). Dipakai bersama oleh
+ * PdfGenerator.kt DAN PreviewScreen.kt (satu sumber — jangan duplikasi).
+ */
+val CLOSING =
+    "Demikian surat keterangan ini dibuat dengan sebenarnya agar dapat dipergunakan sebagaimana mestinya."
+val CLOSING_FORM =
+    "Demikian formulir ini diisi dengan sebenarnya dan dapat dipertanggungjawabkan."
+val CLOSING_SPTJM =
+    "Demikian surat pernyataan ini dibuat dengan sebenarnya dan apabila di kemudian hari ternyata tidak benar, saya bersedia dituntut sesuai dengan ketentuan peraturan perundang-undangan yang berlaku."
+val CLOSING_AHLI_WARIS =
+    "Demikian surat ini kami buat dengan sebenarnya dan kepada yang bersangkutan menjadi tahu adanya."
+val CLOSING_PISAH_KK =
+    "Demikian surat keterangan ini kami buat dengan sebenarnya agar yang berkepentingan menjadi tahu serta untuk dijadikan bahan periksa selanjutnya."
+val CLOSING_SKT =
+    "Demikian surat keterangan ini dibuat dengan sebenarnya dan apabila di kemudian hari ternyata keterangan ini tidak benar, maka segala akibat yang timbul menjadi tanggungjawab yang bersangkutan."
+val CLOSING_BEDA_LUAS =
+    "Demikian surat keterangan ini kami buat dengan sebenarnya agar yang berkepentingan menjadi tahu serta untuk dipergunakan sebagaimana mestinya."
+val CLOSING_BEDA_NAMA = "$CLOSING_PISAH_KK dan digunakan sebagaimana mestinya."
+val CLOSING_MISKIN_SEKOLAH =
+    "Demikian surat keterangan ini kami buat, agar yang berkepentingan menjadi tahu serta untuk dipergunakan sebagaimana mestinya."
+val CLOSING_MISKIN_KOLEKTIF =
+    "Demikian surat ini dibuat dengan sebenarnya agar dapat digunakan sebagaimana mestinya."
+val CLOSING_NIKAH =
+    "Demikian surat keterangan ini dibuat dengan sebenarnya dan agar bisa dipergunakan sebagaimana mestinya."
+val CLOSING_PEMAKAMAN =
+    "Demikian surat keterangan ini kami buat dengan sebenarnya, agar yang berkepentingan menjadi tahu serta untuk dipergunakan sebagaimana mestinya."
+val CLOSING_PERMOHONAN_RUMAH =
+    "Demikian surat keterangan ini kami berikan, agar dipergunakan sebagaimana mestinya."
+val CLOSING_USAHA =
+    "Demikian surat keterangan ini kami buat, agar yang berkepentingan menjadi tahu serta untuk dipergunakan sebagaimana mestinya."
+val CLOSING_F101 =
+    "Demikian formulir ini saya/kami isi dengan sesungguhnya, apabila keterangan tersebut tidak sesuai dengan keadaan sebenarnya, saya bersedia dikenakan sanksi sesuai ketentuan peraturan perundang-undangan yang berlaku."
+val CLOSING_F105 =
+    "Demikian Surat Pernyataan ini kami buat dengan sebenarnya, apabila dalam keterangan yang saya berikan terdapat hal-hal yang tidak berdasarkan keadaan yang sebenarnya, kami bersedia dikenakan sanksi sesuai dengan ketentuan peraturan perundang-undangan yang berlaku."
+val CLOSING_F106 =
+    "Demikian Surat Pernyataan ini saya buat dengan sebenarnya, apabila dalam keterangan yang saya berikan terdapat hal-hal yang tidak berdasarkan keadaan yang sebenarnya, saya bersedia dikenakan sanksi sesuai ketentuan peraturan perundang-undangan yang berlaku."
+val CLOSING_F203 =
+    "Demikian Surat Pernyataan ini saya buat dengan sebenar-benarnya dan apabila di kemudian hari pernyataan saya ini tidak benar, maka saya bersedia diproses secara hukum sesuai dengan peraturan perundang-undangan dan dokumen yang diterbitkan akibat pernyataan ini menjadi tidak sah."
+val CLOSING_F204 =
+    "Demikian surat pernyataan ini saya buat dengan sebenar-benarnya, dan apabila di kemudian hari ternyata pernyataan saya ini tidak benar, maka saya bersedia diproses secara hukum sesuai dengan peraturan perundang-undangan dan dokumen yang diterbitkan akibat dari pernyataan ini menjadi tidak sah."
+val CLOSING_SPTJM_PERKAWINAN =
+    "Demikian surat pernyataan ini saya buat dengan sebenar-benarnya, apabila dalam keterangan yang saya berikan terdapat hal-hal yang tidak berdasarkan keadaan yang sebenarnya, saya bersedia dikenakan sanksi sesuai dengan ketentuan peraturan perundang-undangan yang berlaku."
+val CLOSING_PBI_PERNYATAAN =
+    "Demikian Pernyataan ini saya buat tanpa tekanan dari siapapun juga."
+val CLOSING_SKTM_PBI =
+    "Demikian Surat Keterangan ini kami buat agar yang berkepentingan menjadi tahu serta maklum."
+val CLOSING_UNDANGAN =
+    "Demikian kami sampaikan, atas perkenan dan perhatiannya diucapkan terimakasih."
+
+/** "Subang", "12 Januari 1990" -> "Subang, 12 Januari 1990" (bagian kosong dilewati). */
+fun ttl(tempat: String, tanggal: String): String =
+    listOf(tempat, tanggal).filter { it.isNotEmpty() }.joinToString(", ")
+
+fun rtRw(rt: String, rw: String): String {
+    val r = rt.ifBlank { "-" }
+    val w = rw.ifBlank { "-" }
+    return "$r / $w"
+}
+
+/** "KASOMALANG KULON" -> "Kasomalang Kulon". */
+fun titleCase(value: String): String =
+    value.trim().split("\\s+".toRegex()).joinToString(" ") { word ->
+        word.lowercase().replaceFirstChar { it.uppercase() }
+    }
 
 /**
  * Validasi NIK: peringatan saja, jangan blokir keras.
@@ -372,6 +516,12 @@ data class SktDayatData(
     val batasTimur: String = "",
     val batasSelatan: String = "",
     val batasBarat: String = "",
+    /** FASE 5 — Harga taksiran tanah (template SKT Dayat) + No. Register. */
+    val hargaTaksiranBangunan: String = "",
+    val hargaTaksiranTanah: String = "",
+    val hargaTaksiranJumlah: String = "",
+    val noRegister: String = "",
+    val tanggalRegister: String = "",
     val nomorSurat: String = "",
     val tanggalSurat: String = ""
 )
@@ -384,6 +534,8 @@ data class BedaLuasData(
     val rt: String = "",
     val rw: String = "",
     val nomorSertifikat: String = "",
+    /** FASE 5 — Nomor NIB sertifikat (template Beda Luas 3a). */
+    val nomorNIB: String = "",
     val luasSertifikat: String = "",
     val nomorSPPT: String = "",
     val luasSPPT: String = "",
@@ -391,6 +543,13 @@ data class BedaLuasData(
     val tanggalSurat: String = ""
 )
 
+/**
+ * FASE 5 — ditulis ulang mengikuti template 3b (Ijazah vs Buku Nikah & KK):
+ * 2 seksi "Keterangan data dari [dokumen]" (NIK, Nama, Tempat/Tgl Lahir,
+ * Alamat tiap seksi). Field lama (namaLengkap/nik/namaDokumen1/
+ * namaDokumen2/alasan) dipertahankan di data class demi kompatibilitas
+ * riwayat, tapi TIDAK lagi dirender / diisi lewat form.
+ */
 @Serializable
 data class BedaNamaData(
     val namaLengkap: String = "",
@@ -398,6 +557,16 @@ data class BedaNamaData(
     val namaDokumen1: String = "",
     val namaDokumen2: String = "",
     val alasan: String = "",
+    val dokumenPertama: String = "IJAZAH",
+    val nikDokumenPertama: String = "",
+    val namaDokumenPertama: String = "",
+    val ttlDokumenPertama: String = "",
+    val alamatDokumenPertama: String = "",
+    val dokumenKedua: String = "BUKU NIKAH & KK",
+    val nikDokumenKedua: String = "",
+    val namaDokumenKedua: String = "",
+    val ttlDokumenKedua: String = "",
+    val alamatDokumenKedua: String = "",
     val nomorSurat: String = "",
     val tanggalSurat: String = ""
 )
@@ -477,9 +646,13 @@ data class AhliWarisItem(
 @Serializable
 data class AhliWarisData(
     val namaPeninggal: String = "",
+    /** FASE 5 — TIDAK lagi dirender / diisi lewat form (tidak ada di contoh
+     *  DOCX); dipertahankan di data class demi kompatibilitas riwayat. */
     val nikPeninggal: String = "",
     val jenisKelaminPeninggal: String = "",
     val alamatPeninggal: String = "",
+    /** FASE 5 — sebutan peninggal (seperti web): "Almarhum" / "Almarhumah". */
+    val sebutanPeninggal: String = "Almarhum",
     val hariMeninggal: String = "",
     val tanggalMeninggal: String = "",
     val tempatMeninggal: String = "",
@@ -488,6 +661,8 @@ data class AhliWarisData(
     /** Pasangan yang masih hidup (disebut di paragraf pembuka). */
     val namaPasangan: String = "",
     val hubunganPasangan: String = "Istri",
+    /** FASE 5 — jumlah anak dari perkawinan (input form); 0 = hitung dari tabel. */
+    val jumlahAnak: Int = 0,
     /** Daftar ahli waris dinamis: baris pertama pasangan, berikutnya anak-anak. */
     val daftarAhliWaris: List<AhliWarisItem> = listOf(AhliWarisItem()),
     /** Saksi-saksi (contoh: Ketua RT + Ketua RW). */
@@ -497,24 +672,34 @@ data class AhliWarisData(
     val jabatanSaksi2: String = "",
     /** "Untuk Keperluan : ..." (contoh: Kelengkapan Dokumen, Pembuatan sertipikat). */
     val keperluan: String = "",
+    /** FASE 5 — Keterangan tambahan (opsional, seperti web). */
+    val keterangan: String = "",
     val nomorSurat: String = "",
     val tanggalSurat: String = ""
 )
 
-/** "almarhum" / "almarhumah" menurut jenis kelamin peninggal (kosong = netral). */
+/** "almarhum" / "almarhumah" menurut sebutan peninggal (web) atau jenis
+ *  kelamin peninggal (data lama); kosong = netral. */
 fun sebutanAlmarhum(jenisKelamin: String): String = when (jenisKelamin) {
-    "Perempuan" -> "almarhumah"
-    "Laki-laki" -> "almarhum"
+    "Perempuan", "Almarhumah" -> "almarhumah"
+    "Laki-laki", "Almarhum" -> "almarhum"
     else -> "almarhum/almarhumah"
 }
 
+/** Sebutan peninggal untuk satu data ahli waris: pakai sebutanPeninggal
+ *  (FASE 5) bila terisi, fallback ke jenisKelaminPeninggal (data lama). */
+fun sebutanOf(data: AhliWarisData): String =
+    sebutanAlmarhum(data.sebutanPeninggal.ifBlank { data.jenisKelaminPeninggal })
+
 /**
- * Jumlah anak almarhum menurut daftar: baris ber-hubungan "Anak"
+ * Jumlah anak almarhum: pakai input jumlahAnak (form) bila > 0;
+ * bila 0, hitung dari daftar — baris ber-hubungan "Anak"
  * (contoh: "Anak", "Anak kandung"); bila tak ada yang ditandai,
  * daftar terisi minus pasangan (baris pertama). Dipakai kalimat
  * "telah dilahirkan N orang anak" di pembuka.
  */
 fun jumlahAnakAhliWaris(data: AhliWarisData): Int {
+    if (data.jumlahAnak > 0) return data.jumlahAnak
     val terisi = data.daftarAhliWaris.filter { it.nama.isNotBlank() || it.nik.isNotBlank() }
     val anak = terisi.count { it.hubungan.contains("anak", ignoreCase = true) }
     if (anak > 0) return anak
@@ -531,17 +716,18 @@ fun jumlahAnakAhliWaris(data: AhliWarisData): Int {
  * hidup + jumlah anak. Klausa yang datanya kosong dilewati.
  */
 fun paragrafPembukaAhliWaris(data: AhliWarisData, namaDesaTitleCase: String): String {
-    val sebutan = sebutanAlmarhum(data.jenisKelaminPeninggal)
-    val meninggal = listOf(data.hariMeninggal, data.tanggalMeninggal)
-        .filter { it.isNotBlank() }.joinToString(", ")
+    val sebutan = sebutanOf(data)
+    // FASE 5: "...telah meninggal dunia pada hari [X], tanggal [Y], di [Z]..."
+    // (kata "tanggal" sempat hilang di Android).
+    val meninggalParts = mutableListOf<String>()
+    if (data.hariMeninggal.isNotBlank()) meninggalParts.add("hari ${data.hariMeninggal}")
+    if (data.tanggalMeninggal.isNotBlank()) meninggalParts.add("tanggal ${data.tanggalMeninggal}")
+    if (data.tempatMeninggal.isNotBlank()) meninggalParts.add("di ${data.tempatMeninggal}")
     val sb = StringBuilder()
     sb.append("Yang bertanda tangan di bawah ini, Kepala Desa $namaDesaTitleCase, dengan ini menerangkan bahwa $sebutan ${data.namaPeninggal}")
-    if (meninggal.isNotBlank() || data.tempatMeninggal.isNotBlank()) {
-        sb.append(" yang telah meninggal dunia")
-        if (meninggal.isNotBlank()) sb.append(" pada hari $meninggal")
-        if (data.tempatMeninggal.isNotBlank()) sb.append(" di ${data.tempatMeninggal}")
-        if (data.nomorSuratKematian.isNotBlank()) sb.append(" sesuai Surat Kematian Nomor: ${data.nomorSuratKematian}")
-    }
+    sb.append(" yang telah meninggal dunia")
+    if (meninggalParts.isNotEmpty()) sb.append(" pada ${meninggalParts.joinToString(", ")}")
+    if (data.nomorSuratKematian.isNotBlank()) sb.append(" sesuai Surat Kematian Nomor: ${data.nomorSuratKematian}")
     if (data.namaPasangan.isNotBlank()) {
         sb.append(", semasa hidupnya $sebutan telah menikah sah dengan Satu (1) orang ${data.hubunganPasangan} bernama ${data.namaPasangan} yang masih hidup sampai sekarang")
         val anak = jumlahAnakAhliWaris(data)
@@ -557,15 +743,51 @@ data class NikahTidakTercatatData(
     val nikPria: String = "",
     val tempatLahirPria: String = "",
     val tanggalLahirPria: String = "",
+    /** FASE 5 — Bin + Agama (template Nikah Tidak Tercatat). */
+    val binSuami: String = "",
+    val agamaSuami: String = "",
     val namaWanita: String = "",
     val nikWanita: String = "",
     val tempatLahirWanita: String = "",
     val tanggalLahirWanita: String = "",
+    val binIstri: String = "",
+    val agamaIstri: String = "",
     val tanggalPernikahan: String = "",
     val tempatPernikahan: String = "",
+    /** FASE 5 — wali + 2 saksi + mas kawin + status perkawinan (template). */
+    val namaWali: String = "",
+    val saksi1: String = "",
+    val saksi2: String = "",
+    val masKawin: String = "Alat sholat",
+    val statusPerkawinan: String = "",
     val nomorSurat: String = "",
     val tanggalSurat: String = ""
 )
+
+/**
+ * FASE 5 — Narasi kanonik Nikah Tidak Tercatat (template): wali/saksi
+ * hanya bila terisi; status perkawinan hanya bila terisi.
+ */
+fun narasiNikahTidakTercatat(data: NikahTidakTercatatData): String {
+    val sb = StringBuilder()
+    sb.append("Menurut sepengetahuan kami, orang tersebut di atas telah menikah pada tanggal ${data.tanggalPernikahan}")
+    val wali = data.namaWali.isNotBlank()
+    val s1 = data.saksi1.isNotBlank()
+    val s2 = data.saksi2.isNotBlank()
+    if (wali || s1 || s2) {
+        sb.append(" yang dilaksanakan")
+        if (wali) sb.append(" oleh walinya Bapak ${data.namaWali}")
+        if (s1 || s2) {
+            sb.append(" dengan saksi 2 orang,")
+            if (s1) sb.append(" 1. Bapak ${data.saksi1}")
+            if (s2) sb.append(" 2. Bapak ${data.saksi2}")
+        }
+    }
+    if (data.masKawin.isNotBlank()) sb.append(" dengan mas kawin ${data.masKawin}")
+    if (data.statusPerkawinan.isNotBlank()) sb.append(". Status perkawinan ${data.statusPerkawinan}")
+    sb.append(".")
+    return sb.toString()
+}
 
 @Serializable
 data class PemakamanData(
@@ -577,6 +799,13 @@ data class PemakamanData(
     val tanggalMeninggal: String = "",
     val lokasiMakam: String = "",
     val namaKeluarga: String = "",
+    /** FASE 5 — seksi meninggal + disemayamkan (template Pemakaman). */
+    val hariMeninggal: String = "",
+    val jamMeninggal: String = "",
+    val tempatMeninggal: String = "",
+    val hariDisemayamkan: String = "",
+    val tanggalDisemayamkan: String = "",
+    val tempatDisemayamkan: String = "",
     val nomorSurat: String = "",
     val tanggalSurat: String = ""
 )
@@ -604,7 +833,8 @@ data class UndanganData(
     val pukul: String = "",
     val tempat: String = "",
     val agendaAcara: String = "",
-    val daftarTembusan: String = "",
+    /** FASE 5 — tembusan default template (pengguna bisa edit). */
+    val daftarTembusan: String = "Camat Kasomalang; Ketua BPD Desa Kasomalang Kulon; Arsip",
     val nomorSurat: String = "",
     val tanggalSurat: String = ""
 )
@@ -671,6 +901,9 @@ data class DudaJandaData(
     val tanggalLahir: String = "",
     val pekerjaan: String = "",
     val alamat: String = "",
+    /** FASE 5 — RT/RW untuk narasi "Berdasarkan keterangan dari Ketua RT ... RW ...". */
+    val rt: String = "",
+    val rw: String = "",
     val keteranganRT: String = "",
     val nomorSurat: String = "",
     val tanggalSurat: String = ""
@@ -782,6 +1015,10 @@ data class F105Data(
 @Serializable
 data class AnggotaPerubahan(
     val nama: String = "",
+    /** FASE 5 — kolom NIK / SHDK / Keterangan (template F-1.06). */
+    val nik: String = "",
+    val shdk: String = "",
+    val keterangan: String = "",
     val perubahan: String = ""
 )
 
@@ -828,7 +1065,8 @@ data class F115Data(
 
 @Serializable
 data class F201Data(
-    val jenisPelaporan: String = "Kelahiran",
+    /** FASE 5 — default KOSONG (sebelumnya "Kelahiran"); pengguna memilih jenis. */
+    val jenisPelaporan: String = "",
     val pelaporNama: String = "",
     val pelaporNik: String = "",
     val pelaporAlamat: String = "",
@@ -850,17 +1088,24 @@ data class F201Data(
     val anakTanggalLahir: String = "",
     val anakJenisKelamin: String = "",
     val anakKe: String = "",
+    /** FASE 5 — Pukul Lahir (union seksi template F-2.01). */
+    val anakPukulLahir: String = "",
     // Seksi Lahir Mati
     val lahirMatiNama: String = "",
     val lahirMatiTanggal: String = "",
     val lahirMatiPukul: String = "",
     val lahirMatiTempat: String = "",
     val lahirMatiSebab: String = "",
+    /** FASE 5 — Jenis Kelamin + Keterangan lahir mati (union template). */
+    val lahirMatiJenisKelamin: String = "",
+    val lahirMatiKeterangan: String = "",
     // Seksi Perkawinan / Perceraian
     val pasanganSuamiNama: String = "",
     val pasanganIstriNama: String = "",
     val tanggalPeristiwa: String = "",
     val tempatPeristiwa: String = "",
+    /** FASE 5 — Keterangan seksi perkawinan/perceraian (union template). */
+    val pasanganKeterangan: String = "",
     // Seksi Kematian
     val meninggalNik: String = "",
     val meninggalNama: String = "",
@@ -1011,6 +1256,13 @@ data class PbiPernyataanData(
     val pekerjaan: String = "",
     val alamat: String = "",
     val isiPernyataan: String = "",
+    /** FASE 5 — field identitas template xls sheet `2` (urutan render:
+     *  No KK, NIK, Nama, TTL, JK, WN, Status Kawin, Agama, Pekerjaan, Alamat). */
+    val noKK: String = "",
+    val jenisKelamin: String = "",
+    val wargaNegara: String = "Indonesia",
+    val statusPerkawinan: String = "",
+    val agama: String = "",
     val nomorSurat: String = "",
     val tanggalSurat: String = ""
 )
@@ -1026,6 +1278,101 @@ data class PbiTidakPunyaRekeningData(
     val nomorSurat: String = "",
     val tanggalSurat: String = ""
 )
+
+/* ==================================================================
+   FASE 5 — 3 tipe baru (FASE5_SPEC.md §2.5). Total 33 tipe.
+   ================================================================== */
+
+/** Satu baris daftar anak SKTM PBI (tabel opsional, xls sheet `3`). */
+@Serializable
+data class AnggotaPbi(
+    val noKK: String = "",
+    val nik: String = "",
+    val nama: String = "",
+    val ttl: String = "",
+    val jenisKelamin: String = "",
+    val wargaNegara: String = "Indonesia",
+    val statusPerkawinan: String = "",
+    val agama: String = "",
+    val pekerjaan: String = "",
+    val alamat: String = ""
+)
+
+@Serializable
+data class SktmPbiData(
+    val noKK: String = "",
+    val nik: String = "",
+    val namaLengkap: String = "",
+    val tempatLahir: String = "",
+    val tanggalLahir: String = "",
+    val jenisKelamin: String = "",
+    val wargaNegara: String = "Indonesia",
+    val statusPerkawinan: String = "",
+    val agama: String = "Islam",
+    val pekerjaan: String = "",
+    val alamat: String = "",
+    /** Tujuan: RSUD Subang / Institut Pertanian Bogor (IPB) /
+     *  Pengajuan PBI KIS / RSUD Ciereng Subang. */
+    val tujuan: String = "",
+    /** Daftar anak (tabel opsional — dirender bila ada baris terisi). */
+    val daftarAnak: List<AnggotaPbi> = emptyList(),
+    val nomorSurat: String = "",
+    val tanggalSurat: String = ""
+)
+
+@Serializable
+data class PbiRekeningListrikData(
+    val noKK: String = "",
+    val nik: String = "",
+    val namaLengkap: String = "",
+    val tempatLahir: String = "",
+    val tanggalLahir: String = "",
+    val jenisKelamin: String = "",
+    val wargaNegara: String = "Indonesia",
+    val statusPerkawinan: String = "",
+    val agama: String = "Islam",
+    val pekerjaan: String = "",
+    val alamat: String = "",
+    /** Tetangga yang aliran listriknya ditumpang + nomor pelanggannya. */
+    val namaTetangga: String = "",
+    val nomorPelanggan: String = "",
+    val nomorSurat: String = "",
+    val tanggalSurat: String = ""
+)
+
+@Serializable
+data class PernyataanAktaKelahiranData(
+    val nik: String = "",
+    val namaLengkap: String = "",
+    val tempatLahir: String = "",
+    val tanggalLahir: String = "",
+    val namaAyah: String = "",
+    val namaIbu: String = "",
+    val alamat: String = "",
+    val nomorSurat: String = "",
+    val tanggalSurat: String = ""
+)
+
+/** Opsi Tujuan SKTM PBI (FASE5_SPEC.md §2.5). */
+val SKTM_PBI_TUJUAN: List<String> = listOf(
+    "RSUD Subang",
+    "Institut Pertanian Bogor (IPB)",
+    "Pengajuan PBI KIS",
+    "RSUD Ciereng Subang"
+)
+
+/** Kalimat keperluan SKTM PBI per tujuan (template xls sheet `3`). */
+fun kalimatTujuanSktmPbi(tujuan: String): String = when (tujuan) {
+    "RSUD Subang" -> "pembebasan biaya rawat inap di RSUD SUBANG"
+    "Institut Pertanian Bogor (IPB)" -> "Pembebasan/keringanan biaya pendidikan di Institut Pertanian Bogor (IPB)"
+    "Pengajuan PBI KIS" -> "Pengajuan PBI KIS"
+    "RSUD Ciereng Subang" -> "pembebasan biaya rawat inap di RSUD Ciereng Subang"
+    else -> tujuan
+}
+
+/** Pecah daftar tembusan ("a; b; c" / koma / baris) menjadi item-item (seperti web). */
+fun tembusanItems(daftarTembusan: String): List<String> =
+    daftarTembusan.split(';', '\n', ',').map { it.trim() }.filter { it.isNotBlank() }
 
 /** True bila tipe ini formulir Dukcapil seri F → kop Disdukcapil TEKS saja (tanpa logo desa). */
 fun isFormulirDukcapil(type: LetterType): Boolean = type in listOf(
@@ -1044,6 +1391,48 @@ val F201_JENIS_PELAPORAN: List<String> = listOf(
 )
 
 /**
+ * FASE 5 — 27 opsi Jenis Permohonan F-1.02 (template PDF F-1.02:
+ * 4 kelompok KK / KTP-el / KIA / Perubahan Data).
+ */
+val F102_JENIS_PERMOHONAN: List<String> = listOf(
+    "KK Baru — Membentuk Keluarga Baru",
+    "KK Baru — Penggantian Kepala Keluarga",
+    "KK Baru — Pisah KK",
+    "KK Baru — Pindah Datang",
+    "KK Baru — WNI dari LN karena Pindah",
+    "KK Baru — Rentan Adminduk",
+    "KK Perubahan Data — Menumpang dalam KK",
+    "KK Perubahan Data — Peristiwa Penting",
+    "KK Perubahan Data — Perubahan elemen Data dalam KK",
+    "KK Hilang/Rusak — Hilang",
+    "KK Hilang/Rusak — Rusak",
+    "KTP-el Baru",
+    "KTP-el Pindah Datang",
+    "KTP-el Hilang/Rusak — Hilang",
+    "KTP-el Hilang/Rusak — Rusak",
+    "Perpanjangan ITAP",
+    "KTP-el Perubahan Status Kewarganegaraan",
+    "KTP-el Luar Domisili",
+    "KTP-el Transmigrasi",
+    "KIA Baru",
+    "KIA Hilang/Rusak — Hilang",
+    "KIA Hilang/Rusak — Rusak",
+    "KIA Perpanjangan ITAP",
+    "KIA Lainnya",
+    "Perubahan Data — KK",
+    "Perubahan Data — KTP-el",
+    "Perubahan Data — KIA"
+)
+
+/** FASE 5 — 4 opsi Jenis Permohonan F-1.03 (template PDF F-1.03). */
+val F103_JENIS_PERMOHONAN: List<String> = listOf(
+    "Surat Keterangan Kependudukan",
+    "Surat Keterangan Pindah",
+    "SKPLN",
+    "SKTT Bagi Orang Asing Tinggal Terbatas"
+)
+
+/**
  * Seksi kondisional F-2.01: hanya seksi jenis pelaporan yang dipilih yang
  * tampil di form/preview/PDF. "anak" / "lahirMati" / "pasangan" /
  * "kematian" / "umum" (jenis lain → seksi keterangan umum).
@@ -1058,7 +1447,8 @@ fun f201Section(jenisPelaporan: String): String = when (jenisPelaporan) {
 
 /**
  * Judul PDF/preview yang dipakai, mengikuti varian yang dipilih:
- * domisili Lembaga/Perusahaan dan SKTM Sekolah/Kolektif mengubah judul.
+ * domisili Lembaga/Perusahaan, SKTM Sekolah/Kolektif, Duda/Janda,
+ * dan SPTJM Perkawinan/Perceraian mengubah judul.
  */
 fun effectivePdfTitle(type: LetterType, data: Any): String = when (type) {
     LetterType.DOMISILI -> when ((data as DomisiliData).jenisDomisili) {
@@ -1070,6 +1460,16 @@ fun effectivePdfTitle(type: LetterType, data: Any): String = when (type) {
         "Sekolah" -> "SURAT KETERANGAN TIDAK MAMPU (SEKOLAH)"
         "Daftar Kolektif" -> "SURAT KETERANGAN TIDAK MAMPU (DAFTAR KOLEKTIF)"
         else -> type.pdfTitle
+    }
+    // FASE 5 — judul dinamis Duda / Janda (template xlsm).
+    LetterType.DUDA_JANDA -> when ((data as DudaJandaData).statusDudaJanda) {
+        "Janda" -> "SURAT KETERANGAN JANDA"
+        else -> "SURAT KETERANGAN DUDA"
+    }
+    // FASE 5 — judul dinamis panjang SPTJM Perkawinan / Perceraian.
+    LetterType.SPTJM_PERKAWINAN_PERCERAIAN -> when ((data as SptjmPerkawinanPerceraianData).jenisSPTJM) {
+        "Perceraian" -> "SURAT PERNYATAAN TANGGUNG JAWAB MUTLAK PERCERAIAN BELUM TERCATAT"
+        else -> "SURAT PERNYATAAN TANGGUNG JAWAB MUTLAK PERKAWINAN BELUM TERCATAT"
     }
     else -> type.pdfTitle
 }
@@ -1113,6 +1513,9 @@ fun namaPemohonOf(type: LetterType, data: Any): String = when (type) {
     LetterType.PBI_ASESMEN -> (data as PbiAsesmenData).namaLengkap
     LetterType.PBI_PERNYATAAN -> (data as PbiPernyataanData).namaLengkap
     LetterType.PBI_TIDAK_PUNYA_REKENING -> (data as PbiTidakPunyaRekeningData).namaLengkap
+    LetterType.SKTM_PBI -> (data as SktmPbiData).namaLengkap
+    LetterType.PBI_REKENING_LISTRIK -> (data as PbiRekeningListrikData).namaLengkap
+    LetterType.PERNYATAAN_AKTA_KELAHIRAN -> (data as PernyataanAktaKelahiranData).namaLengkap
 }
 
 /** Data kosong untuk satu tipe. FASE 3: nomor surat default KOSONG (tidak lagi diisi pola). */
@@ -1147,4 +1550,7 @@ fun getEmptyLetterData(type: LetterType): Any = when (type) {
     LetterType.PBI_ASESMEN -> PbiAsesmenData()
     LetterType.PBI_PERNYATAAN -> PbiPernyataanData()
     LetterType.PBI_TIDAK_PUNYA_REKENING -> PbiTidakPunyaRekeningData()
+    LetterType.SKTM_PBI -> SktmPbiData()
+    LetterType.PBI_REKENING_LISTRIK -> PbiRekeningListrikData()
+    LetterType.PERNYATAAN_AKTA_KELAHIRAN -> PernyataanAktaKelahiranData()
 }

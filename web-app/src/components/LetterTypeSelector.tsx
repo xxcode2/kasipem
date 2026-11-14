@@ -60,6 +60,10 @@ const ICONS: Record<LetterType, typeof FileText> = {
   pbi_asesmen: ClipboardList,
   pbi_pernyataan: FileCheck,
   pbi_tidak_punya_rekening: Wallet,
+  // Fase 5
+  sktm_pbi: DollarSign,
+  pbi_rekening_listrik: FileX,
+  pernyataan_akta_kelahiran: Baby,
 };
 
 interface LetterTypeSelectorProps {
@@ -67,7 +71,7 @@ interface LetterTypeSelectorProps {
 }
 
 /**
- * Grid 30 kartu surat/formulir + pencarian + filter kategori.
+ * Grid 33 kartu surat/formulir + pencarian + filter kategori.
  * Klik kartu -> modal form (ditangani parent lewat onSelect).
  * Palet kalem: putih/stone, aksen teal tua, tanpa animasi berputar.
  */

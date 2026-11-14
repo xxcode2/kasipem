@@ -32,7 +32,11 @@ export type LetterType =
   // --- Fase 2: Bansos PBI-JKN ---
   | 'pbi_asesmen'
   | 'pbi_pernyataan'
-  | 'pbi_tidak_punya_rekening';
+  | 'pbi_tidak_punya_rekening'
+  // --- Fase 5: tipe baru ---
+  | 'sktm_pbi'
+  | 'pbi_rekening_listrik'
+  | 'pernyataan_akta_kelahiran';
 
 export type LetterCategory =
   | 'Individu'

@@ -23,7 +23,7 @@ import com.kasipem.data.*
 import com.kasipem.ui.components.*
 
 /**
- * Beranda: grid 30 kartu surat/formulir (cari + filter kategori).
+ * Beranda: grid 33 kartu surat/formulir (cari + filter kategori).
  * Alur: klik kartu → layar form SATU surat → "Lihat Preview" → preview.
  * Tidak ada lagi semua form ditampilkan sekaligus di satu scroll panjang.
  * Tombol riwayat (ikon jam) di bilah atas membuka Riwayat Surat lokal.
@@ -168,6 +168,10 @@ private fun iconFor(type: LetterType): ImageVector = when (type) {
     LetterType.PBI_ASESMEN -> Icons.Default.Assessment
     LetterType.PBI_PERNYATAAN -> Icons.Default.RequestQuote
     LetterType.PBI_TIDAK_PUNYA_REKENING -> Icons.Default.AccountBalance
+    // ---- Fase 5: 3 tipe baru ----
+    LetterType.SKTM_PBI -> Icons.Default.VolunteerActivism
+    LetterType.PBI_REKENING_LISTRIK -> Icons.Default.Receipt
+    LetterType.PERNYATAAN_AKTA_KELAHIRAN -> Icons.Default.Description
 }
 
 /** Aksen kalem per kategori (teal tua / slate / stone). */
@@ -272,7 +276,7 @@ private fun GridContent(
         Spacer(modifier = Modifier.height(12.dp))
 
         Text(
-            "Pilih Jenis Surat (${letterTypes.size} dari 30)",
+            "Pilih Jenis Surat (${letterTypes.size} dari 33)",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface
