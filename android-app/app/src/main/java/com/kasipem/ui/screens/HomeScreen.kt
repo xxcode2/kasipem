@@ -23,11 +23,12 @@ import com.kasipem.data.*
 import com.kasipem.ui.components.*
 
 /**
- * Beranda: grid 12 kartu surat (cari + filter kategori).
+ * Beranda: grid 30 kartu surat/formulir (cari + filter kategori).
  * Alur: klik kartu → layar form SATU surat → "Lihat Preview" → preview.
  * Tidak ada lagi semua form ditampilkan sekaligus di satu scroll panjang.
+ * Tombol riwayat (ikon jam) di bilah atas membuka Riwayat Surat lokal.
  */
-private enum class Screen { GRID, FORM, PREVIEW }
+private enum class Screen { GRID, FORM, PREVIEW, HISTORY }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,6 +55,12 @@ fun HomeScreen() {
             TopAppBar(
                 title = { Text("KASIPEM", fontWeight = FontWeight.Bold) },
                 actions = {
+                    IconButton(onClick = { screen = Screen.HISTORY }) {
+                        Icon(
+                            imageVector = Icons.Default.History,
+                            contentDescription = "Riwayat Surat"
+                        )
+                    }
                     IconButton(onClick = { showSettings = true }) {
                         Icon(
                             imageVector = Icons.Default.Settings,
@@ -114,6 +121,10 @@ fun HomeScreen() {
                     onBack = { screen = Screen.FORM },
                     modifier = Modifier.fillMaxSize()
                 )
+                Screen.HISTORY -> HistoryScreen(
+                    onBack = { screen = Screen.GRID },
+                    modifier = Modifier.fillMaxSize()
+                )
             }
         }
     }
@@ -138,6 +149,25 @@ private fun iconFor(type: LetterType): ImageVector = when (type) {
     LetterType.PEMAKAMAN -> Icons.Default.Park
     LetterType.TIDAK_MEMILIKI_RUMAH -> Icons.Default.House
     LetterType.UNDANGAN -> Icons.Default.Mail
+    // ---- Fase 2: 18 tipe baru ----
+    LetterType.KEMATIAN -> Icons.Default.SentimentDissatisfied
+    LetterType.USAHA -> Icons.Default.Store
+    LetterType.DUDA_JANDA -> Icons.Default.Person
+    LetterType.F101 -> Icons.Default.Groups
+    LetterType.F102 -> Icons.Default.Assignment
+    LetterType.F103 -> Icons.Default.SwapHoriz
+    LetterType.F104 -> Icons.Default.Description
+    LetterType.F105 -> Icons.Default.FavoriteBorder
+    LetterType.F106 -> Icons.Default.Edit
+    LetterType.F115 -> Icons.Default.Contacts
+    LetterType.F201 -> Icons.Default.ChildCare
+    LetterType.F203 -> Icons.Default.ChildFriendly
+    LetterType.F204 -> Icons.Default.SupervisorAccount
+    LetterType.SPTJM_KEMATIAN -> Icons.Default.Article
+    LetterType.SPTJM_PERKAWINAN_PERCERAIAN -> Icons.Default.GroupAdd
+    LetterType.PBI_ASESMEN -> Icons.Default.Assessment
+    LetterType.PBI_PERNYATAAN -> Icons.Default.RequestQuote
+    LetterType.PBI_TIDAK_PUNYA_REKENING -> Icons.Default.AccountBalance
 }
 
 /** Aksen kalem per kategori (teal tua / slate / stone). */
@@ -147,6 +177,10 @@ private fun accentFor(category: String): Color = when (category) {
     "Administrasi" -> Color(0xFF155E75)
     "Sosial" -> Color(0xFF57534E)
     "Hukum" -> Color(0xFF44403C)
+    "Surat Desa" -> Color(0xFF0F766E)
+    "Formulir Dukcapil" -> Color(0xFF1E40AF)
+    "SPTJM" -> Color(0xFF7C2D12)
+    "Bansos (PBI-JKN)" -> Color(0xFF166534)
     else -> Color(0xFF334155)
 }
 
@@ -238,7 +272,7 @@ private fun GridContent(
         Spacer(modifier = Modifier.height(12.dp))
 
         Text(
-            "Pilih Jenis Surat (${letterTypes.size} dari 12)",
+            "Pilih Jenis Surat (${letterTypes.size} dari 30)",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface

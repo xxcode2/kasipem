@@ -11,6 +11,10 @@ import { ContentBlock, getLetterContent } from '../lib/letter-content';
  *
  * Dibungkus .print-area oleh pemakai (LetterPreview) agar print CSS bisa
  * mencetak persis area ini.
+ *
+ * Fase 2: kop Disdukcapil (teks saja, tanpa logo desa) untuk formulir
+ * seri F; blok 'table' untuk daftar anggota/anak/kolektif; baris nomor
+ * bisa disembunyikan (hideNomor) untuk formulir yang tidak bernomor.
  */
 export function LetterBody({
   letterType,
@@ -28,37 +32,47 @@ export function LetterBody({
       className="letter-sheet bg-white text-black mx-auto w-full max-w-[210mm]"
       style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '13px', lineHeight: 1.5 }}
     >
-      {/* KOP — dua logo */}
-      <div className="flex items-start gap-3">
-        <img
-          src={headerData.logoGaruda || '/kop/kades.jpg'}
-          alt="Logo Garuda Pancasila"
-          className="h-[62px] w-auto shrink-0 object-contain"
-          onError={(e) => {
-            (e.target as HTMLImageElement).style.display = 'none';
-          }}
-        />
-        <div className="flex-1 text-center">
+      {/* KOP */}
+      {content.kop === 'disdukcapil' ? (
+        <div className="text-center">
+          <div className="font-bold text-[15px] leading-tight">PEMERINTAH KABUPATEN SUBANG</div>
           <div className="font-bold text-[15px] leading-tight">
-            PEMERINTAH {headerData.namaKabupaten.toUpperCase()}
+            DINAS KEPENDUDUKAN DAN PENCATATAN SIPIL
           </div>
-          <div className="font-bold text-[15px] leading-tight">
-            KECAMATAN {headerData.namaKecamatan.toUpperCase()}
-          </div>
-          <div className="font-bold text-[15px] leading-tight">
-            DESA {headerData.namaDesa.toUpperCase()}
-          </div>
-          <div className="text-[12px]">Alamat: {headerData.alamatKantor}</div>
+          <div className="text-[12px]">Jl. Mayjen Sutoyo S. No. 50 Subang — Telp. (0260) 411424</div>
         </div>
-        <img
-          src={headerData.logoSubang || '/kop/sekdes.jpg'}
-          alt="Logo Kabupaten Subang"
-          className="h-[62px] w-auto shrink-0 object-contain"
-          onError={(e) => {
-            (e.target as HTMLImageElement).style.display = 'none';
-          }}
-        />
-      </div>
+      ) : (
+        <div className="flex items-start gap-3">
+          <img
+            src={headerData.logoGaruda || '/kop/kades.jpg'}
+            alt="Logo Garuda Pancasila"
+            className="h-[62px] w-auto shrink-0 object-contain"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
+          />
+          <div className="flex-1 text-center">
+            <div className="font-bold text-[15px] leading-tight">
+              PEMERINTAH {headerData.namaKabupaten.toUpperCase()}
+            </div>
+            <div className="font-bold text-[15px] leading-tight">
+              KECAMATAN {headerData.namaKecamatan.toUpperCase()}
+            </div>
+            <div className="font-bold text-[15px] leading-tight">
+              DESA {headerData.namaDesa.toUpperCase()}
+            </div>
+            <div className="text-[12px]">Alamat: {headerData.alamatKantor}</div>
+          </div>
+          <img
+            src={headerData.logoSubang || '/kop/sekdes.jpg'}
+            alt="Logo Kabupaten Subang"
+            className="h-[62px] w-auto shrink-0 object-contain"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
+          />
+        </div>
+      )}
 
       {/* Garis ganda tebal + tipis */}
       <div className="mt-2 border-b-[3px] border-black" />
@@ -67,9 +81,11 @@ export function LetterBody({
       {/* Judul + nomor */}
       <div className="mt-4 text-center">
         <div className="font-bold text-[15px] underline underline-offset-2">{content.title}</div>
-        <div className="mt-1 text-[13px]">
-          Nomor : {content.nomor || '............................................'}
-        </div>
+        {!content.hideNomor && (
+          <div className="mt-1 text-[13px]">
+            Nomor : {content.nomor || '............................................'}
+          </div>
+        )}
       </div>
 
       {/* Isi */}
@@ -88,7 +104,9 @@ export function LetterBody({
             {content.leftSigner.prefix && <div>{content.leftSigner.prefix}</div>}
             <div>{content.leftSigner.role}</div>
             <div className="h-16" />
-            <div className="font-bold underline underline-offset-2">____________________</div>
+            <div className="font-bold underline underline-offset-2">
+              {content.leftSigner.name || '____________________'}
+            </div>
           </div>
         ) : (
           <div className="w-1/2" />
@@ -130,6 +148,34 @@ function BlockView({ block }: { block: ContentBlock }) {
             <li key={i}>- {item}</li>
           ))}
         </ul>
+      </div>
+    );
+  }
+  if (block.kind === 'table') {
+    return (
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse border border-black text-[12px]">
+          <thead>
+            <tr>
+              {block.headers.map((h, i) => (
+                <th key={i} className="border border-black px-1.5 py-1 text-left font-bold">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {block.rows.map((r, i) => (
+              <tr key={i}>
+                {r.map((cell, j) => (
+                  <td key={j} className="border border-black px-1.5 py-1 align-top">
+                    {cell}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     );
   }

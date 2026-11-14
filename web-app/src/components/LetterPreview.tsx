@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useLetterStore } from '../lib/store';
 import { generatePdf } from '../lib/pdf-generator';
+import { recordHistory } from '../lib/history';
 import { LetterBody } from './LetterBody';
 import { Download, Printer, X, FileText, RotateCcw } from 'lucide-react';
 
@@ -36,6 +37,8 @@ export function LetterPreview({ isOpen, onClose, onNewLetter }: LetterPreviewPro
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      // Catat ke Riwayat Surat lokal (pengganti macro Arsip di .xlsm lama).
+      recordHistory(letterType, letterData);
     } catch (err) {
       console.error('Error generating PDF:', err);
       setError('Gagal membuat PDF. Coba lagi.');
@@ -45,6 +48,8 @@ export function LetterPreview({ isOpen, onClose, onNewLetter }: LetterPreviewPro
   };
 
   const handlePrint = () => {
+    // Catat ke Riwayat Surat lokal sebelum mencetak.
+    recordHistory(letterType, letterData);
     window.print();
   };
 

@@ -10,7 +10,29 @@ export type LetterType =
   | 'nikah_tidak_tercatat'
   | 'pemakaman'
   | 'tidak_memiliki_rumah'
-  | 'undangan';
+  | 'undangan'
+  // --- Fase 2: surat desa baru ---
+  | 'kematian'
+  | 'usaha'
+  | 'duda_janda'
+  // --- Fase 2: formulir Dukcapil seri F ---
+  | 'f101'
+  | 'f102'
+  | 'f103'
+  | 'f104'
+  | 'f105'
+  | 'f106'
+  | 'f115'
+  | 'f201'
+  | 'f203'
+  | 'f204'
+  // --- Fase 2: SPTJM baru ---
+  | 'sptjm_kematian'
+  | 'sptjm_perkawinan_perceraian'
+  // --- Fase 2: Bansos PBI-JKN ---
+  | 'pbi_asesmen'
+  | 'pbi_pernyataan'
+  | 'pbi_tidak_punya_rekening';
 
 export type LetterCategory =
   | 'Individu'
@@ -18,7 +40,12 @@ export type LetterCategory =
   | 'Administrasi'
   | 'Sosial'
   | 'Hukum'
-  | 'Lainnya';
+  | 'Lainnya'
+  // --- Fase 2: kategori baru ---
+  | 'Surat Desa'
+  | 'Formulir Dukcapil'
+  | 'SPTJM'
+  | 'Bansos (PBI-JKN)';
 
 /** Penandatangan default untuk surat yang tidak mengatur penandatangan khusus. */
 export type PenandatanganDefault = 'kades' | 'sekdes';

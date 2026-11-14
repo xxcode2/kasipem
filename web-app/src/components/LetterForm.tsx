@@ -2,9 +2,9 @@
 
 import { useMemo, useState } from 'react';
 import { useLetterStore } from '../lib/store';
-import { LETTER_MAP, isValidNik } from '../lib/letter-definitions';
+import { LETTER_MAP, isValidNik, visibleFields, FormField } from '../lib/letter-definitions';
 import { formatDateSurat } from '../lib/letter-content';
-import { Send, RotateCcw, X, AlertTriangle } from 'lucide-react';
+import { Send, RotateCcw, X, AlertTriangle, Plus, Trash2 } from 'lucide-react';
 
 interface LetterFormProps {
   isOpen: boolean;
@@ -16,6 +16,10 @@ interface LetterFormProps {
  * Modal form per jenis surat. Field berasal dari LETTER_DEFINITIONS
  * (kanon yang sama dengan store/preview/PDF). Validasi inline — tanpa alert().
  * NIK bukan 16 digit hanya peringatan, bukan blokir keras.
+ *
+ * Fase 2: field kondisional (visibleWhen — mis. seksi F-2.01 per jenis
+ * pelaporan, varian domisili/SKTM) dan field tabel (daftar anggota/anak/
+ * kolektif) dengan tambah/hapus baris.
  */
 export function LetterForm({ isOpen, onClose, onPreview }: LetterFormProps) {
   const { letterType, letterData, setLetterData, reset } = useLetterStore();
@@ -23,12 +27,12 @@ export function LetterForm({ isOpen, onClose, onPreview }: LetterFormProps) {
   const [formError, setFormError] = useState('');
 
   const def = LETTER_MAP[letterType];
-  const fields = def.fields;
+  const fields = visibleFields(def, letterData);
 
   const nikWarnings = useMemo(() => {
     const warns: Record<string, string> = {};
     for (const f of fields) {
-      if (f.name.toLowerCase().includes('nik')) {
+      if (f.type !== 'table' && f.name.toLowerCase().includes('nik')) {
         const v = (letterData[f.name] || '').trim();
         if (v && !isValidNik(v)) {
           warns[f.name] = 'NIK sebaiknya 16 digit angka.';
@@ -52,7 +56,17 @@ export function LetterForm({ isOpen, onClose, onPreview }: LetterFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const missing = fields.filter((f) => f.required && !(letterData[f.name] || '').trim());
+    const missing = fields.filter((f) => {
+      if (!f.required) return false;
+      if (f.type === 'table') {
+        const rows = Array.isArray(letterData[f.name]) ? letterData[f.name] : [];
+        const filled = rows.filter((r: Record<string, string>) =>
+          Object.values(r || {}).some((v) => (v || '').toString().trim()),
+        );
+        return filled.length === 0;
+      }
+      return !(letterData[f.name] || '').toString().trim();
+    });
     if (!letterData.nomorSurat?.trim() && def.nomorPrefix) {
       setFormError('Nomor surat wajib diisi.');
       return;
@@ -100,18 +114,20 @@ export function LetterForm({ isOpen, onClose, onPreview }: LetterFormProps) {
           </p>
 
           {/* Nomor surat — editable, default per pola jenis surat */}
-          <div>
-            <label className="block text-sm font-semibold text-stone-700 mb-1.5">
-              Nomor Surat <span className="text-red-600">*</span>
-            </label>
-            <input
-              type="text"
-              value={letterData.nomorSurat || ''}
-              onChange={(e) => handleChange('nomorSurat', e.target.value)}
-              placeholder={def.nomorPrefix ? `${def.nomorPrefix} / ... / ${def.nomorSuffix} / ${new Date().getFullYear()}` : 'Isi nomor surat secara manual'}
-              className="w-full px-4 py-2.5 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-700 focus:border-teal-700"
-            />
-          </div>
+          {!def.hideNomor && (
+            <div>
+              <label className="block text-sm font-semibold text-stone-700 mb-1.5">
+                Nomor Surat <span className="text-red-600">*</span>
+              </label>
+              <input
+                type="text"
+                value={letterData.nomorSurat || ''}
+                onChange={(e) => handleChange('nomorSurat', e.target.value)}
+                placeholder={def.nomorPrefix ? `${def.nomorPrefix} / ... / ${def.nomorSuffix} / ${new Date().getFullYear()}` : 'Isi nomor surat secara manual'}
+                className="w-full px-4 py-2.5 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-700 focus:border-teal-700"
+              />
+            </div>
+          )}
 
           {fields.map((field) => (
             <div key={field.name}>
@@ -120,7 +136,13 @@ export function LetterForm({ isOpen, onClose, onPreview }: LetterFormProps) {
                 {field.required && <span className="text-red-600 ml-1">*</span>}
               </label>
 
-              {field.type === 'textarea' ? (
+              {field.type === 'table' ? (
+                <TableFieldEditor
+                  field={field}
+                  rows={Array.isArray(letterData[field.name]) ? letterData[field.name] : []}
+                  onChange={(rows) => handleChange(field.name, rows as unknown as string)}
+                />
+              ) : field.type === 'textarea' ? (
                 <textarea
                   value={letterData[field.name] || ''}
                   onChange={(e) => handleChange(field.name, e.target.value)}
@@ -188,6 +210,100 @@ export function LetterForm({ isOpen, onClose, onPreview }: LetterFormProps) {
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+/** Editor tabel sederhana: baris bisa ditambah/dihapus, maks. field.maxRows. */
+function TableFieldEditor({
+  field,
+  rows,
+  onChange,
+}: {
+  field: FormField;
+  rows: Record<string, string>[];
+  onChange: (rows: Record<string, string>[]) => void;
+}) {
+  const columns = field.columns || [];
+  const maxRows = field.maxRows ?? 10;
+
+  const emptyRow = () => Object.fromEntries(columns.map((c) => [c.name, '']));
+
+  const setCell = (rowIdx: number, col: string, value: string) => {
+    const next = rows.map((r, i) => (i === rowIdx ? { ...r, [col]: value } : r));
+    onChange(next);
+  };
+
+  const addRow = () => {
+    if (rows.length >= maxRows) return;
+    onChange([...rows, emptyRow()]);
+  };
+
+  const removeRow = (rowIdx: number) => {
+    if (rows.length <= 1) {
+      onChange([emptyRow()]);
+      return;
+    }
+    onChange(rows.filter((_, i) => i !== rowIdx));
+  };
+
+  return (
+    <div className="overflow-x-auto border border-stone-300 rounded-lg">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="bg-stone-100">
+            <th className="px-2 py-2 text-left font-semibold text-stone-700 w-8">#</th>
+            {columns.map((c) => (
+              <th key={c.name} className="px-2 py-2 text-left font-semibold text-stone-700 min-w-[110px]">
+                {c.label}
+              </th>
+            ))}
+            <th className="px-2 py-2 w-10" />
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={i} className="border-t border-stone-200">
+              <td className="px-2 py-1.5 text-stone-500">{i + 1}</td>
+              {columns.map((c) => (
+                <td key={c.name} className="px-1 py-1.5">
+                  <input
+                    type={c.name.toLowerCase().includes('tanggal') ? 'date' : 'text'}
+                    value={r[c.name] || ''}
+                    onChange={(e) => setCell(i, c.name, e.target.value)}
+                    maxLength={c.name.toLowerCase().includes('nik') ? 16 : undefined}
+                    className="w-full px-2 py-1.5 border border-stone-200 rounded focus:ring-1 focus:ring-teal-700 focus:border-teal-700"
+                  />
+                </td>
+              ))}
+              <td className="px-1 py-1.5">
+                <button
+                  type="button"
+                  onClick={() => removeRow(i)}
+                  className="p-1.5 text-stone-400 hover:text-red-600 rounded"
+                  aria-label={`Hapus baris ${i + 1}`}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="p-2 border-t border-stone-200 bg-stone-50 flex items-center justify-between">
+        <span className="text-xs text-stone-500">
+          {rows.length} / {maxRows} baris
+        </span>
+        <button
+          type="button"
+          onClick={addRow}
+          disabled={rows.length >= maxRows}
+          className="px-3 py-1.5 text-sm bg-teal-700 text-white rounded-lg hover:bg-teal-800 disabled:opacity-40 flex items-center gap-1"
+        >
+          <Plus className="w-4 h-4" />
+          Tambah Baris
+        </button>
       </div>
     </div>
   );

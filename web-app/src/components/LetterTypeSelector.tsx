@@ -17,6 +17,15 @@ import {
   Search,
   Scale,
   ScrollText,
+  Store,
+  HeartHandshake,
+  ClipboardList,
+  FileCheck,
+  FileSignature,
+  FileX,
+  FileEdit,
+  Baby,
+  Wallet,
 } from 'lucide-react';
 
 const ICONS: Record<LetterType, typeof FileText> = {
@@ -32,6 +41,25 @@ const ICONS: Record<LetterType, typeof FileText> = {
   pemakaman: ScrollText,
   tidak_memiliki_rumah: Building2,
   undangan: Mail,
+  // Fase 2
+  kematian: ScrollText,
+  usaha: Store,
+  duda_janda: HeartHandshake,
+  f101: ClipboardList,
+  f102: FileCheck,
+  f103: MapPin,
+  f104: FileX,
+  f105: FileSignature,
+  f106: FileEdit,
+  f115: Users,
+  f201: Baby,
+  f203: Baby,
+  f204: HeartHandshake,
+  sptjm_kematian: FileSignature,
+  sptjm_perkawinan_perceraian: FileSignature,
+  pbi_asesmen: ClipboardList,
+  pbi_pernyataan: FileCheck,
+  pbi_tidak_punya_rekening: Wallet,
 };
 
 interface LetterTypeSelectorProps {
@@ -39,7 +67,7 @@ interface LetterTypeSelectorProps {
 }
 
 /**
- * Grid 12 kartu surat + pencarian + filter kategori.
+ * Grid 30 kartu surat/formulir + pencarian + filter kategori.
  * Klik kartu -> modal form (ditangani parent lewat onSelect).
  * Palet kalem: putih/stone, aksen teal tua, tanpa animasi berputar.
  */

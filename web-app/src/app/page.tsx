@@ -6,13 +6,15 @@ import { LetterType } from '../types';
 import { LetterTypeSelector } from '../components/LetterTypeSelector';
 import { LetterForm } from '../components/LetterForm';
 import { LetterPreview } from '../components/LetterPreview';
+import { RiwayatSurat } from '../components/RiwayatSurat';
 import { HeaderForm } from '../components/HeaderForm';
-import { FileText, ShieldCheck, Printer, Download } from 'lucide-react';
+import { FileText, ShieldCheck, Printer, Download, History } from 'lucide-react';
 
 export default function Home() {
   const { loadHeaderFromStorage, reset, setLetterType } = useLetterStore();
   const [showForm, setShowForm] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
     loadHeaderFromStorage();
@@ -46,7 +48,7 @@ export default function Home() {
           </div>
           <p className="text-lg text-teal-100">Pembuat Surat Administrasi Desa Kasomalang Kulon</p>
           <p className="text-sm text-teal-200 mt-1">
-            Kecamatan Kasomalang, Kabupaten Subang — 12 jenis surat • Cepat • Gratis • Data hanya di perangkat Anda
+            Kecamatan Kasomalang, Kabupaten Subang — 30 jenis surat &amp; formulir • Cepat • Gratis • Data hanya di perangkat Anda
           </p>
         </div>
       </header>
@@ -76,6 +78,24 @@ export default function Home() {
                   <li>Klik &ldquo;Lihat Preview&rdquo; untuk memeriksa surat.</li>
                   <li>Unduh PDF atau cetak langsung.</li>
                 </ol>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-6">
+                <h3 className="font-semibold text-stone-800 mb-3 flex items-center gap-2">
+                  <History className="w-5 h-5 text-teal-700" />
+                  Riwayat Surat
+                </h3>
+                <p className="text-sm text-stone-600 leading-relaxed">
+                  Setiap surat yang diunduh atau dicetak tercatat di perangkat ini (tanggal, nomor,
+                  jenis, nama pemohon). Lihat dan hapus riwayat kapan saja — tidak ada data yang
+                  dikirim ke server.
+                </p>
+                <button
+                  onClick={() => setShowHistory(true)}
+                  className="mt-3 px-4 py-2 bg-teal-700 text-white rounded-lg hover:bg-teal-800 text-sm font-medium"
+                >
+                  Lihat Riwayat Surat
+                </button>
               </div>
 
               <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-6">
@@ -116,6 +136,7 @@ export default function Home() {
         onClose={() => setShowPreview(false)}
         onNewLetter={handleNewLetter}
       />
+      <RiwayatSurat isOpen={showHistory} onClose={() => setShowHistory(false)} />
 
       <HeaderForm />
 

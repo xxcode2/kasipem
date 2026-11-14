@@ -5,7 +5,8 @@ KASIPEM adalah aplikasi modern untuk membuat berbagai jenis surat administrasi d
 ## 🎯 Fitur Utama
 
 ✅ **Stateless & Sekali Pakai** - Tidak menggunakan database, tanpa login/register, semua diproses di sisi klien  
-✅ **12 Jenis Surat** - Domisili, Pisah KK, Keterangan Tanah (SKT Dayat), Beda Luas Tanah, Beda Nama, Belum Menikah, Tidak Mampu (SKTM), Ahli Waris, Nikah Tidak Tercatat, Pemakaman, Tidak Memiliki Rumah, Undangan  
+✅ **30 Jenis Surat & Formulir** - 12 surat desa (Domisili, Pisah KK, Keterangan Tanah (SKT Dayat), Beda Luas Tanah, Beda Nama, Belum Menikah, Tidak Mampu (SKTM), Ahli Waris, Nikah Tidak Tercatat, Pemakaman, Tidak Memiliki Rumah, Undangan) + 3 surat desa baru (Kematian, Usaha, Duda/Janda) + 10 formulir Dukcapil seri F (F-1.01, F-1.02, F-1.03, F-1.04, F-1.05, F-1.06, F-1.15, F-2.01, F-2.03, F-2.04) + 2 SPTJM (Kematian, Perkawinan/Perceraian) + 3 dokumen PBI-JKN (Asesmen, Surat Pernyataan, Tidak Memiliki Rekening). Varian: Domisili Lembaga/Perusahaan dan SKTM Sekolah/Daftar Kolektif sebagai opsi di dalam surat yang sama. F-2.01 hanya menampilkan seksi jenis pelaporan yang dipilih.  
+✅ **Riwayat Surat (lokal)** - Setiap surat yang diunduh/dicetak tercatat di perangkat (tanggal, nomor, jenis, nama pemohon); bisa dilihat & dihapus. Pengganti macro Arsip di aplikasi Excel lama. Tanpa server, tanpa data warga yang dimuat sebelumnya.
 ✅ **Form Dinamis** - Kolom input berubah sesuai jenis surat yang dipilih  
 ✅ **Export & Cetak** - Unduh PDF, DOCX, atau cetak langsung  
 ✅ **Data Lokal** - Simpan kop surat dan pejabat di device (tidak ke server)  
@@ -32,16 +33,18 @@ kasipem/
 │   │   │   ├── layout.tsx      # Layout root
 │   │   │   └── globals.css     # CSS global
 │   │   ├── components/
-│   │   │   ├── LetterTypeSelector.tsx  # Grid 12 kartu + cari/filter
-│   │   │   ├── LetterForm.tsx        # Modal form per surat
-│   │   │   ├── LetterBody.tsx        # Renderer isi surat (preview)
-│   │   │   ├── LetterPreview.tsx     # Modal preview A4 + Unduh PDF / Cetak
+│   │   │   ├── LetterTypeSelector.tsx  # Grid 30 kartu + cari/filter
+│   │   │   ├── LetterForm.tsx        # Modal form per surat (field kondisional + tabel)
+│   │   │   ├── LetterBody.tsx        # Renderer isi surat (preview; kop desa/Disdukcapil + tabel)
+│   │   │   ├── LetterPreview.tsx     # Modal preview A4 + Unduh PDF / Cetak (+ catat riwayat)
+│   │   │   ├── RiwayatSurat.tsx      # Modal riwayat surat lokal (localStorage)
 │   │   │   └── HeaderForm.tsx        # Kop + pejabat (Kades & Sekdes)
 │   │   ├── lib/
 │   │   │   ├── store.ts             # Zustand state management
-│   │   │   ├── letter-definitions.ts # Metadata + field kanon 12 surat
+│   │   │   ├── letter-definitions.ts # Metadata + field kanon 30 surat/formulir
 │   │   │   ├── letter-content.ts     # Isi surat (dipakai preview DAN PDF)
-│   │   │   └── pdf-generator.ts      # Satu-satunya generator PDF (jsPDF, 12 surat)
+│   │   │   ├── history.ts            # Riwayat Surat lokal (localStorage)
+│   │   │   └── pdf-generator.ts      # Satu-satunya generator PDF (jsPDF, 30 surat/formulir)
 │   │   ├── types/
 │   │   │   └── index.ts        # TypeScript types
 │   │   └── public/
@@ -152,7 +155,7 @@ cd android-app
 
 ## 📋 Jenis Surat & Form Dinamis
 
-Ada **12 jenis surat**. Nomor surat bisa diedit per surat (default per pola di bawah, tahun otomatis). Penandatangan: Kepala Desa, kecuali Pisah KK (a.n. Kepala Desa oleh Sekretaris Desa) dan SKTM (ditambah baris "Mengetahui, Ketua RW").
+Ada **30 jenis surat/formulir**. Nomor surat bisa diedit per surat (default per pola di bawah, tahun otomatis). Penandatangan: Kepala Desa, kecuali Pisah KK dan Kematian (a.n. Kepala Desa oleh Sekretaris Desa), Usaha dan Duda/Janda (Sekretaris Desa), SKTM (ditambah baris "Mengetahui, Ketua RW"), dan formulir/SPTJM (pemohon / yang menyatakan, sesuai template). Formulir Dukcapil seri F memakai kop teks Dinas Kependudukan dan Pencatatan Sipil Kabupaten Subang (tanpa logo desa) dan tidak bernomor surat.
 
 ### 1. **Surat Keterangan Domisili** (Nomor: 474/.../PEM/tahun)
 **Tujuan:** Verifikasi tempat tinggal untuk keperluan administrasi
@@ -238,6 +241,139 @@ Ada **12 jenis surat**. Nomor surat bisa diedit per surat (default per pola di b
 
 ---
 
+### 13. **Surat Keterangan Kematian** (Nomor: 460.3/.../KS/tahun)
+**Tujuan:** Keterangan resmi meninggal dunia, dasar pengurusan akta kematian. **Ttd: a.n. Kepala Desa — Sekretaris Desa.** Catatan: seri 460.3/.../KS/ juga dipakai Pemakaman di template desa — dipertahankan apa adanya, perlu konfirmasi penomoran resmi desa.
+
+**Field:** Nama Almarhum/Almarhumah*, NIK*, Jenis Kelamin, Agama, Tempat/Tanggal Lahir, Pekerjaan, Alamat*, Hari Meninggal*, Tanggal Meninggal*, Tempat Meninggal*, Penyebab Meninggal*, Nama Pelapor*, NIK Pelapor*, Tempat/Tanggal Lahir Pelapor, Pekerjaan Pelapor, Alamat Pelapor*, Hubungan Pelapor*
+
+---
+
+### 14. **Surat Keterangan Usaha (SKU)** (Nomor: 510/.../PEM/tahun)
+**Tujuan:** Menerangkan usaha yang dijalankan warga desa. **Ttd: Sekretaris Desa.**
+
+**Field:** Nama Lengkap*, NIK*, Tempat/Tanggal Lahir, Pekerjaan, Alamat*, Nama/Jenis Usaha*, Alamat Tempat Usaha*
+
+---
+
+### 15. **Surat Keterangan Duda/Janda** (Nomor: 474.2/.../KS/tahun)
+**Tujuan:** Menerangkan status duda atau janda. **Ttd: Sekretaris Desa.** Judul berubah mengikuti pilihan Duda/Janda.
+
+**Field:** Status (Duda/Janda)*, Nama Lengkap*, NIK*, Tempat/Tanggal Lahir, Pekerjaan, Alamat*, Keterangan Ketua RT
+
+---
+
+### 16. **Formulir F-1.01 — Biodata Keluarga** (Kop Disdukcapil, tanpa nomor)
+**Tujuan:** Biodata keluarga: kepala keluarga + daftar anggota keluarga (maks. 10 anggota). **Ttd: Kepala Keluarga + Kepala Dinas Dukcapil Subang.** PDF multi-halaman bila daftar anggota panjang.
+
+**Field:** Nama Kepala Keluarga*, NIK*, Nomor KK*, Alamat Keluarga*, Daftar Anggota Keluarga (tabel: Nama, NIK, SHDK, Tempat/Tgl Lahir, Agama, Pendidikan, Pekerjaan, Status Kawin, Nama Ayah, Nama Ibu)
+
+---
+
+### 17. **Formulir F-1.02 — Pendaftaran Peristiwa Kependudukan** (Kop Disdukcapil, tanpa nomor)
+**Tujuan:** Pendaftaran peristiwa kependudukan (KK, KTP-el, KIA, perubahan data).
+
+**Field:** Nama Lengkap*, NIK*, Nomor KK*, Jenis Permohonan* (KK baru / KK perubahan / KK hilang-rusak / KTP-el baru / KTP-el pindah / KTP-el hilang-rusak / Perpanjangan ITAP / KIA / Perubahan data), Daftar Lampiran
+
+---
+
+### 18. **Formulir F-1.03 — Pendaftaran Perpindahan Penduduk** (Kop Disdukcapil, tanpa nomor)
+**Tujuan:** Pendaftaran perpindahan penduduk (SKP / SKPLN / SKTT). PDF multi-halaman bila daftar anggota panjang.
+
+**Field:** Nomor KK*, Nama Pemohon*, NIK*, Jenis Permohonan* (SKP/SKPLN/SKTT), Alamat Asal*, RT, RW, Klasifikasi Kepindahan* (dalam desa / antar desa / antar kecamatan / antar kabupaten / antar provinsi), Alamat Pindah*, Alasan Pindah*, Jenis Kepindahan, Daftar Anggota Keluarga yang Pindah (tabel NIK/Nama/SHDK), Anggota Keluarga yang Tidak Pindah
+
+---
+
+### 19. **F-1.04 — Surat Pernyataan Tidak Memiliki Dokumen Kependudukan** (Kop Disdukcapil, tanpa nomor)
+**Tujuan:** Pernyataan tidak memiliki dokumen kependudukan (bermaterai).
+
+**Field:** Nama Lengkap*, Alamat*, Tempat/Tanggal Lahir, Nama Ibu*
+
+---
+
+### 20. **F-1.05 — SPTJM Perkawinan Belum Tercatat** (Kop Disdukcapil, tanpa nomor)
+**Tujuan:** SPTJM perkawinan belum tercatat. **Ttd: Suami + Istri.**
+
+**Field:** Nama Suami*, NIK Suami*, Nama Istri*, NIK Istri*, Tanggal Perkawinan*, Bulan/Tahun Perkawinan, Nama Saksi 1*, NIK, Nama Saksi 2*, NIK, Daftar Anak (tabel Nama/No. Akta Kelahiran/SHDK)
+
+---
+
+### 21. **F-1.06 — Surat Pernyataan Perubahan Elemen Data Kependudukan** (Kop Disdukcapil, tanpa nomor)
+**Tujuan:** Pernyataan perubahan elemen data kependudukan.
+
+**Field:** Nama Lengkap*, NIK*, Nomor KK*, Alamat*, Tabel Anggota Keluarga (maks. 7 baris: Nama, Perubahan Elemen Data), Perubahan Pendidikan (Semula/Menjadi/Dasar Perubahan), Perubahan Pekerjaan (Semula/Menjadi/Dasar Perubahan), Perubahan Agama
+
+---
+
+### 22. **Formulir F-1.15 — Permohonan KK Baru WNI** (Kop Disdukcapil, tanpa nomor)
+**Tujuan:** Permohonan Kartu Keluarga baru bagi WNI.
+
+**Field:** Nama Pemohon*, NIK*, Nomor KK Semula, Alamat*, RT, RW, Alasan Permohonan* (Membentuk RT baru / KK hilang-rusak / Lainnya), Jumlah Anggota Keluarga, Daftar Anggota Keluarga (tabel NIK/Nama/SHDK)
+
+---
+
+### 23. **Formulir F-2.01 — Pelaporan Pencatatan Sipil** (Kop Disdukcapil, tanpa nomor)
+**Tujuan:** Pelaporan pencatatan sipil di dalam wilayah NKRI. **Hanya seksi jenis pelaporan yang dipilih yang tampil** di form, preview, dan PDF (16 jenis: Kelahiran, Lahir Mati, Perkawinan, Pembatalan Perkawinan, Perceraian, Pembatalan Perceraian, Kematian, Pengangkatan Anak, Pengakuan Anak, Pengesahan Anak, Perubahan Nama, Perubahan Status Kewarganegaraan, Peristiwa Penting Lainnya, Pembetulan Akta, Pembatalan Akta, Pelaporan dari Luar Wilayah NKRI). PDF multi-halaman.
+
+**Field:** Jenis Pelaporan*, Nama Pelapor*, NIK Pelapor*, Alamat Pelapor*, Subjek Akta I/II, Saksi I/II, Orang Tua (Ayah/Ibu) + seksi kondisional (Data Anak / Lahir Mati / Kematian / Data Peristiwa)
+
+---
+
+### 24. **F-2.03 — SPTJM Kebenaran Data Kelahiran** (Kop Disdukcapil, tanpa nomor)
+**Tujuan:** SPTJM kebenaran data kelahiran.
+
+**Field:** Nama Yang Menyatakan*, NIK*, Tempat/Tanggal Lahir, Pekerjaan, Alamat*, Anak (Nama*, NIK, Tempat/Tanggal Lahir*, Jenis Kelamin, Anak Ke-, Alamat), Ibu (Nama*, NIK, Tempat/Tanggal Lahir, Pekerjaan, Alamat), Penolong Kelahiran (Nama, NIK, Pekerjaan, Alamat), Saksi 1*, Saksi 2*
+
+---
+
+### 25. **F-2.04 — SPTJM Kebenaran sebagai Pasangan Suami Istri** (Kop Disdukcapil, tanpa nomor)
+**Tujuan:** SPTJM kebenaran sebagai pasangan suami istri.
+
+**Field:** Nama Yang Menyatakan*, NIK*, Tempat/Tanggal Lahir, Pekerjaan, Alamat*, Nama Pasangan*, NIK Pasangan*, Tempat/Tanggal Lahir Pasangan, Pekerjaan Pasangan, Alamat Pasangan, Nomor KK, Saksi 1*, Saksi 2*
+
+---
+
+### 26. **SPTJM Kebenaran Data Kematian** (tanpa nomor)
+**Tujuan:** SPTJM kebenaran data kematian untuk pengurusan akta kematian (bermaterai). Mengetahui: Ketua RT, Ketua RW, Kepala Desa/Lurah.
+
+**Field:** Nama Yang Menyatakan*, NIK*, Tempat/Tanggal Lahir, Pekerjaan, Alamat*, Almarhum/Almarhumah (Nama*, NIK, Tempat/Tanggal Lahir, Alamat Terakhir), Hari Meninggal*, Tanggal Meninggal*, Jam Meninggal, Tempat Meninggal*, Saksi 1*, Saksi 2*
+
+---
+
+### 27. **SPTJM Perkawinan/Perceraian Belum Tercatat** (tanpa nomor)
+**Tujuan:** SPTJM perkawinan atau perceraian belum tercatat (bermaterai). Judul berubah mengikuti pilihan Perkawinan/Perceraian. **Ttd: Suami + Istri.**
+
+**Field:** Jenis SPTJM* (Perkawinan/Perceraian), Nama Suami*, NIK Suami*, Nama Istri*, NIK Istri*, Tanggal Perkawinan/Perceraian*, Saksi 1*, Saksi 2*, Daftar Anak (tabel Nama/No. Akta Kelahiran/SHDK)
+
+---
+
+### 28. **Instrumen Asesmen Calon Penerima Bansos KIS-PBI / SKM** (tanpa nomor)
+**Tujuan:** Instrumen asesmen (wawancara petugas) calon penerima bansos KIS-PBI/SKM. PDF multi-halaman.
+
+**Field:** Nama Lengkap*, Tempat/Tanggal Lahir, Jenis Kelamin, Status Kawin, NIK*, Nomor KK, Nama Ibu Kandung, Pekerjaan, Alamat*, 11 pertanyaan kondisi (jaminan kesehatan, alasan non-aktif, status/kondisi/ukuran/dinding/penerangan rumah, jumlah keluarga, jumlah anggota, bansos diterima, usaha/penghasilan), Catatan Petugas
+
+---
+
+### 29. **Surat Pernyataan (PBI-JKN)** (Nomor: 474.4/.../KS/tahun)
+**Tujuan:** Surat pernyataan calon penerima bansos PBI-JKN.
+
+**Field:** Nama Lengkap*, NIK*, Tempat/Tanggal Lahir, Pekerjaan, Alamat*, Isi Pernyataan*
+
+---
+
+### 30. **Surat Pernyataan Tidak Memiliki Rekening** (Nomor: 474.4/.../KS/tahun)
+**Tujuan:** Surat pernyataan tidak memiliki rekening bank (PBI-JKN).
+
+**Field:** Nama Lengkap*, NIK*, Tempat/Tanggal Lahir, Pekerjaan, Alamat*
+
+---
+
+## 🔁 Varian (opsi di dalam surat yang sudah ada, bukan kartu baru)
+
+- **Domisili** — pilihan Jenis Domisili: Perorangan (form lama), Lembaga (+ nama lembaga, nama pimpinan, alamat, keperluan; judul "SURAT KETERANGAN DOMISILI LEMBAGA"), Perusahaan (+ nama perusahaan, nama pimpinan, nama sekretaris, bidang usaha, alamat, keperluan; judul "SURAT KETERANGAN DOMISILI PERUSAHAAN").
+- **Tidak Mampu (SKTM)** — pilihan Varian SKTM: Umum (form lama), Sekolah (judul "SURAT KETERANGAN TIDAK MAMPU (SEKOLAH)"), Daftar Kolektif (satu surat untuk banyak warga — tabel nama/NIK/alamat, maks. 20 baris).
+
+---
+
 ## 🎨 Desain & Tema
 
 ### Palet Warna
@@ -266,6 +402,9 @@ localStorage.setItem('kasipem_header', JSON.stringify(headerData))
 
 // Auto-load saat app dimulai
 const stored = localStorage.getItem('kasipem_header')
+
+// Riwayat Surat (localStorage 'kasipem_riwayat') — tercatat saat unduh PDF / cetak
+localStorage.setItem('kasipem_riwayat', JSON.stringify([{ tanggal, nomor, jenis, namaPemohon }]))
 ```
 
 ### Android (DataStore)
@@ -320,7 +459,7 @@ context.dataStore.edit { preferences ->
 ```
 START
   ↓
-[Pilih Jenis Surat] ← Dari 12 pilihan (grid kartu + cari/filter kategori) → modal form → modal preview A4
+[Pilih Jenis Surat] ← Dari 30 pilihan (grid kartu + cari/filter kategori) → modal form → modal preview A4
   ↓
 [Isi Form] ← Form fields dinamis sesuai jenis surat
   ↓

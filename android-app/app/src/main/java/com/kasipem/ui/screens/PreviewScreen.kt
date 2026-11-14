@@ -36,11 +36,13 @@ import java.io.FileInputStream
 import java.io.FileOutputStream
 
 /**
- * Pratinjau A4 untuk 12/12 jenis surat. Isi sama dengan PdfGenerator
+ * Pratinjau A4 untuk 30/30 jenis surat/formulir. Isi sama dengan PdfGenerator
  * (satu kanon field). Tombol PDF benar-benar membuat file PDF di cache
  * aplikasi; tombol Cetak mengirim PDF itu ke PrintManager Android.
- * Status (berhasil/gagal + nama file) tampil sebagai teks persisten
- * di bawah tombol — bukan toast yang menghilang.
+ * Setiap PDF/cetak yang berhasil tercatat ke Riwayat Surat lokal
+ * (SharedPreferences, lihat HistoryStore). Status (berhasil/gagal +
+ * nama file) tampil sebagai teks persisten di bawah tombol — bukan
+ * toast yang menghilang.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,11 +56,23 @@ fun PreviewScreen(
     val context = LocalContext.current
     val scrollState = rememberScrollState()
     var statusMessage by remember { mutableStateOf<String?>(null) }
+    val historyStore = remember { HistoryStore(context) }
 
     fun buildPdfFile(): File {
         val fileName = "kasipem-${letterType.name.lowercase()}-${System.currentTimeMillis()}.pdf"
         val file = File(context.cacheDir, fileName)
         PdfGenerator(context).generatePdf(headerData, letterType, letterData, file)
+        // Catat ke Riwayat Surat lokal (tanggal, nomor, jenis, nama pemohon).
+        historyStore.add(
+            HistoryEntry(
+                id = "${letterType.name}-${System.currentTimeMillis()}",
+                tanggal = effectiveTanggalSurat(tanggalOf(letterType, letterData)),
+                nomorSurat = effectiveNomorSurat(nomorOf(letterType, letterData), letterType),
+                jenisSurat = letterType.displayTitle,
+                namaPemohon = namaPemohonOf(letterType, letterData),
+                timestamp = System.currentTimeMillis()
+            )
+        )
         return file
     }
 
@@ -230,6 +244,24 @@ private fun nomorOf(type: LetterType, data: Any): String = when (type) {
     LetterType.PEMAKAMAN -> (data as PemakamanData).nomorSurat
     LetterType.TIDAK_MEMILIKI_RUMAH -> (data as TidakMemilikiRumahData).nomorSurat
     LetterType.UNDANGAN -> (data as UndanganData).nomorSurat
+    LetterType.KEMATIAN -> (data as KematianData).nomorSurat
+    LetterType.USAHA -> (data as UsahaData).nomorSurat
+    LetterType.DUDA_JANDA -> (data as DudaJandaData).nomorSurat
+    LetterType.F101 -> (data as F101Data).nomorSurat
+    LetterType.F102 -> (data as F102Data).nomorSurat
+    LetterType.F103 -> (data as F103Data).nomorSurat
+    LetterType.F104 -> (data as F104Data).nomorSurat
+    LetterType.F105 -> (data as F105Data).nomorSurat
+    LetterType.F106 -> (data as F106Data).nomorSurat
+    LetterType.F115 -> (data as F115Data).nomorSurat
+    LetterType.F201 -> (data as F201Data).nomorSurat
+    LetterType.F203 -> (data as F203Data).nomorSurat
+    LetterType.F204 -> (data as F204Data).nomorSurat
+    LetterType.SPTJM_KEMATIAN -> (data as SptjmKematianData).nomorSurat
+    LetterType.SPTJM_PERKAWINAN_PERCERAIAN -> (data as SptjmPerkawinanPerceraianData).nomorSurat
+    LetterType.PBI_ASESMEN -> (data as PbiAsesmenData).nomorSurat
+    LetterType.PBI_PERNYATAAN -> (data as PbiPernyataanData).nomorSurat
+    LetterType.PBI_TIDAK_PUNYA_REKENING -> (data as PbiTidakPunyaRekeningData).nomorSurat
 }
 
 private fun tanggalOf(type: LetterType, data: Any): String = when (type) {
@@ -245,6 +277,24 @@ private fun tanggalOf(type: LetterType, data: Any): String = when (type) {
     LetterType.PEMAKAMAN -> (data as PemakamanData).tanggalSurat
     LetterType.TIDAK_MEMILIKI_RUMAH -> (data as TidakMemilikiRumahData).tanggalSurat
     LetterType.UNDANGAN -> (data as UndanganData).tanggalSurat
+    LetterType.KEMATIAN -> (data as KematianData).tanggalSurat
+    LetterType.USAHA -> (data as UsahaData).tanggalSurat
+    LetterType.DUDA_JANDA -> (data as DudaJandaData).tanggalSurat
+    LetterType.F101 -> (data as F101Data).tanggalSurat
+    LetterType.F102 -> (data as F102Data).tanggalSurat
+    LetterType.F103 -> (data as F103Data).tanggalSurat
+    LetterType.F104 -> (data as F104Data).tanggalSurat
+    LetterType.F105 -> (data as F105Data).tanggalSurat
+    LetterType.F106 -> (data as F106Data).tanggalSurat
+    LetterType.F115 -> (data as F115Data).tanggalSurat
+    LetterType.F201 -> (data as F201Data).tanggalSurat
+    LetterType.F203 -> (data as F203Data).tanggalSurat
+    LetterType.F204 -> (data as F204Data).tanggalSurat
+    LetterType.SPTJM_KEMATIAN -> (data as SptjmKematianData).tanggalSurat
+    LetterType.SPTJM_PERKAWINAN_PERCERAIAN -> (data as SptjmPerkawinanPerceraianData).tanggalSurat
+    LetterType.PBI_ASESMEN -> (data as PbiAsesmenData).tanggalSurat
+    LetterType.PBI_PERNYATAAN -> (data as PbiPernyataanData).tanggalSurat
+    LetterType.PBI_TIDAK_PUNYA_REKENING -> (data as PbiTidakPunyaRekeningData).tanggalSurat
 }
 
 @Composable
@@ -256,7 +306,9 @@ private fun PreviewContent(
     val date = effectiveTanggalSurat(tanggalOf(letterType, letterData))
     val nomor = effectiveNomorSurat(nomorOf(letterType, letterData), letterType)
 
-    // Kop: logo Garuda kiri + teks tengah + logo Subang kanan (fallback teks bila logo tak ada).
+    // Kop: formulir Dukcapil seri F memakai kop Disdukcapil Subang TEKS saja
+    // (tanpa logo desa); surat desa/SPTJM/PBI memakai kop logo desa.
+    // Logo dimuat di sini (di luar cabang if) agar urutan remember stabil.
     val context = LocalContext.current
     val garudaBitmap = remember(headerData.logoGarudaAsset) {
         try {
@@ -272,35 +324,48 @@ private fun PreviewContent(
             null
         }
     }
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 4.dp)
-            .border(width = 1.dp, color = Color.Black, shape = RoundedCornerShape(4.dp))
-            .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        garudaBitmap?.let {
-            Image(bitmap = it, contentDescription = "Logo Garuda Pancasila", modifier = Modifier.size(44.dp))
-        }
+    if (isFormulirDukcapil(letterType)) {
         Column(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 4.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("PEMERINTAH DAERAH ${headerData.namaKabupaten.uppercase()}", fontSize = 11.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-            Text(headerData.namaKecamatan.uppercase(), fontSize = 11.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-            Text("DESA ${headerData.namaDesa.uppercase()}", fontSize = 11.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-            Text("Alamat: ${headerData.alamatKantor}", fontSize = 9.sp, textAlign = TextAlign.Center)
+            Text("PEMERINTAH KABUPATEN SUBANG", fontSize = 11.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+            Text("DINAS KEPENDUDUKAN DAN PENCATATAN SIPIL", fontSize = 11.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+            Text("Jl. Mayjen Sutoyo S. No. 50 Subang, Telp. (0260) 411424", fontSize = 9.sp, textAlign = TextAlign.Center)
         }
-        subangBitmap?.let {
-            Image(bitmap = it, contentDescription = "Logo Kabupaten Subang", modifier = Modifier.size(44.dp))
+    } else {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 4.dp)
+                .border(width = 1.dp, color = Color.Black, shape = RoundedCornerShape(4.dp))
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            garudaBitmap?.let {
+                Image(bitmap = it, contentDescription = "Logo Garuda Pancasila", modifier = Modifier.size(44.dp))
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("PEMERINTAH DAERAH ${headerData.namaKabupaten.uppercase()}", fontSize = 11.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                Text(headerData.namaKecamatan.uppercase(), fontSize = 11.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                Text("DESA ${headerData.namaDesa.uppercase()}", fontSize = 11.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                Text("Alamat: ${headerData.alamatKantor}", fontSize = 9.sp, textAlign = TextAlign.Center)
+            }
+            subangBitmap?.let {
+                Image(bitmap = it, contentDescription = "Logo Kabupaten Subang", modifier = Modifier.size(44.dp))
+            }
         }
     }
     Divider(thickness = 2.dp, color = Color.Black)
     Divider(modifier = Modifier.padding(top = 1.dp), color = Color.Black)
 
     Text(
-        text = letterType.pdfTitle,
+        text = effectivePdfTitle(letterType, letterData),
         fontSize = 12.sp,
         fontWeight = FontWeight.Bold,
         textAlign = TextAlign.Center,
@@ -327,6 +392,25 @@ private fun PreviewContent(
         LetterType.PEMAKAMAN -> PreviewPemakamanContent(headerData, letterData as PemakamanData, date)
         LetterType.TIDAK_MEMILIKI_RUMAH -> PreviewTidakMemilikiRumahContent(headerData, letterData as TidakMemilikiRumahData, date)
         LetterType.UNDANGAN -> PreviewUndanganContent(headerData, letterData as UndanganData, date)
+        // ---- Fase 2: 18 tipe baru ----
+        LetterType.KEMATIAN -> PreviewKematianContent(headerData, letterData as KematianData, date)
+        LetterType.USAHA -> PreviewUsahaContent(headerData, letterData as UsahaData, date)
+        LetterType.DUDA_JANDA -> PreviewDudaJandaContent(headerData, letterData as DudaJandaData, date)
+        LetterType.F101 -> PreviewF101Content(headerData, letterData as F101Data, date)
+        LetterType.F102 -> PreviewF102Content(headerData, letterData as F102Data, date)
+        LetterType.F103 -> PreviewF103Content(headerData, letterData as F103Data, date)
+        LetterType.F104 -> PreviewF104Content(headerData, letterData as F104Data, date)
+        LetterType.F105 -> PreviewF105Content(headerData, letterData as F105Data, date)
+        LetterType.F106 -> PreviewF106Content(headerData, letterData as F106Data, date)
+        LetterType.F115 -> PreviewF115Content(headerData, letterData as F115Data, date)
+        LetterType.F201 -> PreviewF201Content(headerData, letterData as F201Data, date)
+        LetterType.F203 -> PreviewF203Content(headerData, letterData as F203Data, date)
+        LetterType.F204 -> PreviewF204Content(headerData, letterData as F204Data, date)
+        LetterType.SPTJM_KEMATIAN -> PreviewSptjmKematianContent(headerData, letterData as SptjmKematianData, date)
+        LetterType.SPTJM_PERKAWINAN_PERCERAIAN -> PreviewSptjmPerkawinanPerceraianContent(headerData, letterData as SptjmPerkawinanPerceraianData, date)
+        LetterType.PBI_ASESMEN -> PreviewPbiAsesmenContent(headerData, letterData as PbiAsesmenData, date)
+        LetterType.PBI_PERNYATAAN -> PreviewPbiPernyataanContent(headerData, letterData as PbiPernyataanData, date)
+        LetterType.PBI_TIDAK_PUNYA_REKENING -> PreviewPbiTidakPunyaRekeningContent(headerData, letterData as PbiTidakPunyaRekeningData, date)
     }
 }
 
@@ -360,6 +444,12 @@ private fun PreviewSignature(
                 TextPreview(header.namaSekdes)
                 // Baris NIP hanya bila diisi; default kosong (tidak ada NIP).
                 if (header.nipSekdes.isNotBlank()) TextPreview("NIP: ${header.nipSekdes}")
+            } else if (signer == "SEKDES_ONLY") {
+                // Sekretaris Desa saja (tanpa "a.n.") — dipakai SKU & Duda/Janda.
+                TextPreview("Sekretaris Desa")
+                Spacer(modifier = Modifier.height(24.dp))
+                TextPreview(header.namaSekdes)
+                if (header.nipSekdes.isNotBlank()) TextPreview("NIP: ${header.nipSekdes}")
             } else {
                 TextPreview("Kepala Desa $desaTitleCase")
                 Spacer(modifier = Modifier.height(24.dp))
@@ -373,17 +463,39 @@ private fun PreviewSignature(
 @Composable
 private fun PreviewDomisiliContent(header: HeaderData, data: DomisiliData, date: String) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        TextPreview("Yang bertanda tangan di bawah ini, Kepala Desa ${header.namaDesa}, menerangkan dengan sesungguhnya bahwa:")
-        TextPreview("Nama                       : ${data.namaLengkap}")
-        TextPreview("NIK                          : ${data.nik}")
-        if (data.jenisKelamin.isNotEmpty()) TextPreview("Jenis Kelamin         : ${data.jenisKelamin}")
-        if (data.tempatLahir.isNotEmpty() || data.tanggalLahir.isNotEmpty()) TextPreview("Tempat/Tanggal Lahir : ${data.tempatLahir}, ${data.tanggalLahir}")
-        if (data.pekerjaan.isNotEmpty()) TextPreview("Pekerjaan                : ${data.pekerjaan}")
-        TextPreview("Alamat (KTP)            : ${data.alamatAsal}")
-        TextPreview("RT/RW                    : ${data.rt} / ${data.rw}")
-        TextPreview("Alamat Domisili Saat Ini : ${data.alamatDomisili}")
-        Spacer(modifier = Modifier.height(8.dp))
-        TextPreview("Adalah benar bahwa orang tersebut di atas adalah penduduk Desa ${header.namaDesa} dan bertempat tinggal di alamat tersebut di atas. Surat keterangan ini diberikan untuk keperluan ${data.keperluanSurat}.")
+        when (data.jenisDomisili) {
+            "Lembaga" -> {
+                TextPreview("Yang bertanda tangan di bawah ini, Kepala Desa ${header.namaDesa}, menerangkan dengan sesungguhnya bahwa:")
+                TextPreview("Nama Lembaga      : ${data.namaLembaga}")
+                TextPreview("Nama Pimpinan      : ${data.namaPimpinan}")
+                TextPreview("Alamat                  : ${data.alamatOrganisasi}")
+                Spacer(modifier = Modifier.height(8.dp))
+                TextPreview("Adalah benar bahwa lembaga tersebut di atas berdomisili di alamat tersebut di atas, Desa ${header.namaDesa}. Surat keterangan ini diberikan untuk keperluan ${data.keperluanSurat}.")
+            }
+            "Perusahaan" -> {
+                TextPreview("Yang bertanda tangan di bawah ini, Kepala Desa ${header.namaDesa}, menerangkan dengan sesungguhnya bahwa:")
+                TextPreview("Nama Perusahaan : ${data.namaPerusahaan}")
+                TextPreview("Nama Pimpinan      : ${data.namaPimpinan}")
+                if (data.namaSekretaris.isNotEmpty()) TextPreview("Nama Sekretaris     : ${data.namaSekretaris}")
+                if (data.bidangUsaha.isNotEmpty()) TextPreview("Bidang Usaha         : ${data.bidangUsaha}")
+                TextPreview("Alamat                  : ${data.alamatOrganisasi}")
+                Spacer(modifier = Modifier.height(8.dp))
+                TextPreview("Adalah benar bahwa perusahaan tersebut di atas berdomisili di alamat tersebut di atas, Desa ${header.namaDesa}. Surat keterangan ini diberikan untuk keperluan ${data.keperluanSurat}.")
+            }
+            else -> {
+                TextPreview("Yang bertanda tangan di bawah ini, Kepala Desa ${header.namaDesa}, menerangkan dengan sesungguhnya bahwa:")
+                TextPreview("Nama                       : ${data.namaLengkap}")
+                TextPreview("NIK                          : ${data.nik}")
+                if (data.jenisKelamin.isNotEmpty()) TextPreview("Jenis Kelamin         : ${data.jenisKelamin}")
+                if (data.tempatLahir.isNotEmpty() || data.tanggalLahir.isNotEmpty()) TextPreview("Tempat/Tanggal Lahir : ${data.tempatLahir}, ${data.tanggalLahir}")
+                if (data.pekerjaan.isNotEmpty()) TextPreview("Pekerjaan                : ${data.pekerjaan}")
+                TextPreview("Alamat (KTP)            : ${data.alamatAsal}")
+                TextPreview("RT/RW                    : ${data.rt} / ${data.rw}")
+                TextPreview("Alamat Domisili Saat Ini : ${data.alamatDomisili}")
+                Spacer(modifier = Modifier.height(8.dp))
+                TextPreview("Adalah benar bahwa orang tersebut di atas adalah penduduk Desa ${header.namaDesa} dan bertempat tinggal di alamat tersebut di atas. Surat keterangan ini diberikan untuk keperluan ${data.keperluanSurat}.")
+            }
+        }
         PreviewSignature(header, date, "KADES")
     }
 }
@@ -480,6 +592,17 @@ private fun PreviewBelumMenikahContent(header: HeaderData, data: BelumMenikahDat
 @Composable
 private fun PreviewTidakMampuContent(header: HeaderData, data: TidakMampuData, date: String) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        if (data.varianSKTM == "Daftar Kolektif") {
+            TextPreview("Yang bertanda tangan di bawah ini, Kepala Desa ${header.namaDesa}, menerangkan bahwa warga-warga berikut ini termasuk dalam kategori keluarga kurang mampu (tidak mampu) menurut keterangan Ketua RT/RW setempat dan sepengetahuan kami:")
+            val warga = data.daftarKolektif.filter { it.nama.isNotBlank() || it.nik.isNotBlank() }
+            warga.forEachIndexed { i, w ->
+                TextPreview("${i + 1}. ${w.nama} — NIK: ${w.nik} — ${w.alamat}")
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            TextPreview("Surat keterangan ini diberikan untuk keperluan ${data.keperluan}.")
+            PreviewSignature(header, date, "KADES", leftNote = "Mengetahui,\nKetua RW")
+            return@Column
+        }
         TextPreview("Yang bertanda tangan di bawah ini, Kepala Desa ${header.namaDesa}, menerangkan bahwa:")
         TextPreview("Nama                       : ${data.namaLengkap}")
         TextPreview("NIK                          : ${data.nik}")
@@ -606,4 +729,556 @@ private fun TextPreview(text: String) {
         fontSize = 9.sp,
         modifier = Modifier.fillMaxWidth()
     )
+}
+
+/* ==================================================================
+   Fase 2 — 18 konten preview baru.
+   ================================================================== */
+
+/** Blok tanda tangan multi-kolom untuk SPTJM/formulir (Yang Menyatakan, saksi, RT/RW, dll). */
+@Composable
+private fun PreviewSignatureColumns(
+    header: HeaderData,
+    date: String,
+    place: String,
+    columns: List<Pair<String, String>>
+) {
+    Spacer(modifier = Modifier.height(12.dp))
+    TextPreview("$place, $date")
+    Spacer(modifier = Modifier.height(8.dp))
+    Row(modifier = Modifier.fillMaxWidth()) {
+        columns.forEach { (label, name) ->
+            Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                TextPreview(label)
+                Spacer(modifier = Modifier.height(24.dp))
+                TextPreview(if (name.isBlank()) "(.......................................)" else name)
+            }
+        }
+    }
+}
+
+@Composable
+private fun PreviewKematianContent(header: HeaderData, data: KematianData, date: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        TextPreview("Yang bertanda tangan di bawah ini, Kepala Desa ${header.namaDesa}, menerangkan bahwa:")
+        TextPreview("Nama Almarhum/almarhumah : ${data.namaAlmarhum}")
+        TextPreview("NIK                          : ${data.nikAlmarhum}")
+        if (data.jenisKelamin.isNotEmpty()) TextPreview("Jenis Kelamin         : ${data.jenisKelamin}")
+        if (data.agama.isNotEmpty()) TextPreview("Agama                    : ${data.agama}")
+        if (data.tempatLahir.isNotEmpty() || data.tanggalLahir.isNotEmpty()) TextPreview("Tempat/Tanggal Lahir : ${data.tempatLahir}, ${data.tanggalLahir}")
+        if (data.pekerjaan.isNotEmpty()) TextPreview("Pekerjaan                : ${data.pekerjaan}")
+        TextPreview("Alamat                    : ${data.alamat}")
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Telah meninggal dunia pada:")
+        TextPreview("Hari        : ${data.hariMeninggal}")
+        TextPreview("Tanggal  : ${data.tanggalMeninggal}")
+        TextPreview("Tempat   : ${data.tempatMeninggal}")
+        TextPreview("Penyebab : ${data.penyebabMeninggal}")
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Adapun yang melaporkan adalah:")
+        TextPreview("Nama Pelapor                    : ${data.namaPelapor}")
+        TextPreview("NIK Pelapor                      : ${data.nikPelapor}")
+        if (data.tempatLahirPelapor.isNotEmpty() || data.tanggalLahirPelapor.isNotEmpty()) TextPreview("Tempat/Tanggal Lahir Pelapor : ${data.tempatLahirPelapor}, ${data.tanggalLahirPelapor}")
+        if (data.pekerjaanPelapor.isNotEmpty()) TextPreview("Pekerjaan Pelapor             : ${data.pekerjaanPelapor}")
+        TextPreview("Alamat Pelapor                  : ${data.alamatPelapor}")
+        TextPreview("Hubungan dengan Almarhum : ${data.hubunganPelapor}")
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Adalah benar bahwa ${data.namaAlmarhum} telah meninggal dunia pada ${data.hariMeninggal}, ${data.tanggalMeninggal} di ${data.tempatMeninggal} karena ${data.penyebabMeninggal}. Surat keterangan ini diberikan untuk keperluan pengurusan akta kematian.")
+        PreviewSignature(header, date, "SEKDES")
+    }
+}
+
+@Composable
+private fun PreviewUsahaContent(header: HeaderData, data: UsahaData, date: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        TextPreview("Yang bertanda tangan di bawah ini, Kepala Desa ${header.namaDesa}, menerangkan bahwa:")
+        TextPreview("Nama                       : ${data.namaLengkap}")
+        TextPreview("NIK                          : ${data.nik}")
+        if (data.tempatLahir.isNotEmpty() || data.tanggalLahir.isNotEmpty()) TextPreview("Tempat/Tanggal Lahir : ${data.tempatLahir}, ${data.tanggalLahir}")
+        if (data.pekerjaan.isNotEmpty()) TextPreview("Pekerjaan                : ${data.pekerjaan}")
+        TextPreview("Alamat                    : ${data.alamat}")
+        TextPreview("Nama Usaha            : ${data.namaUsaha}")
+        TextPreview("Alamat Usaha         : ${data.alamatUsaha}")
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Adalah benar bahwa yang bersangkutan memiliki usaha ${data.namaUsaha} yang bertempat di ${data.alamatUsaha}. Surat keterangan ini diberikan untuk keperluan administrasi usaha.")
+        PreviewSignature(header, date, "SEKDES_ONLY")
+    }
+}
+
+@Composable
+private fun PreviewDudaJandaContent(header: HeaderData, data: DudaJandaData, date: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        TextPreview("Yang bertanda tangan di bawah ini, Kepala Desa ${header.namaDesa}, menerangkan bahwa:")
+        TextPreview("Status                     : ${data.statusDudaJanda}")
+        TextPreview("Nama                       : ${data.namaLengkap}")
+        TextPreview("NIK                          : ${data.nik}")
+        if (data.tempatLahir.isNotEmpty() || data.tanggalLahir.isNotEmpty()) TextPreview("Tempat/Tanggal Lahir : ${data.tempatLahir}, ${data.tanggalLahir}")
+        if (data.pekerjaan.isNotEmpty()) TextPreview("Pekerjaan                : ${data.pekerjaan}")
+        TextPreview("Alamat                    : ${data.alamat}")
+        if (data.keteranganRT.isNotBlank()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            TextPreview("Keterangan Ketua RT: ${data.keteranganRT}.")
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Adalah benar bahwa yang bersangkutan berstatus ${data.statusDudaJanda.lowercase()} dan belum menikah lagi sampai saat surat keterangan ini dibuat. Surat keterangan ini diberikan untuk keperluan administrasi kependudukan.")
+        PreviewSignature(header, date, "SEKDES_ONLY")
+    }
+}
+
+@Composable
+private fun PreviewF101Content(header: HeaderData, data: F101Data, date: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        TextPreview("Data Kepala Keluarga")
+        TextPreview("Nama Kepala Keluarga : ${data.namaKepalaKeluarga}")
+        TextPreview("NIK Kepala Keluarga   : ${data.nikKepalaKeluarga}")
+        TextPreview("No. KK                      : ${data.noKK}")
+        TextPreview("Alamat                      : ${data.alamatKeluarga}")
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Daftar Anggota Keluarga")
+        data.daftarAnggota.forEachIndexed { i, a ->
+            if (a.nama.isNotBlank() || a.nik.isNotBlank()) {
+                TextPreview("${i + 1}. ${a.nama} — NIK: ${a.nik} — SHDK: ${a.shdk} — TTL: ${a.tempatLahir}, ${a.tanggalLahir} — Agama: ${a.agama} — Pendidikan: ${a.pendidikan} — Pekerjaan: ${a.pekerjaan} — Status Kawin: ${a.statusKawin} — Ayah: ${a.namaAyah} — Ibu: ${a.namaIbu}")
+            }
+        }
+        PreviewSignatureColumns(header, date, "Subang", listOf("Kepala Keluarga" to data.namaKepalaKeluarga, "Kepala Dinas Kependudukan dan Pencatatan Sipil Kab. Subang" to ""))
+    }
+}
+
+@Composable
+private fun PreviewF102Content(header: HeaderData, data: F102Data, date: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        TextPreview("Nama                       : ${data.namaLengkap}")
+        TextPreview("NIK                          : ${data.nik}")
+        TextPreview("No. KK                      : ${data.noKK}")
+        TextPreview("Jenis Permohonan    : ${data.jenisPermohonan}")
+        if (data.daftarLampiran.isNotBlank()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            TextPreview("Lampiran yang disertakan:")
+            TextPreview(data.daftarLampiran)
+        }
+        PreviewSignatureColumns(header, date, "Subang", listOf("Pemohon" to data.namaLengkap, "Petugas Pendaftaran" to ""))
+    }
+}
+
+@Composable
+private fun PreviewF103Content(header: HeaderData, data: F103Data, date: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        TextPreview("No. KK                              : ${data.noKK}")
+        TextPreview("Nama Pemohon                   : ${data.namaPemohon}")
+        TextPreview("NIK                                   : ${data.nik}")
+        TextPreview("Jenis Permohonan            : ${data.jenisPermohonan}")
+        TextPreview("Alamat Asal                      : ${data.alamatAsal}")
+        TextPreview("RT/RW                             : ${data.rt} / ${data.rw}")
+        TextPreview("Klasifikasi Kepindahan   : ${data.klasifikasiPindah}")
+        TextPreview("Alamat Pindah                  : ${data.alamatPindah}")
+        TextPreview("Alasan Pindah                  : ${data.alasanPindah}")
+        TextPreview("Jenis Kepindahan             : ${data.jenisKepindahan}")
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Anggota Keluarga yang Pindah")
+        data.daftarAnggotaPindah.forEachIndexed { i, a ->
+            if (a.nama.isNotBlank() || a.nik.isNotBlank()) {
+                TextPreview("${i + 1}. ${a.nama} — NIK: ${a.nik} — SHDK: ${a.shdk}")
+            }
+        }
+        if (data.anggotaTidakPindah.isNotBlank()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            TextPreview("Anggota keluarga yang tidak pindah: ${data.anggotaTidakPindah}.")
+        }
+        PreviewSignatureColumns(header, date, "Subang", listOf("Pemohon" to data.namaPemohon, "Petugas Pendaftaran" to ""))
+    }
+}
+
+@Composable
+private fun PreviewF104Content(header: HeaderData, data: F104Data, date: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        TextPreview("Yang bertanda tangan di bawah ini:")
+        TextPreview("Nama                       : ${data.namaLengkap}")
+        TextPreview("Alamat                    : ${data.alamat}")
+        if (data.tempatLahir.isNotEmpty() || data.tanggalLahir.isNotEmpty()) TextPreview("Tempat/Tanggal Lahir : ${data.tempatLahir}, ${data.tanggalLahir}")
+        TextPreview("Nama Ibu                 : ${data.namaIbu}")
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Dengan ini menyatakan dengan sesungguhnya bahwa sampai saat ini saya tidak memiliki dokumen kependudukan.")
+        TextPreview("Demikian surat pernyataan ini dibuat dengan sebenar-benarnya dan bermaterai cukup, untuk dapat dipergunakan sebagaimana mestinya.")
+        PreviewSignatureColumns(header, date, "Subang", listOf("Yang Menyatakan" to data.namaLengkap))
+    }
+}
+
+@Composable
+private fun PreviewF105Content(header: HeaderData, data: F105Data, date: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        TextPreview("Yang bertanda tangan di bawah ini:")
+        TextPreview("Nama Suami            : ${data.namaSuami}")
+        TextPreview("NIK Suami              : ${data.nikSuami}")
+        TextPreview("Nama Istri               : ${data.namaIstri}")
+        TextPreview("NIK Istri                 : ${data.nikIstri}")
+        val tanggalKawin = listOf(data.tanggalPerkawinan, data.bulanPerkawinan, data.tahunPerkawinan).filter { it.isNotEmpty() }.joinToString(" ")
+        TextPreview("Tanggal Perkawinan : $tanggalKawin")
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Dengan ini menyatakan dengan sesungguhnya bahwa kami telah melangsungkan perkawinan dan belum tercatat pada kantor pencatat perkawinan yang berwenang.")
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Saksi-saksi")
+        TextPreview("Nama Saksi 1 : ${data.namaSaksi1}")
+        TextPreview("NIK Saksi 1   : ${data.nikSaksi1}")
+        TextPreview("Nama Saksi 2 : ${data.namaSaksi2}")
+        TextPreview("NIK Saksi 2   : ${data.nikSaksi2}")
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Daftar Anak")
+        data.daftarAnak.forEachIndexed { i, a ->
+            if (a.nama.isNotBlank()) {
+                TextPreview("${i + 1}. ${a.nama} — No. Akta Kelahiran: ${a.noAktaKelahiran} — SHDK: ${a.shdk}")
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Demikian surat pernyataan ini dibuat dengan sebenar-benarnya dan bermaterai cukup.")
+        PreviewSignatureColumns(header, date, "Subang", listOf("Suami" to data.namaSuami, "Istri" to data.namaIstri, "Saksi 1" to data.namaSaksi1, "Saksi 2" to data.namaSaksi2))
+    }
+}
+
+@Composable
+private fun PreviewF106Content(header: HeaderData, data: F106Data, date: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        TextPreview("Nama                       : ${data.namaLengkap}")
+        TextPreview("NIK                          : ${data.nik}")
+        TextPreview("No. KK                      : ${data.noKK}")
+        TextPreview("Alamat                    : ${data.alamat}")
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Anggota Keluarga yang Mengalami Perubahan")
+        data.tabelAnggota.forEachIndexed { i, a ->
+            if (a.nama.isNotBlank() || a.perubahan.isNotBlank()) {
+                TextPreview("${i + 1}. ${a.nama} — ${a.perubahan}")
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Perubahan Pendidikan")
+        if (data.pendidikanSemula.isNotEmpty()) TextPreview("Semula : ${data.pendidikanSemula}")
+        if (data.pendidikanMenjadi.isNotEmpty()) TextPreview("Menjadi : ${data.pendidikanMenjadi}")
+        if (data.pendidikanDasar.isNotEmpty()) TextPreview("Dasar Perubahan : ${data.pendidikanDasar}")
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Perubahan Pekerjaan")
+        if (data.pekerjaanSemula.isNotEmpty()) TextPreview("Semula : ${data.pekerjaanSemula}")
+        if (data.pekerjaanMenjadi.isNotEmpty()) TextPreview("Menjadi : ${data.pekerjaanMenjadi}")
+        if (data.pekerjaanDasar.isNotEmpty()) TextPreview("Dasar Perubahan : ${data.pekerjaanDasar}")
+        if (data.perubahanAgama.isNotBlank()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            TextPreview("Perubahan Agama: ${data.perubahanAgama}.")
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Demikian surat pernyataan ini dibuat dengan sebenar-benarnya dan bermaterai cukup.")
+        PreviewSignatureColumns(header, date, "Subang", listOf("Yang Menyatakan" to data.namaLengkap))
+    }
+}
+
+@Composable
+private fun PreviewF115Content(header: HeaderData, data: F115Data, date: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        TextPreview("Nama Pemohon            : ${data.namaPemohon}")
+        TextPreview("NIK                          : ${data.nik}")
+        TextPreview("No. KK Lama             : ${data.noKKLama}")
+        TextPreview("Alamat                    : ${data.alamat}")
+        TextPreview("RT/RW                    : ${data.rt} / ${data.rw}")
+        TextPreview("Alasan Permohonan   : ${data.alasanPermohonan}")
+        TextPreview("Jumlah Anggota       : ${data.jumlahAnggota}")
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Daftar Anggota Keluarga")
+        data.daftarAnggota.forEachIndexed { i, a ->
+            if (a.nama.isNotBlank() || a.nik.isNotBlank()) {
+                TextPreview("${i + 1}. ${a.nama} — NIK: ${a.nik} — SHDK: ${a.shdk}")
+            }
+        }
+        PreviewSignatureColumns(header, date, "Subang", listOf("Pemohon" to data.namaPemohon, "Kepala Desa/Lurah" to "", "Camat" to ""))
+    }
+}
+
+@Composable
+private fun PreviewF201Content(header: HeaderData, data: F201Data, date: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        TextPreview("Jenis Pelaporan: ${data.jenisPelaporan}")
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Data Pelapor")
+        TextPreview("Nama Pelapor   : ${data.pelaporNama}")
+        TextPreview("NIK Pelapor     : ${data.pelaporNik}")
+        TextPreview("Alamat Pelapor : ${data.pelaporAlamat}")
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Subjek Akta")
+        TextPreview("Nama Subjek Akta I : ${data.subjek1Nama}")
+        TextPreview("NIK Subjek Akta I   : ${data.subjek1Nik}")
+        if (data.subjek2Nama.isNotEmpty() || data.subjek2Nik.isNotEmpty()) {
+            TextPreview("Nama Subjek Akta II : ${data.subjek2Nama}")
+            TextPreview("NIK Subjek Akta II   : ${data.subjek2Nik}")
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Saksi-saksi")
+        TextPreview("Nama Saksi 1 : ${data.saksi1Nama}")
+        TextPreview("NIK Saksi 1   : ${data.saksi1Nik}")
+        TextPreview("Nama Saksi 2 : ${data.saksi2Nama}")
+        TextPreview("NIK Saksi 2   : ${data.saksi2Nik}")
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Orang Tua")
+        TextPreview("Nama Ayah : ${data.ayahNama}")
+        TextPreview("NIK Ayah   : ${data.ayahNik}")
+        TextPreview("Nama Ibu   : ${data.ibuNama}")
+        TextPreview("NIK Ibu     : ${data.ibuNik}")
+        Spacer(modifier = Modifier.height(8.dp))
+        // Seksi kondisional — hanya seksi jenis pelaporan yang dipilih yang tampil.
+        when (f201Section(data.jenisPelaporan)) {
+            "anak" -> {
+                TextPreview("Data Anak")
+                TextPreview("Nama Anak                      : ${data.anakNama}")
+                if (data.anakTempatLahir.isNotEmpty() || data.anakTanggalLahir.isNotEmpty()) TextPreview("Tempat/Tanggal Lahir : ${data.anakTempatLahir}, ${data.anakTanggalLahir}")
+                if (data.anakJenisKelamin.isNotEmpty()) TextPreview("Jenis Kelamin         : ${data.anakJenisKelamin}")
+                if (data.anakKe.isNotEmpty()) TextPreview("Anak Ke                : ${data.anakKe}")
+            }
+            "lahirMati" -> {
+                TextPreview("Data Lahir Mati")
+                TextPreview("Nama        : ${data.lahirMatiNama}")
+                TextPreview("Tanggal  : ${data.lahirMatiTanggal}")
+                TextPreview("Pukul      : ${data.lahirMatiPukul}")
+                TextPreview("Tempat   : ${data.lahirMatiTempat}")
+                TextPreview("Sebab     : ${data.lahirMatiSebab}")
+            }
+            "pasangan" -> {
+                TextPreview("Data Perkawinan / Perceraian")
+                TextPreview("Nama Suami            : ${data.pasanganSuamiNama}")
+                TextPreview("Nama Istri               : ${data.pasanganIstriNama}")
+                TextPreview("Tanggal Peristiwa   : ${data.tanggalPeristiwa}")
+                TextPreview("Tempat Peristiwa    : ${data.tempatPeristiwa}")
+            }
+            "kematian" -> {
+                TextPreview("Data Kematian")
+                TextPreview("NIK                          : ${data.meninggalNik}")
+                TextPreview("Nama                       : ${data.meninggalNama}")
+                TextPreview("Tanggal Kematian    : ${data.meninggalTanggal}")
+                TextPreview("Pukul                      : ${data.meninggalPukul}")
+                TextPreview("Sebab                     : ${data.meninggalSebab}")
+                TextPreview("Tempat                   : ${data.meninggalTempat}")
+                TextPreview("Yang Menerangkan  : ${data.meninggalYangMenerangkan}")
+            }
+            else -> {
+                if (data.keteranganPeristiwa.isNotBlank()) {
+                    TextPreview("Keterangan Peristiwa")
+                    TextPreview(data.keteranganPeristiwa)
+                }
+            }
+        }
+        PreviewSignatureColumns(header, date, "Subang", listOf("Pelapor" to data.pelaporNama, "Petugas Pencatat" to ""))
+    }
+}
+
+@Composable
+private fun PreviewF203Content(header: HeaderData, data: F203Data, date: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        TextPreview("Yang bertanda tangan di bawah ini:")
+        TextPreview("Nama                       : ${data.namaYangMenyatakan}")
+        TextPreview("NIK                          : ${data.nik}")
+        if (data.tempatLahir.isNotEmpty() || data.tanggalLahir.isNotEmpty()) TextPreview("Tempat/Tanggal Lahir : ${data.tempatLahir}, ${data.tanggalLahir}")
+        if (data.pekerjaan.isNotEmpty()) TextPreview("Pekerjaan                : ${data.pekerjaan}")
+        TextPreview("Alamat                    : ${data.alamat}")
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Dengan ini menyatakan dengan sesungguhnya bahwa data kelahiran anak berikut ini adalah benar:")
+        TextPreview("Nama Anak                      : ${data.namaAnak}")
+        TextPreview("NIK Anak                        : ${data.nikAnak}")
+        if (data.tempatLahirAnak.isNotEmpty() || data.tanggalLahirAnak.isNotEmpty()) TextPreview("Tempat/Tanggal Lahir Anak : ${data.tempatLahirAnak}, ${data.tanggalLahirAnak}")
+        if (data.jenisKelaminAnak.isNotEmpty()) TextPreview("Jenis Kelamin Anak         : ${data.jenisKelaminAnak}")
+        if (data.anakKe.isNotEmpty()) TextPreview("Anak Ke                       : ${data.anakKe}")
+        if (data.alamatAnak.isNotEmpty()) TextPreview("Alamat Anak                  : ${data.alamatAnak}")
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Data Ibu")
+        TextPreview("Nama Ibu                 : ${data.namaIbu}")
+        TextPreview("NIK Ibu                   : ${data.nikIbu}")
+        if (data.tempatLahirIbu.isNotEmpty() || data.tanggalLahirIbu.isNotEmpty()) TextPreview("Tempat/Tanggal Lahir Ibu : ${data.tempatLahirIbu}, ${data.tanggalLahirIbu}")
+        if (data.pekerjaanIbu.isNotEmpty()) TextPreview("Pekerjaan Ibu         : ${data.pekerjaanIbu}")
+        TextPreview("Alamat Ibu              : ${data.alamatIbu}")
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Penolong Kelahiran")
+        TextPreview("Nama Penolong         : ${data.namaPenolong}")
+        TextPreview("NIK Penolong           : ${data.nikPenolong}")
+        if (data.pekerjaanPenolong.isNotEmpty()) TextPreview("Pekerjaan Penolong : ${data.pekerjaanPenolong}")
+        if (data.alamatPenolong.isNotEmpty()) TextPreview("Alamat Penolong     : ${data.alamatPenolong}")
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Saksi-saksi")
+        TextPreview("Nama Saksi 1 : ${data.namaSaksi1}")
+        TextPreview("NIK Saksi 1   : ${data.nikSaksi1}")
+        TextPreview("Nama Saksi 2 : ${data.namaSaksi2}")
+        TextPreview("NIK Saksi 2   : ${data.nikSaksi2}")
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Demikian surat pernyataan ini dibuat dengan sebenar-benarnya dan bermaterai cukup.")
+        PreviewSignatureColumns(header, date, "Subang", listOf("Yang Menyatakan" to data.namaYangMenyatakan, "Saksi 1" to data.namaSaksi1, "Saksi 2" to data.namaSaksi2))
+    }
+}
+
+@Composable
+private fun PreviewF204Content(header: HeaderData, data: F204Data, date: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        TextPreview("Yang bertanda tangan di bawah ini:")
+        TextPreview("Nama                       : ${data.namaYangMenyatakan}")
+        TextPreview("NIK                          : ${data.nik}")
+        if (data.tempatLahir.isNotEmpty() || data.tanggalLahir.isNotEmpty()) TextPreview("Tempat/Tanggal Lahir : ${data.tempatLahir}, ${data.tanggalLahir}")
+        if (data.pekerjaan.isNotEmpty()) TextPreview("Pekerjaan                : ${data.pekerjaan}")
+        TextPreview("Alamat                    : ${data.alamat}")
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Dengan ini menyatakan dengan sesungguhnya bahwa saya adalah pasangan suami/istri yang sah dari:")
+        TextPreview("Nama Pasangan                      : ${data.namaPasangan}")
+        TextPreview("NIK Pasangan                        : ${data.nikPasangan}")
+        if (data.tempatLahirPasangan.isNotEmpty() || data.tanggalLahirPasangan.isNotEmpty()) TextPreview("Tempat/Tanggal Lahir Pasangan : ${data.tempatLahirPasangan}, ${data.tanggalLahirPasangan}")
+        if (data.pekerjaanPasangan.isNotEmpty()) TextPreview("Pekerjaan Pasangan             : ${data.pekerjaanPasangan}")
+        if (data.alamatPasangan.isNotEmpty()) TextPreview("Alamat Pasangan                 : ${data.alamatPasangan}")
+        if (data.noKK.isNotEmpty()) TextPreview("No. KK                                  : ${data.noKK}")
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Saksi-saksi")
+        TextPreview("Nama Saksi 1 : ${data.namaSaksi1}")
+        TextPreview("NIK Saksi 1   : ${data.nikSaksi1}")
+        TextPreview("Nama Saksi 2 : ${data.namaSaksi2}")
+        TextPreview("NIK Saksi 2   : ${data.nikSaksi2}")
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Demikian surat pernyataan ini dibuat dengan sebenar-benarnya dan bermaterai cukup.")
+        PreviewSignatureColumns(header, date, "Subang", listOf("Yang Menyatakan" to data.namaYangMenyatakan, "Saksi 1" to data.namaSaksi1, "Saksi 2" to data.namaSaksi2))
+    }
+}
+
+@Composable
+private fun PreviewSptjmKematianContent(header: HeaderData, data: SptjmKematianData, date: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        TextPreview("Yang bertanda tangan di bawah ini:")
+        TextPreview("Nama                       : ${data.namaYangMenyatakan}")
+        TextPreview("NIK                          : ${data.nik}")
+        if (data.tempatLahir.isNotEmpty() || data.tanggalLahir.isNotEmpty()) TextPreview("Tempat/Tanggal Lahir : ${data.tempatLahir}, ${data.tanggalLahir}")
+        if (data.pekerjaan.isNotEmpty()) TextPreview("Pekerjaan                : ${data.pekerjaan}")
+        TextPreview("Alamat                    : ${data.alamat}")
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Dengan ini menyatakan dengan sesungguhnya bahwa data kematian berikut ini adalah benar:")
+        TextPreview("Nama Almarhum/almarhumah : ${data.namaAlmarhum}")
+        TextPreview("NIK Almarhum/almarhumah   : ${data.nikAlmarhum}")
+        if (data.tempatLahirAlmarhum.isNotEmpty() || data.tanggalLahirAlmarhum.isNotEmpty()) TextPreview("Tempat/Tanggal Lahir : ${data.tempatLahirAlmarhum}, ${data.tanggalLahirAlmarhum}")
+        TextPreview("Alamat Terakhir             : ${data.alamatAlmarhum}")
+        TextPreview("Hari Meninggal             : ${data.hariMeninggal}")
+        TextPreview("Tanggal Meninggal        : ${data.tanggalMeninggal}")
+        if (data.jamMeninggal.isNotEmpty()) TextPreview("Jam Meninggal             : ${data.jamMeninggal}")
+        TextPreview("Tempat Meninggal         : ${data.tempatMeninggal}")
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Saksi-saksi")
+        TextPreview("Nama Saksi 1 : ${data.namaSaksi1}")
+        TextPreview("NIK Saksi 1   : ${data.nikSaksi1}")
+        TextPreview("Nama Saksi 2 : ${data.namaSaksi2}")
+        TextPreview("NIK Saksi 2   : ${data.nikSaksi2}")
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Demikian surat pernyataan ini dibuat dengan sebenar-benarnya dan bermaterai cukup, untuk keperluan pengurusan akta kematian.")
+        val desaTitleCase = header.namaDesa.trim().split("\\s+".toRegex()).joinToString(" ") {
+            it.lowercase().replaceFirstChar { c -> c.uppercase() }
+        }
+        PreviewSignatureColumns(header, date, desaTitleCase, listOf("Saksi 1" to data.namaSaksi1, "Yang Menyatakan" to data.namaYangMenyatakan, "Saksi 2" to data.namaSaksi2))
+        PreviewSignatureColumns(header, date, desaTitleCase, listOf("Ketua RT" to "", "Ketua RW" to "", "Kepala Desa/Lurah" to ""))
+    }
+}
+
+@Composable
+private fun PreviewSptjmPerkawinanPerceraianContent(header: HeaderData, data: SptjmPerkawinanPerceraianData, date: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        val peristiwa = data.jenisSPTJM.lowercase()
+        TextPreview("Yang bertanda tangan di bawah ini:")
+        TextPreview("Nama Suami            : ${data.namaSuami}")
+        TextPreview("NIK Suami              : ${data.nikSuami}")
+        TextPreview("Nama Istri               : ${data.namaIstri}")
+        TextPreview("NIK Istri                 : ${data.nikIstri}")
+        TextPreview("Tanggal $peristiwa : ${data.tanggalPeristiwa}")
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Dengan ini menyatakan dengan sesungguhnya bahwa kami telah melangsungkan $peristiwa dan belum tercatat pada kantor pencatat perkawinan yang berwenang.")
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Saksi-saksi")
+        TextPreview("Nama Saksi 1 : ${data.namaSaksi1}")
+        TextPreview("NIK Saksi 1   : ${data.nikSaksi1}")
+        TextPreview("Nama Saksi 2 : ${data.namaSaksi2}")
+        TextPreview("NIK Saksi 2   : ${data.nikSaksi2}")
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Daftar Anak")
+        data.daftarAnak.forEachIndexed { i, a ->
+            if (a.nama.isNotBlank()) {
+                TextPreview("${i + 1}. ${a.nama} — No. Akta Kelahiran: ${a.noAktaKelahiran} — SHDK: ${a.shdk}")
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Demikian surat pernyataan ini dibuat dengan sebenar-benarnya dan bermaterai cukup.")
+        val desaTitleCase = header.namaDesa.trim().split("\\s+".toRegex()).joinToString(" ") {
+            it.lowercase().replaceFirstChar { c -> c.uppercase() }
+        }
+        PreviewSignatureColumns(header, date, desaTitleCase, listOf("Suami" to data.namaSuami, "Istri" to data.namaIstri, "Saksi 1" to data.namaSaksi1, "Saksi 2" to data.namaSaksi2))
+    }
+}
+
+@Composable
+private fun PreviewPbiAsesmenContent(header: HeaderData, data: PbiAsesmenData, date: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        TextPreview("Identitas Calon Penerima")
+        TextPreview("Nama                       : ${data.namaLengkap}")
+        if (data.tempatLahir.isNotEmpty() || data.tanggalLahir.isNotEmpty()) TextPreview("Tempat/Tanggal Lahir : ${data.tempatLahir}, ${data.tanggalLahir}")
+        if (data.jenisKelamin.isNotEmpty()) TextPreview("Jenis Kelamin         : ${data.jenisKelamin}")
+        if (data.statusKawin.isNotEmpty()) TextPreview("Status Kawin          : ${data.statusKawin}")
+        TextPreview("NIK                          : ${data.nik}")
+        TextPreview("No. KK                      : ${data.noKK}")
+        TextPreview("Nama Ibu Kandung    : ${data.namaIbuKandung}")
+        if (data.pekerjaan.isNotEmpty()) TextPreview("Pekerjaan                : ${data.pekerjaan}")
+        TextPreview("Alamat                    : ${data.alamat}")
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Pertanyaan Kondisi")
+        TextPreview("1. Jaminan kesehatan yang dimiliki : ${data.jaminanKesehatan}")
+        TextPreview("2. Alasan jaminan kesehatan non-aktif : ${data.alasanNonAktif}")
+        TextPreview("3. Status rumah : ${data.statusRumah}")
+        TextPreview("4. Kondisi rumah : ${data.kondisiRumah}")
+        TextPreview("5. Ukuran rumah : ${data.ukuranRumah}")
+        TextPreview("6. Dinding rumah : ${data.dindingRumah}")
+        TextPreview("7. Penerangan rumah : ${data.peneranganRumah}")
+        TextPreview("8. Jumlah keluarga dalam satu rumah : ${data.jumlahKeluarga}")
+        TextPreview("9. Jumlah anggota keluarga : ${data.jumlahAnggota}")
+        TextPreview("10. Bansos yang diterima : ${data.bansosDiterima}")
+        TextPreview("11. Usaha / penghasilan : ${data.usahaPenghasilan}")
+        if (data.catatanPetugas.isNotBlank()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            TextPreview("Catatan petugas: ${data.catatanPetugas}")
+        }
+        val desaTitleCase = header.namaDesa.trim().split("\\s+".toRegex()).joinToString(" ") {
+            it.lowercase().replaceFirstChar { c -> c.uppercase() }
+        }
+        PreviewSignatureColumns(header, date, desaTitleCase, listOf("Pemohon" to data.namaLengkap, "Fasilitator" to "", "Sekretaris Desa" to header.namaSekdes))
+        PreviewSignatureColumns(header, date, desaTitleCase, listOf("Ketua RW" to "", "Ketua RT" to "", "Camat" to ""))
+    }
+}
+
+@Composable
+private fun PreviewPbiPernyataanContent(header: HeaderData, data: PbiPernyataanData, date: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        TextPreview("Yang bertanda tangan di bawah ini:")
+        TextPreview("Nama                       : ${data.namaLengkap}")
+        TextPreview("NIK                          : ${data.nik}")
+        if (data.tempatLahir.isNotEmpty() || data.tanggalLahir.isNotEmpty()) TextPreview("Tempat/Tanggal Lahir : ${data.tempatLahir}, ${data.tanggalLahir}")
+        if (data.pekerjaan.isNotEmpty()) TextPreview("Pekerjaan                : ${data.pekerjaan}")
+        TextPreview("Alamat                    : ${data.alamat}")
+        if (data.isiPernyataan.isNotBlank()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            TextPreview(data.isiPernyataan)
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Demikian surat pernyataan ini dibuat dengan sebenar-benarnya dan bermaterai cukup, untuk dapat dipergunakan sebagaimana mestinya.")
+        val desaTitleCase = header.namaDesa.trim().split("\\s+".toRegex()).joinToString(" ") {
+            it.lowercase().replaceFirstChar { c -> c.uppercase() }
+        }
+        PreviewSignatureColumns(header, date, desaTitleCase, listOf("Yang Menyatakan" to data.namaLengkap, "Mengetahui, Kepala Desa $desaTitleCase" to header.namaPejabat))
+    }
+}
+
+@Composable
+private fun PreviewPbiTidakPunyaRekeningContent(header: HeaderData, data: PbiTidakPunyaRekeningData, date: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        TextPreview("Yang bertanda tangan di bawah ini:")
+        TextPreview("Nama                       : ${data.namaLengkap}")
+        TextPreview("NIK                          : ${data.nik}")
+        if (data.tempatLahir.isNotEmpty() || data.tanggalLahir.isNotEmpty()) TextPreview("Tempat/Tanggal Lahir : ${data.tempatLahir}, ${data.tanggalLahir}")
+        if (data.pekerjaan.isNotEmpty()) TextPreview("Pekerjaan                : ${data.pekerjaan}")
+        TextPreview("Alamat                    : ${data.alamat}")
+        Spacer(modifier = Modifier.height(8.dp))
+        TextPreview("Dengan ini menyatakan dengan sesungguhnya bahwa sampai saat ini saya tidak memiliki rekening bank atas nama saya sendiri.")
+        TextPreview("Demikian surat pernyataan ini dibuat dengan sebenar-benarnya dan bermaterai cukup, untuk dapat dipergunakan sebagaimana mestinya.")
+        val desaTitleCase = header.namaDesa.trim().split("\\s+".toRegex()).joinToString(" ") {
+            it.lowercase().replaceFirstChar { c -> c.uppercase() }
+        }
+        PreviewSignatureColumns(header, date, desaTitleCase, listOf("Yang Menyatakan" to data.namaLengkap, "Mengetahui, Kepala Desa $desaTitleCase" to header.namaPejabat))
+    }
 }

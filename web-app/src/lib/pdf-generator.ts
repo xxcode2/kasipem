@@ -11,6 +11,11 @@ import {
  * SATU-SATUNYA generator PDF (pdf-generator-v2.ts dihapus).
  * Merender struktur yang sama dengan preview (getLetterContent) — satu
  * sumber kebenaran, jadi PDF tidak bisa kosong untuk satu jenis pun.
+ *
+ * Fase 2: blok 'table' (daftar anggota/anak/kolektif, header berulang
+ * tiap halaman), kop Disdukcapil teks saja untuk formulir seri F,
+ * hideNomor untuk formulir yang tidak bernomor, multi-halaman untuk
+ * formulir panjang (F-1.01, F-2.01, F-1.03, PBI Asesmen).
  */
 
 export interface GeneratePdfOptions {
@@ -133,8 +138,78 @@ function addFields(doc: jsPDF, rows: { label: string; value: string }[], y: numb
   return y + 2;
 }
 
+/** Render blok tabel (jsPDF): header tebal + garis grid, font kecil, header berulang tiap halaman. */
+function addTable(
+  doc: jsPDF,
+  block: Extract<ContentBlock, { kind: 'table' }>,
+  y: number,
+): number {
+  const fontSize = 8;
+  const lineHeight = 4.2;
+  const cellPad = 1.2;
+  const weights = block.widths && block.widths.length === block.headers.length
+    ? block.widths
+    : block.headers.map(() => 100 / block.headers.length);
+  const totalW = weights.reduce((a, b) => a + b, 0) || 1;
+  const colWidths = weights.map((w) => (w / totalW) * CONTENT_WIDTH);
+  const colX: number[] = [];
+  colWidths.reduce((acc, w) => {
+    colX.push(acc);
+    return acc + w;
+  }, MARGIN_LEFT);
+
+  const drawHeader = (yy: number): number => {
+    doc.setFont('Times', 'bold');
+    doc.setFontSize(fontSize);
+    const headerLines = block.headers.map((h, i) =>
+      doc.splitTextToSize(h, colWidths[i] - cellPad * 2),
+    );
+    const h = Math.max(...headerLines.map((ls) => ls.length)) * lineHeight + cellPad * 2;
+    doc.setFillColor(240, 240, 240);
+    doc.rect(MARGIN_LEFT, yy, CONTENT_WIDTH, h, 'F');
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.3);
+    doc.rect(MARGIN_LEFT, yy, CONTENT_WIDTH, h, 'S');
+    block.headers.forEach((_, i) => {
+      doc.text(headerLines[i], colX[i] + cellPad, yy + cellPad + lineHeight * 0.8);
+      if (i > 0) doc.line(colX[i], yy, colX[i], yy + h);
+    });
+    return yy + h;
+  };
+
+  // Header butuh ruang; bila tidak muat, pindah halaman dulu.
+  y = ensureSpace(doc, y, lineHeight + cellPad * 2 + 2);
+  y = drawHeader(y);
+
+  doc.setFont('Times', 'normal');
+  doc.setFontSize(fontSize);
+  for (const r of block.rows) {
+    const cellLines = r.map((cell, i) =>
+      doc.splitTextToSize(cell || '', colWidths[i] - cellPad * 2),
+    );
+    const rowH = Math.max(...cellLines.map((ls) => ls.length)) * lineHeight + cellPad * 2;
+    if (y + rowH > PAGE_BOTTOM) {
+      doc.addPage();
+      y = MARGIN_TOP;
+      y = drawHeader(y);
+      doc.setFont('Times', 'normal');
+      doc.setFontSize(fontSize);
+    }
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.3);
+    doc.rect(MARGIN_LEFT, y, CONTENT_WIDTH, rowH, 'S');
+    r.forEach((_, i) => {
+      doc.text(cellLines[i], colX[i] + cellPad, y + cellPad + lineHeight * 0.8);
+      if (i > 0) doc.line(colX[i], y, colX[i], y + rowH);
+    });
+    y += rowH;
+  }
+  return y + 3;
+}
+
 function addBlock(doc: jsPDF, block: ContentBlock, y: number): number {
   if (block.kind === 'fields') return addFields(doc, block.rows, y);
+  if (block.kind === 'table') return addTable(doc, block, y);
   if (block.kind === 'list') {
     if (block.heading) y = addParagraph(doc, block.heading, y);
     for (const item of block.items) {
@@ -150,32 +225,50 @@ function addBlock(doc: jsPDF, block: ContentBlock, y: number): number {
   return yy;
 }
 
-function addHeader(doc: jsPDF, header: HeaderData, logos: { garuda: LogoImage | null; subang: LogoImage | null }): number {
+function addHeader(
+  doc: jsPDF,
+  header: HeaderData,
+  content: LetterContent,
+  logos: { garuda: LogoImage | null; subang: LogoImage | null },
+): number {
   let y = MARGIN_TOP;
-  const logoH = 20; // mm
   const centerX = A4_WIDTH / 2;
 
-  // Logo Garuda (kiri) dan logo Subang (kanan), proporsional.
-  if (logos.garuda) {
-    const w = (logoH * logos.garuda.width) / logos.garuda.height;
-    doc.addImage(logos.garuda.dataUrl, logos.garuda.format, MARGIN_LEFT, y, w, logoH);
-  }
-  if (logos.subang) {
-    const w = (logoH * logos.subang.width) / logos.subang.height;
-    doc.addImage(logos.subang.dataUrl, logos.subang.format, A4_WIDTH - MARGIN_RIGHT - w, y, w, logoH);
-  }
+  if (content.kop === 'disdukcapil') {
+    // Kop Disdukcapil Subang — TEKS saja, tanpa logo desa.
+    doc.setFont('Times', 'bold');
+    doc.setFontSize(13);
+    doc.text('PEMERINTAH KABUPATEN SUBANG', centerX, y + 5, { align: 'center' });
+    doc.text('DINAS KEPENDUDUKAN DAN PENCATATAN SIPIL', centerX, y + 10, { align: 'center' });
+    doc.setFont('Times', 'normal');
+    doc.setFontSize(11);
+    doc.text('Jl. Mayjen Sutoyo S. No. 50 Subang — Telp. (0260) 411424', centerX, y + 15, { align: 'center' });
+    y += 21;
+  } else {
+    const logoH = 20; // mm
+    // Logo Garuda (kiri) dan logo Subang (kanan), proporsional.
+    if (logos.garuda) {
+      const w = (logoH * logos.garuda.width) / logos.garuda.height;
+      doc.addImage(logos.garuda.dataUrl, logos.garuda.format, MARGIN_LEFT, y, w, logoH);
+    }
+    if (logos.subang) {
+      const w = (logoH * logos.subang.width) / logos.subang.height;
+      doc.addImage(logos.subang.dataUrl, logos.subang.format, A4_WIDTH - MARGIN_RIGHT - w, y, w, logoH);
+    }
 
-  doc.setFont('Times', 'bold');
-  doc.setFontSize(13);
-  doc.text(`PEMERINTAH ${(header.namaKabupaten || 'Subang').toUpperCase()}`, centerX, y + 5, { align: 'center' });
-  doc.text(`KECAMATAN ${(header.namaKecamatan || 'Kasomalang').toUpperCase()}`, centerX, y + 10, { align: 'center' });
-  doc.text(`DESA ${(header.namaDesa || 'Kasomalang Kulon').toUpperCase()}`, centerX, y + 15, { align: 'center' });
-  doc.setFont('Times', 'normal');
-  doc.setFontSize(11);
-  doc.text(`Alamat: ${header.alamatKantor}`, centerX, y + 20, { align: 'center' });
+    doc.setFont('Times', 'bold');
+    doc.setFontSize(13);
+    doc.text(`PEMERINTAH ${(header.namaKabupaten || 'Subang').toUpperCase()}`, centerX, y + 5, { align: 'center' });
+    doc.text(`KECAMATAN ${(header.namaKecamatan || 'Kasomalang').toUpperCase()}`, centerX, y + 10, { align: 'center' });
+    doc.text(`DESA ${(header.namaDesa || 'Kasomalang Kulon').toUpperCase()}`, centerX, y + 15, { align: 'center' });
+    doc.setFont('Times', 'normal');
+    doc.setFontSize(11);
+    doc.text(`Alamat: ${header.alamatKantor}`, centerX, y + 20, { align: 'center' });
+
+    y += 26;
+  }
 
   // Garis ganda: tebal + tipis
-  y += 26;
   doc.setDrawColor(0, 0, 0);
   doc.setLineWidth(1.0);
   doc.line(MARGIN_LEFT, y, MARGIN_LEFT + CONTENT_WIDTH, y);
@@ -189,13 +282,14 @@ function addHeader(doc: jsPDF, header: HeaderData, logos: { garuda: LogoImage | 
 function addSignature(doc: jsPDF, content: LetterContent, y: number): number {
   const rightCenter = MARGIN_LEFT + CONTENT_WIDTH * 0.75;
   const leftCenter = MARGIN_LEFT + CONTENT_WIDTH * 0.25;
+  const blockW = CONTENT_WIDTH * 0.45;
   doc.setFont('Times', 'normal');
   doc.setFontSize(12);
 
   y = ensureSpace(doc, y, 55);
   y += 4;
 
-  // Blok kiri (khusus SKTM: Mengetahui, Ketua RW)
+  // Blok kiri (khusus SKTM: Mengetahui, Ketua RW; F-1.05: Istri; dsb.)
   if (content.leftSigner) {
     const lx = leftCenter;
     let ly = y;
@@ -203,9 +297,16 @@ function addSignature(doc: jsPDF, content: LetterContent, y: number): number {
       doc.text(content.leftSigner.prefix, lx, ly, { align: 'center' });
       ly += 5.5;
     }
-    doc.text(content.leftSigner.role, lx, ly, { align: 'center' });
+    const roleLines = doc.splitTextToSize(content.leftSigner.role, blockW);
+    doc.text(roleLines, lx, ly, { align: 'center', maxWidth: blockW });
+    ly += roleLines.length * 5.5;
     ly += 22;
-    doc.text('____________________', lx, ly, { align: 'center' });
+    doc.setFont('Times', 'bold');
+    doc.text(content.leftSigner.name || '____________________', lx, ly, {
+      align: 'center',
+      maxWidth: blockW,
+    });
+    doc.setFont('Times', 'normal');
   }
 
   // Blok kanan (penandatangan)
@@ -213,13 +314,18 @@ function addSignature(doc: jsPDF, content: LetterContent, y: number): number {
   doc.text(content.placeDate, rightCenter, ry, { align: 'center' });
   ry += 5.5;
   if (content.signer.prefix) {
-    doc.text(content.signer.prefix, rightCenter, ry, { align: 'center' });
-    ry += 5.5;
+    const prefixLines = doc.splitTextToSize(content.signer.prefix, blockW);
+    doc.text(prefixLines, rightCenter, ry, { align: 'center', maxWidth: blockW });
+    ry += prefixLines.length * 5.5;
   }
-  doc.text(content.signer.role, rightCenter, ry, { align: 'center' });
+  const roleLines = doc.splitTextToSize(content.signer.role, blockW);
+  doc.text(roleLines, rightCenter, ry, { align: 'center', maxWidth: blockW });
+  ry += roleLines.length * 5.5;
   ry += 22;
   doc.setFont('Times', 'bold');
-  doc.text(content.signer.name, rightCenter, ry, { align: 'center' });
+  const nameLines = doc.splitTextToSize(content.signer.name, blockW);
+  doc.text(nameLines, rightCenter, ry, { align: 'center', maxWidth: blockW });
+  ry += (nameLines.length - 1) * 5.5;
   // NIP hanya dirender bila ada isinya — pejabat desa ini tidak punya NIP.
   if (content.signer.nip) {
     ry += 5.5;
@@ -237,25 +343,33 @@ export async function generatePdf(options: GeneratePdfOptions): Promise<Blob> {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const content = getLetterContent(letterType, headerData, letterData);
 
-  // Muat logo (gagal -> kop teks saja, jangan crash).
-  const [garuda, subang] = await Promise.all([
-    loader(headerData.logoGaruda || '/kop/kades.jpg'),
-    loader(headerData.logoSubang || '/kop/sekdes.jpg'),
-  ]);
+  // Muat logo hanya untuk kop desa; formulir Disdukcapil kop-nya teks saja.
+  let garuda: LogoImage | null = null;
+  let subang: LogoImage | null = null;
+  if (content.kop === 'desa') {
+    [garuda, subang] = await Promise.all([
+      loader(headerData.logoGaruda || '/kop/kades.jpg'),
+      loader(headerData.logoSubang || '/kop/sekdes.jpg'),
+    ]);
+  }
 
-  let y = addHeader(doc, headerData, { garuda, subang });
+  let y = addHeader(doc, headerData, content, { garuda, subang });
 
-  // Judul + nomor
+  // Judul (+ nomor, kecuali formulir yang memang tidak bernomor)
   doc.setFont('Times', 'bold');
   doc.setFontSize(13);
-  doc.text(content.title, A4_WIDTH / 2, y, { align: 'center' });
-  y += 6;
-  doc.setFont('Times', 'normal');
-  doc.setFontSize(12);
-  doc.text(`Nomor : ${content.nomor || '............................................'}`, A4_WIDTH / 2, y, {
-    align: 'center',
-  });
-  y += 10;
+  const titleLines = doc.splitTextToSize(content.title, CONTENT_WIDTH);
+  doc.text(titleLines, A4_WIDTH / 2, y, { align: 'center' });
+  y += titleLines.length * 6;
+  if (!content.hideNomor) {
+    doc.setFont('Times', 'normal');
+    doc.setFontSize(12);
+    doc.text(`Nomor : ${content.nomor || '............................................'}`, A4_WIDTH / 2, y, {
+      align: 'center',
+    });
+    y += 6;
+  }
+  y += 4;
 
   // Pembuka
   if (content.intro) y = addParagraph(doc, content.intro, y);
